@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
 
-contract FlashBorrower is IERC3156FlashBorrower {
+contract FlashBorrower is IERC3156FlashBorrower, Ownable {
     enum Action {
         NORMAL,
         STEAL,
@@ -19,6 +20,10 @@ contract FlashBorrower is IERC3156FlashBorrower {
     address public flashToken;
     uint256 public flashAmount;
     uint256 public flashFee;
+
+    address[] public whitelistedLenders;
+
+    event LenderWhitelisted(address indexed lender);
 
     /// @dev ERC-3156 Flash loan callback
     function onFlashLoan(
@@ -42,6 +47,25 @@ contract FlashBorrower is IERC3156FlashBorrower {
             flashBorrow(IERC3156FlashLender(msg.sender), token, amount * 2);
         }
         return CALLBACK_SUCCESS;
+    }
+
+    function whitelistLender(address lender) external onlyOwner {
+        require(lender != address(0), "FlashBorrower: INVALID_LENDER");
+        whitelistedLenders.push(lender);
+        emit LenderWhitelisted(lender);
+    }
+
+    function flashBorrow(address token, uint256 amount) external {
+        uint256 index;
+        uint256 minimumFee = type(uint256).max;
+        for (uint256 i; i < whitelistedLenders.length; i += 1) {
+            uint256 fee = IERC3156FlashLender(whitelistedLenders[i]).flashFee(token, amount);
+            if (fee < minimumFee) {
+                fee = minimumFee;
+                index = i;
+            }
+        }
+        flashBorrow(IERC3156FlashLender(whitelistedLenders[index]), token, amount);
     }
 
     function flashBorrow(
