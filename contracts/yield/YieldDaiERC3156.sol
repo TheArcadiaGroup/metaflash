@@ -1,23 +1,17 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Derived from https://github.com/yieldprotocol/fyDai-flash
-pragma solidity ^0.8.4;
+pragma solidity ^0.7.5;
 
-import "@openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./libraries/SafeCast.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/YieldFlashBorrowerLike.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IFYDai.sol";
 
 interface IYieldMathWrapper {
-    function daiInForFYDaiOut(
-        uint128,
-        uint128,
-        uint128,
-        uint128,
-        int128,
-        int128
-    ) external view returns (bool, uint128);
+    function daiInForFYDaiOut(uint128, uint128, uint128, uint128, int128, int128) external view returns (bool, uint128);
 }
 
 /**
@@ -25,13 +19,14 @@ interface IYieldMathWrapper {
  */
 contract YieldDaiERC3156 is IERC3156FlashLender, YieldFlashBorrowerLike {
     using SafeCast for uint256;
+    using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
     IPool public pool;
     IYieldMathWrapper public yieldMath;
 
     /// @param pool_ One of Yield Pool addresses
-    constructor(IPool pool_, IYieldMathWrapper yieldMath_) {
+    constructor (IPool pool_, IYieldMathWrapper yieldMath_) {
         pool = pool_;
         yieldMath = yieldMath_;
 
@@ -63,15 +58,15 @@ contract YieldDaiERC3156 is IERC3156FlashLender, YieldFlashBorrowerLike {
 
         // To obtain the result of a trade on hypothetical reserves we need to call the YieldMath library
         (, uint256 daiRepaid) = yieldMath.daiInForFYDaiOut(
-            (uint256(pool.getDaiReserves()) - amount).toUint128(), // Dai reserves minus Dai we just bought
-            (uint256(pool.getFYDaiReserves()) + fyDaiAmount).toUint128(), // fyDai reserves plus fyDai we just sold
-            fyDaiAmount, // fyDai flash mint we have to repay
-            (pool.fyDai().maturity() - block.timestamp).toUint128(), // This can't be called after maturity
-            int128(int256(uint256((1 << 64)) / 126144000)), // 1 / Seconds in 4 years, in 64.64
-            int128(int256(uint256((950 << 64)) / 1000)) // Fees applied when selling Dai to the pool, in 64.64
+            (uint256(pool.getDaiReserves()).sub(amount)).toUint128(),           // Dai reserves minus Dai we just bought
+            (uint256(pool.getFYDaiReserves()).add(fyDaiAmount)).toUint128(),    // fyDai reserves plus fyDai we just sold
+            fyDaiAmount,                                                        // fyDai flash mint we have to repay
+            (pool.fyDai().maturity() - block.timestamp).toUint128(),                      // This can't be called after maturity
+            int128(uint256((1 << 64)) / 126144000),                             // 1 / Seconds in 4 years, in 64.64
+            int128(uint256((950 << 64)) / 1000)                                 // Fees applied when selling Dai to the pool, in 64.64
         );
 
-        return daiRepaid - amount;
+        return daiRepaid.sub(amount);
     }
 
     /**
@@ -81,12 +76,7 @@ contract YieldDaiERC3156 is IERC3156FlashLender, YieldFlashBorrowerLike {
      * @param amount The amount of tokens lent.
      * @param userData A data parameter to be passed on to the `receiver` for any custom use.
      */
-    function flashLoan(
-        IERC3156FlashBorrower receiver,
-        address token,
-        uint256 amount,
-        bytes memory userData
-    ) public override returns (bool) {
+    function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes memory userData) public override returns(bool) {
         require(token == address(pool.dai()), "Unsupported currency");
         bytes memory data = abi.encode(msg.sender, receiver, amount, userData);
         uint256 fyDaiAmount = pool.buyDaiPreview(amount.toUint128());
@@ -98,22 +88,17 @@ contract YieldDaiERC3156 is IERC3156FlashLender, YieldFlashBorrowerLike {
     function executeOnFlashMint(uint256 fyDaiAmount, bytes memory data) public override {
         require(msg.sender == address(pool.fyDai()), "Callbacks only allowed from fyDai contract");
 
-        (
-            address origin,
-            IERC3156FlashBorrower receiver,
-            uint256 amount,
-            bytes memory userData
-        ) = abi.decode(data, (address, IERC3156FlashBorrower, uint256, bytes));
+        (address origin, IERC3156FlashBorrower receiver, uint256 amount, bytes memory userData) = 
+            abi.decode(data, (address, IERC3156FlashBorrower, uint256, bytes));
 
         uint256 paidFYDai = pool.buyDai(address(this), address(receiver), amount.toUint128());
 
-        uint256 fee = uint256(pool.buyFYDaiPreview(fyDaiAmount.toUint128())) - amount;
+        uint256 fee = uint256(pool.buyFYDaiPreview(fyDaiAmount.toUint128())).sub(amount);
         require(
-            receiver.onFlashLoan(origin, address(pool.dai()), amount, fee, userData) ==
-                CALLBACK_SUCCESS,
+            receiver.onFlashLoan(origin, address(pool.dai()), amount, fee, userData) == CALLBACK_SUCCESS,
             "Callback failed"
         );
-        pool.dai().transferFrom(address(receiver), address(this), amount + fee);
-        pool.sellDai(address(this), address(this), (amount + fee).toUint128());
+        pool.dai().transferFrom(address(receiver), address(this), amount.add(fee));
+        pool.sellDai(address(this), address(this), amount.add(fee).toUint128());
     }
 }

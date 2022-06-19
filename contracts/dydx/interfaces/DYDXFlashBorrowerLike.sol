@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.7.5;
 pragma experimental ABIEncoderV2;
 
 import "../libraries/DYDXDataTypes.sol";
@@ -11,6 +11,7 @@ import "../libraries/DYDXDataTypes.sol";
  * Interface that Callees for Solo must implement in order to ingest data.
  */
 interface DYDXFlashBorrowerLike {
+
     // ============ Public Functions ============
 
     /**
@@ -24,5 +25,6 @@ interface DYDXFlashBorrowerLike {
         address sender,
         DYDXDataTypes.AccountInfo memory accountInfo,
         bytes memory data
-    ) external;
+    )
+    external;
 }

@@ -1,27 +1,38 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Derived from https://docs.aave.com/developers/guides/flash-loans
-pragma solidity ^0.8.4;
+pragma solidity ^0.7.5;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/AaveFlashBorrowerLike.sol";
 import "./interfaces/LendingPoolLike.sol";
 import "./interfaces/LendingPoolAddressesProviderLike.sol";
 import "./libraries/AaveDataTypes.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 
 /**
  * @author Alberto Cuesta Cañada
  * @dev ERC-3156 wrapper for Aave flash loans.
  */
-contract AaveERC3156 is IERC3156FlashLender, AaveFlashBorrowerLike {
+contract AaveERC3156 is IERC3156FlashLender, AaveFlashBorrowerLike, Ownable {
+    using SafeMath for uint256;
+
     bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
     LendingPoolLike public lendingPool;
+    address public FEETO;
 
     /// @param provider Aave v2 LendingPoolAddresses address
-    constructor(LendingPoolAddressesProviderLike provider) {
+    constructor(LendingPoolAddressesProviderLike provider, address feeTo) {
         lendingPool = LendingPoolLike(provider.getLendingPool());
+        FEETO = feeTo;
+    }
+
+    function setFeeTo(address feeTo) public onlyOwner {
+        FEETO = feeTo;
     }
 
     /**
@@ -31,22 +42,33 @@ contract AaveERC3156 is IERC3156FlashLender, AaveFlashBorrowerLike {
      */
     function maxFlashLoan(address token) external view override returns (uint256) {
         AaveDataTypes.ReserveData memory reserveData = lendingPool.getReserveData(token);
-        return
-            reserveData.aTokenAddress != address(0)
-                ? IERC20(token).balanceOf(reserveData.aTokenAddress)
-                : 0;
+        return reserveData.aTokenAddress != address(0) ? IERC20(token).balanceOf(reserveData.aTokenAddress) : 0;
     }
 
-    /**
-     * @dev From ERC-3156. The fee to be charged for a given loan.
-     * @param token The loan currency.
-     * @param amount The amount of tokens lent.
-     * @return The amount of `token` to be charged for the loan, on top of the returned principal.
-     */
-    function flashFee(address token, uint256 amount) external view override returns (uint256) {
+    function flashFee(address token, uint256 amount)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        uint256 aaveFee = _aaveFee(token, amount);
+        uint256 additionalFee = _additionalFee(amount);
+        uint256 totalFee = aaveFee.add(additionalFee);
+        return totalFee;
+    }
+
+    function _aaveFee(address token, uint256 amount)
+        internal
+        view
+        returns (uint256)
+    {
         AaveDataTypes.ReserveData memory reserveData = lendingPool.getReserveData(token);
         require(reserveData.aTokenAddress != address(0), "Unsupported currency");
-        return (amount * 9) / 10000; // lendingPool.FLASHLOAN_PREMIUM_TOTAL()
+        return amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
+    }
+
+    function _additionalFee(uint256 amount) internal view returns (uint256) {
+        return amount.mul(5).div(1000);
     }
 
     /**
@@ -56,12 +78,7 @@ contract AaveERC3156 is IERC3156FlashLender, AaveFlashBorrowerLike {
      * @param amount The amount of tokens lent.
      * @param userData A data parameter to be passed on to the `receiver` for any custom use.
      */
-    function flashLoan(
-        IERC3156FlashBorrower receiver,
-        address token,
-        uint256 amount,
-        bytes calldata userData
-    ) external override returns (bool) {
+    function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata userData) external override returns(bool) {
         address[] memory tokens = new address[](1);
         tokens[0] = address(token);
 
@@ -95,29 +112,35 @@ contract AaveERC3156 is IERC3156FlashLender, AaveFlashBorrowerLike {
         uint256[] calldata fees,
         address sender,
         bytes calldata data
-    ) external override returns (bool) {
+    )
+        external override returns (bool)
+    {
         require(msg.sender == address(lendingPool), "Callbacks only allowed from Lending Pool");
         require(sender == address(this), "Callbacks only initiated from this contract");
 
-        (address origin, IERC3156FlashBorrower receiver, bytes memory userData) = abi.decode(
-            data,
-            (address, IERC3156FlashBorrower, bytes)
-        );
+        (address origin, IERC3156FlashBorrower receiver, bytes memory userData) = 
+            abi.decode(data, (address, IERC3156FlashBorrower, bytes));
 
         address token = tokens[0];
         uint256 amount = amounts[0];
-        uint256 fee = fees[0];
+
+        uint256 totalFee = flashFee(token, amount);
 
         // Send the tokens to the original receiver using the ERC-3156 interface
         IERC20(token).transfer(origin, amount);
         require(
-            receiver.onFlashLoan(origin, token, amount, fee, userData) == CALLBACK_SUCCESS,
+            receiver.onFlashLoan(origin, token, amount, totalFee, userData) == CALLBACK_SUCCESS,
             "Callback failed"
         );
-        IERC20(token).transferFrom(origin, address(this), amount + fee);
+        IERC20(token).transferFrom(origin, address(this), amount.add(totalFee));
+
+        uint256 addtionalFee = _additionalFee(amount);
+        IERC20(token).transfer(FEETO, addtionalFee);
+
+        uint256 aaveFee = _aaveFee(token, amount);
 
         // Approve the LendingPool contract allowance to *pull* the owed amount
-        IERC20(token).approve(address(lendingPool), amount + fee);
+        IERC20(token).approve(address(lendingPool), amount.add(aaveFee));
 
         return true;
     }

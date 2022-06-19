@@ -1,13 +1,14 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Derived from https://github.com/Uniswap/uniswap-v2-core/blob/master/contracts/UniswapV2Factory.sol
 
-pragma solidity ^0.8.4;
+pragma solidity ^0.7.5;
 
 import "../interfaces/UniswapV2FactoryLike.sol";
 import "../interfaces/UniswapV2PairLike.sol";
 import "./UniswapV2PairMock.sol";
 
 contract UniswapV2FactoryMock is UniswapV2FactoryLike {
+
     mapping(address => mapping(address => address)) public override getPair;
 
     function createPair(address tokenA, address tokenB) external returns (address pair) {
