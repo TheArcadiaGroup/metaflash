@@ -9,40 +9,42 @@ describe('UniswapERC3156', () => {
   const reserves = BigNumber.from(100000);
 
   beforeEach(async () => {
-    [_, feeTo, user] = await ethers.getSigners();
+    [owner, feeTo, user] = await ethers.getSigners();
 
-    const ERC20Currency = await ethers.getContractFactory('ERC20Mock');
-    const UniswapV2Factory = await ethers.getContractFactory('UniswapV2FactoryMock');
-    const UniswapV2Pair = await ethers.getContractFactory('UniswapV2PairMock');
-    const UniswapERC3156 = await ethers.getContractFactory('UniswapERC3156');
+    const ERC20Currency = await ethers.getContractFactory('ERC20MockV3');
+    const UniswapV3Factory = await ethers.getContractFactory('UniswapV3Factory');
+    const UniswapV3Pool = await ethers.getContractFactory('UniswapV3Pool');
+    const UniswapV3ERC3156 = await ethers.getContractFactory('UniswapV3ERC3156');
     const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
 
     weth = await ERC20Currency.deploy('WETH', 'WETH');
     dai = await ERC20Currency.deploy('DAI', 'DAI');
     usdc = await ERC20Currency.deploy('USDC', 'USDC');
 
-    uniswapFactory = await UniswapV2Factory.deploy();
+    uniswapFactory = await UniswapV3Factory.deploy();
 
     // First we do a .callStatic to retrieve the pair address, which is deterministic because of create2. Then we create the pair.
-    wethDaiPairAddress = await uniswapFactory.callStatic.createPair(weth.address, dai.address);
-    await uniswapFactory.createPair(weth.address, dai.address);
-    wethDaiPair = await UniswapV2Pair.attach(wethDaiPairAddress);
+    wethDaiPairAddress = await uniswapFactory.callStatic.createPool(weth.address, dai.address, 500);
+    await uniswapFactory.createPool(weth.address, dai.address, 500);
+    wethDaiPair = await UniswapV3Pool.attach(wethDaiPairAddress);
+    await wethDaiPair.initialize(4295128739);
 
-    wethUsdcPairAddress = await uniswapFactory.callStatic.createPair(weth.address, usdc.address);
-    await uniswapFactory.createPair(weth.address, usdc.address);
-    wethUsdcPair = await UniswapV2Pair.attach(wethUsdcPairAddress);
+    wethUsdcPairAddress = await uniswapFactory.callStatic.createPool(weth.address, usdc.address, 500);
+    await uniswapFactory.createPool(weth.address, usdc.address, 500);
+    wethUsdcPair = await UniswapV3Pool.attach(wethUsdcPairAddress);
+    await wethUsdcPair.initialize("4295128739");
 
-    lender = await UniswapERC3156.deploy(feeTo.address);
+    lender = await UniswapV3ERC3156.deploy(feeTo.address);
 
     borrower = await FlashBorrower.deploy();
 
     await weth.mint(wethDaiPair.address, reserves);
     await dai.mint(wethDaiPair.address, reserves);
-    await wethDaiPair.mint();
+    await wethDaiPair.mint(wethDaiPair.address, -1000, 1000, 3000000, []);
 
     await weth.mint(wethUsdcPair.address, reserves);
     await usdc.mint(wethUsdcPair.address, reserves);
-    await wethUsdcPair.mint();
+    await wethUsdcPair.mint(wethUsdcPair.address, -1000, 1000, 3000000, []);
 
     await lender.addPair([weth.address], [dai.address], [wethDaiPairAddress]);
   });

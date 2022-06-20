@@ -7,14 +7,14 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-import "./interfaces/UniswapV2PairLike.sol";
-import "./interfaces/UniswapV2FactoryLike.sol";
-import "./interfaces/UniswapV2FlashBorrowerLike.sol";
+import "./interfaces/IUniswapV3Pool.sol";
+// import "./interfaces/UniswapV2FactoryLike.sol";
+import "./interfaces/callback/IUniswapV3FlashCallback.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract UniswapERC3156 is
+contract UniswapV3ERC3156 is
     IERC3156FlashLender,
-    UniswapV2FlashBorrowerLike,
+    IUniswapV3FlashCallback,
     Ownable
 {
     using SafeMath for uint256;
@@ -157,7 +157,7 @@ contract UniswapERC3156 is
         (pairAddress, ) = _biggestPair(token);
         require(pairAddress != address(0), "Unsupported currency");
 
-        UniswapV2PairLike pair = UniswapV2PairLike(pairAddress);
+        IUniswapV3Pool pair = IUniswapV3Pool(pairAddress);
 
         if (permissionedPairAddress != pairAddress)
             permissionedPairAddress = pairAddress; // access control
@@ -166,16 +166,17 @@ contract UniswapERC3156 is
         address token1 = pair.token1();
         uint256 amount0Out = token == token0 ? amount : 0;
         uint256 amount1Out = token == token1 ? amount : 0;
-        bytes memory data = abi.encode(msg.sender, receiver, token, userData);
-        pair.swap(amount0Out, amount1Out, address(this), data);
+
+        bytes memory data = abi.encode(msg.sender, receiver, token, amount, userData);
+
+        pair.flash(address(this), amount0Out, amount1Out, data);
         return true;
     }
 
     /// @dev Uniswap flash loan callback. It sends the value borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
-    function uniswapV2Call(
-        address sender,
-        uint256 amount0,
-        uint256 amount1,
+    function uniswapV3FlashCallback(
+        uint256 fee0,
+        uint256 fee1,
         bytes calldata data
     ) external override {
         // access control
@@ -183,17 +184,18 @@ contract UniswapERC3156 is
             msg.sender == permissionedPairAddress,
             "only permissioned UniswapV2 pair can call"
         );
-        require(sender == address(this), "only this contract may initiate");
+        // require(sender == address(this), "only this contract may initiate");
 
-        uint256 amount = amount0 > 0 ? amount0 : amount1;
+        // uint256 amount = amount0 > 0 ? amount0 : amount1;
 
         // decode data
         (
             address origin,
             IERC3156FlashBorrower receiver,
             address token,
+            uint256 amount,
             bytes memory userData
-        ) = abi.decode(data, (address, IERC3156FlashBorrower, address, bytes));
+        ) = abi.decode(data, (address, IERC3156FlashBorrower, address, uint256, bytes));
 
         uint256 totalFee = flashFee(token, amount);
 
