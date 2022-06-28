@@ -206,6 +206,6 @@ contract DODOERC3156 is IERC3156FlashLender, IDODOFlashBorrower, Ownable {
         IERC20(token).transfer(FEETO, addtionalFee);
 
         uint256 dodoFee = _dodoFee(token, amount);
-        // IERC20(token).transfer(msg.sender, amount.sub(dodoFee));
+        IERC20(token).transfer(msg.sender, amount.sub(dodoFee));
     }
 }
