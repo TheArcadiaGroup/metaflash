@@ -24,94 +24,139 @@ import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
 import "@boringcrypto/boring-solidity/contracts/BoringOwnable.sol";
 
-contract SushiSwapERC3156 is IERC3156FlashLender, IFlashBorrower, BoringOwnable {
+contract SushiSwapERC3156 is
+    IERC3156FlashLender,
+    IFlashBorrower,
+    BoringOwnable
+{
     using BoringERC20 for IERC20;
     using BoringMath for uint256;
     address public FEETO;
 
     IBentoBox bentobox;
-    bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
+    bytes32 public constant CALLBACK_SUCCESS =
+        keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     // --- Init ---
     constructor(address _bentobox, address _feeTo) public {
+        require(
+            address(_bentobox) != address(0),
+            "SushiSwapERC3156: bentobox address is zero address!"
+        );
+        require(
+            address(_feeTo) != address(0),
+            "SushiSwapERC3156: feeTo address is zero address!"
+        );
         bentobox = IBentoBox(_bentobox);
         FEETO = _feeTo;
     }
 
-    function setFeeTo(address feeTo) public onlyOwner {
-        FEETO = feeTo;
+    function setFeeTo(address _feeTo) public onlyOwner {
+        require(
+            address(_feeTo) != address(0),
+            "SushiSwapERC3156: feeTo address is zero address!"
+        );
+        FEETO = _feeTo;
     }
 
     // --- ERC 3156 Spec ---
-    function maxFlashLoan(
-        address token
-    ) external override view returns (uint256) {
-        return IERC20(token).balanceOf(address(bentobox));
+    function maxFlashLoan(address _token)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return IERC20(_token).balanceOf(address(bentobox));
     }
 
-    function flashFee(address token, uint256 amount)
+    function flashFee(address _token, uint256 _amount)
         public
         view
         override
         returns (uint256)
     {
-        uint256 sushiFee = _sushiFee(token, amount);
-        uint256 additionalFee = _additionalFee(amount);
+        uint256 sushiFee = _sushiFee(_token, _amount);
+        uint256 additionalFee = _additionalFee(_amount);
         uint256 totalFee = sushiFee.add(additionalFee);
         return totalFee;
     }
 
-    function _sushiFee(address token, uint256 amount)
+    function _sushiFee(address _token, uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        return amount.mul(50)/100000;
+        return _amount.mul(50) / 100000;
     }
 
-    function _additionalFee(uint256 amount) internal view returns (uint256) {
-        return amount.mul(5)/(1000);
+    function _additionalFee(uint256 _amount) internal view returns (uint256) {
+        return _amount.mul(5) / (1000);
     }
 
     function flashLoan(
-        IERC3156FlashBorrower receiver,
-        address token,
-        uint256 amount,
-        bytes calldata data
-    ) external override returns (bool) {        
-        bytes memory data = abi.encode(msg.sender, receiver, amount, data);     
-        bentobox.flashLoan(IFlashBorrower(this), address(this), IERC20(token), amount, data);                                                   
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _data
+    ) external override returns (bool) {
+        bytes memory data = abi.encode(msg.sender, _receiver, _data);
+        bentobox.flashLoan(
+            IFlashBorrower(this),
+            address(this),
+            IERC20(_token),
+            _amount,
+            data
+        );
         return true;
     }
 
     function onFlashLoan(
-        address sender,
-        IERC20 token,
-        uint256 amount,
-        uint256 fee,
-        bytes calldata data
+        address _sender,
+        IERC20 _token,
+        uint256 _amount,
+        uint256 _fee,
+        bytes calldata _data
     ) external override {
-        require(msg.sender == address(bentobox), "Callback only from swapflashloan");
-        require(sender == address(this), "FlashLoan only from this contract");
-
-        (address origin, IERC3156FlashBorrower receiver, uint256 amount, bytes memory userData) = 
-            abi.decode(data, (address, IERC3156FlashBorrower, uint256, bytes));
-
-        // Transfer to `receiver`
-        token.safeTransfer(address(receiver), amount);
-
-        uint256 totalFee = flashFee(address(token), amount);
         require(
-            receiver.onFlashLoan(origin, address(token), amount, totalFee, userData) == CALLBACK_SUCCESS,
-            "Callback failed"
+            msg.sender == address(bentobox),
+            "SushiSwapERC3156: Callback only from swapflashloan"
+        );
+        require(
+            _sender == address(this),
+            "SushiSwapERC3156: FlashLoan only from this contract"
         );
 
-        token.safeTransferFrom(address(receiver), address(this), amount.add(totalFee));
+        (
+            address origin,
+            IERC3156FlashBorrower receiver,
+            bytes memory userData
+        ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
 
-        uint256 addtionalFee = _additionalFee(amount);
-        IERC20(token).safeTransfer(FEETO, addtionalFee);
+        // Transfer to `receiver`
+        _token.safeTransfer(address(receiver), _amount);
 
-        uint256 sushiFee = _sushiFee(address(token), amount);
-        token.safeTransfer(address(bentobox), amount.add(sushiFee));
+        uint256 totalFee = flashFee(address(_token), _amount);
+        require(
+            receiver.onFlashLoan(
+                origin,
+                address(_token),
+                _amount,
+                totalFee,
+                userData
+            ) == CALLBACK_SUCCESS,
+            "SushiSwapERC3156: Callback failed"
+        );
+
+        _token.safeTransferFrom(
+            address(receiver),
+            address(this),
+            _amount.add(totalFee)
+        );
+
+        uint256 addtionalFee = _additionalFee(_amount);
+        IERC20(_token).safeTransfer(FEETO, addtionalFee);
+
+        // uint256 sushiFee = _sushiFee(address(token), amount);
+        _token.safeTransfer(address(bentobox), _amount.add(_fee));
     }
 }

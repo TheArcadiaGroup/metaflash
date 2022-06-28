@@ -46,7 +46,7 @@ describe('DODOERC3156', () => {
 
     // // await wethDaiPair.mint();
 
-    await lender.addDVMPool([basetoken.address], [quotetoken.address], [dvmPoolAddress[0]]);
+    await lender.addDVMPools([basetoken.address], [quotetoken.address], [dvmPoolAddress[0]]);
   });
 
   it("feeTo: Revert if sender is not owner", async function () {
@@ -59,23 +59,23 @@ describe('DODOERC3156', () => {
   });
 
   it('addDVMPool: Revert if sender is not owner', async function () {
-    await expect(lender.connect(user).addDVMPool([basetoken.address], [quotetoken2.address], [dvmPoolAddress2[0]])).to.revertedWith('NOT_OWNER');
+    await expect(lender.connect(user).addDVMPools([basetoken.address], [quotetoken2.address], [dvmPoolAddress2[0]])).to.revertedWith('NOT_OWNER');
   });
 
   it("addDVMPool: Should update", async function () {
     await expect(lender.maxFlashLoan(quotetoken2.address)).to.revertedWith('Unsupported currency');
-    await lender.addDVMPool([basetoken.address], [quotetoken2.address], [dvmPoolAddress2[0]]);
+    await lender.addDVMPools([basetoken.address], [quotetoken2.address], [dvmPoolAddress2[0]]);
     expect(await lender.maxFlashLoan(quotetoken2.address)).to.equal(reserves);
   });
 
   it('removeDVMPool: Revert if sender is not owner', async function () {
-    await expect(lender.connect(user).removeDVMPool([dvmPoolAddress2[0]])).to.revertedWith('NOT_OWNER');
+    await expect(lender.connect(user).removeDVMPools([dvmPoolAddress2[0]])).to.revertedWith('NOT_OWNER');
   });
 
   it("removeDVMPool: Should update", async function () {
-    await lender.addDVMPool([basetoken.address], [quotetoken2.address], [dvmPoolAddress2[0]]);
+    await lender.addDVMPools([basetoken.address], [quotetoken2.address], [dvmPoolAddress2[0]]);
     expect(await lender.maxFlashLoan(quotetoken2.address)).to.equal(reserves);
-    await lender.removeDVMPool([dvmPoolAddress2[0]]);
+    await lender.removeDVMPools([dvmPoolAddress2[0]]);
     await expect(lender.maxFlashLoan(quotetoken2.address)).to.revertedWith('Unsupported currency');
   });
 

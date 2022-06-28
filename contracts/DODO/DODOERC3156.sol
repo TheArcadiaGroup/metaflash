@@ -37,7 +37,7 @@ contract DODOERC3156 is IERC3156FlashLender, IDODOFlashBorrower, Ownable {
         FEETO = feeTo;
     }
 
-    function addDVMPool(
+    function addDVMPools(
         address[] memory basetoken,
         address[] memory quotetoken,
         address[] memory dvmpool
@@ -62,7 +62,7 @@ contract DODOERC3156 is IERC3156FlashLender, IDODOFlashBorrower, Ownable {
         return true;
     }
 
-    function removeDVMPool(address[] memory dvmpool)
+    function removeDVMPools(address[] memory dvmpool)
         public
         onlyOwner
         returns (bool)

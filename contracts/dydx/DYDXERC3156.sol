@@ -15,15 +15,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
     using SafeMath for uint256;
 
-    bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
+    bytes32 public constant CALLBACK_SUCCESS =
+        keccak256("ERC3156FlashBorrower.onFlashLoan");
     uint256 internal NULL_ACCOUNT_ID = 0;
     uint256 internal NULL_MARKET_ID = 0;
-    DYDXDataTypes.AssetAmount internal NULL_AMOUNT = DYDXDataTypes.AssetAmount({
-        sign: false,
-        denomination: DYDXDataTypes.AssetDenomination.Wei,
-        ref: DYDXDataTypes.AssetReference.Delta,
-        value: 0
-    });
+    DYDXDataTypes.AssetAmount internal NULL_AMOUNT =
+        DYDXDataTypes.AssetAmount({
+            sign: false,
+            denomination: DYDXDataTypes.AssetDenomination.Wei,
+            ref: DYDXDataTypes.AssetReference.Delta,
+            value: 0
+        });
     bytes internal NULL_DATA = "";
 
     SoloMarginLike public soloMargin;
@@ -31,10 +33,17 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
     mapping(address => bool) public tokensRegistered;
     address public FEETO;
 
-    /// @param soloMargin_ DYDX SoloMargin address
-    constructor (SoloMarginLike soloMargin_, address feeTo_) {
-        soloMargin = soloMargin_;
-        FEETO = feeTo_;
+    constructor(SoloMarginLike _soloMargin, address _feeTo) {
+        require(
+            address(_soloMargin) != address(0),
+            "DYDXERC3156: _soloMargin address is zero address!"
+        );
+        require(
+            address(_feeTo) != address(0),
+            "DYDXERC3156: feeTo address is zero address!"
+        );
+        soloMargin = _soloMargin;
+        FEETO = _feeTo;
 
         for (uint256 marketId = 0; marketId <= 3; marketId++) {
             address token = soloMargin.getMarketTokenAddress(marketId);
@@ -43,57 +52,65 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
         }
     }
 
-    function setFeeTo(address feeTo) public onlyOwner {
-        FEETO = feeTo;
+    function setFeeTo(address _feeTo) public onlyOwner {
+        FEETO = _feeTo;
     }
 
-    /**
-     * @dev From ERC-3156. The amount of currency available to be lended.
-     * @param token The loan currency.
-     * @return The amount of `token` that can be borrowed.
-     */
-    function maxFlashLoan(address token) external view override returns (uint256) {
-        return tokensRegistered[token] == true ? IERC20(token).balanceOf(address(soloMargin)) : 0;
+    function maxFlashLoan(address _token)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return
+            tokensRegistered[_token] == true
+                ? IERC20(_token).balanceOf(address(soloMargin))
+                : 0;
     }
 
-    function flashFee(address token, uint256 amount)
+    function flashFee(address _token, uint256 _amount)
         public
         view
         override
         returns (uint256)
     {
-        uint256 dydxFee = _dydxFee(token, amount);
-        uint256 additionalFee = _additionalFee(amount);
+        uint256 dydxFee = _dydxFee(_token, _amount);
+        uint256 additionalFee = _additionalFee(_amount);
         uint256 totalFee = dydxFee.add(additionalFee);
         return totalFee;
     }
 
-    function _dydxFee(address token, uint256 amount)
+    function _dydxFee(address _token, uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        require(tokensRegistered[token], "Unsupported currency");
+        require(tokensRegistered[_token], "DYDXERC3156: Unsupported currency");
         return 2;
     }
 
-    function _additionalFee(uint256 amount) internal view returns (uint256) {
-        return amount.mul(5).div(1000);
+    function _additionalFee(uint256 _amount) internal view returns (uint256) {
+        return _amount.mul(5).div(1000);
     }
 
-    /**
-     * @dev From ERC-3156. Loan `value` tokens to `receiver`, which needs to return them plus fee to this contract within the same transaction.
-     * @param receiver The contract receiving the tokens, needs to implement the `onFlashLoan(address user, uint256 value, uint256 fee, bytes calldata)` interface.
-     * @param token The loan currency.
-     * @param amount The amount of tokens lent.
-     * @param userData A data parameter to be passed on to the `receiver` for any custom use.
-     */
-    function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes memory userData) external override returns(bool) {
-        DYDXDataTypes.ActionArgs[] memory operations = new DYDXDataTypes.ActionArgs[](3);
-        operations[0] = getWithdrawAction(token, amount);
-        operations[1] = getCallAction(abi.encode(msg.sender, receiver, token, amount, userData));
-        operations[2] = getDepositAction(token, amount.add(_dydxFee(token, amount)));
-        DYDXDataTypes.AccountInfo[] memory accountInfos = new DYDXDataTypes.AccountInfo[](1);
+    function flashLoan(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes memory _userData
+    ) external override returns (bool) {
+        DYDXDataTypes.ActionArgs[]
+            memory operations = new DYDXDataTypes.ActionArgs[](3);
+        operations[0] = getWithdrawAction(_token, _amount);
+        operations[1] = getCallAction(
+            abi.encode(msg.sender, _receiver, _token, _amount, _userData)
+        );
+        operations[2] = getDepositAction(
+            _token,
+            _amount.add(_dydxFee(_token, _amount))
+        );
+        DYDXDataTypes.AccountInfo[]
+            memory accountInfos = new DYDXDataTypes.AccountInfo[](1);
         accountInfos[0] = getAccountInfo();
 
         soloMargin.operate(accountInfos, operations);
@@ -102,27 +119,50 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
 
     /// @dev DYDX flash loan callback. It sends the value borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
     function callFunction(
-        address sender,
+        address _sender,
         DYDXDataTypes.AccountInfo memory,
-        bytes memory data
-    )
-    public override
-    {
-        require(msg.sender == address(soloMargin), "Callback only from SoloMargin");
-        require(sender == address(this), "FlashLoan only from this contract");
+        bytes memory _data
+    ) public override {
+        require(
+            msg.sender == address(soloMargin),
+            "DYDXERC3156: Callback only from SoloMargin"
+        );
+        require(
+            _sender == address(this),
+            "DYDXERC3156: FlashLoan only from this contract"
+        );
 
-        (address origin, IERC3156FlashBorrower receiver, address token, uint256 amount, bytes memory userData) = 
-            abi.decode(data, (address, IERC3156FlashBorrower, address, uint256, bytes));
+        (
+            address origin,
+            IERC3156FlashBorrower receiver,
+            address token,
+            uint256 amount,
+            bytes memory userData
+        ) = abi.decode(
+                _data,
+                (address, IERC3156FlashBorrower, address, uint256, bytes)
+            );
 
         uint256 totalFee = flashFee(token, amount);
 
         // Transfer to `receiver`
-        require(IERC20(token).transfer(address(receiver), amount), "Transfer failed");
         require(
-            receiver.onFlashLoan(origin, token, amount, totalFee, userData) == CALLBACK_SUCCESS,
-            "Callback failed"
+            IERC20(token).transfer(address(receiver), amount),
+            "DYDXERC3156: Transfer failed"
         );
-        require(IERC20(token).transferFrom(address(receiver), address(this), amount.add(totalFee)), "Transfer failed");
+        require(
+            receiver.onFlashLoan(origin, token, amount, totalFee, userData) ==
+                CALLBACK_SUCCESS,
+            "DYDXERC3156: Callback failed"
+        );
+        require(
+            IERC20(token).transferFrom(
+                address(receiver),
+                address(this),
+                amount.add(totalFee)
+            ),
+            "DYDXERC3156: Transfer failed"
+        );
 
         uint256 addtionalFee = _additionalFee(amount);
         IERC20(token).transfer(FEETO, addtionalFee);
@@ -130,74 +170,78 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
         uint256 dydxFee = _dydxFee(token, amount);
 
         // Approve the SoloMargin contract allowance to *pull* the owed amount
-        IERC20(token).approve(address(soloMargin), amount.add(dydxFee));            
+        IERC20(token).approve(address(soloMargin), amount.add(dydxFee));
     }
 
-    function getAccountInfo() internal view returns (DYDXDataTypes.AccountInfo memory) {
-        return DYDXDataTypes.AccountInfo({
-            owner: address(this),
-            number: 1
-        });
-    }
-
-    function getWithdrawAction(address token, uint256 amount)
-    internal
-    view
-    returns (DYDXDataTypes.ActionArgs memory)
+    function getAccountInfo()
+        internal
+        view
+        returns (DYDXDataTypes.AccountInfo memory)
     {
-        return DYDXDataTypes.ActionArgs({
-            actionType: DYDXDataTypes.ActionType.Withdraw,
-            accountId: 0,
-            amount: DYDXDataTypes.AssetAmount({
-                sign: false,
-                denomination: DYDXDataTypes.AssetDenomination.Wei,
-                ref: DYDXDataTypes.AssetReference.Delta,
-                value: amount
-            }),
-            primaryMarketId: tokenAddressToMarketId[token],
-            secondaryMarketId: NULL_MARKET_ID,
-            otherAddress: address(this),
-            otherAccountId: NULL_ACCOUNT_ID,
-            data: NULL_DATA
-        });
+        return DYDXDataTypes.AccountInfo({owner: address(this), number: 1});
     }
 
-    function getDepositAction(address token, uint256 repaymentAmount)
-    internal
-    view
-    returns (DYDXDataTypes.ActionArgs memory)
+    function getWithdrawAction(address _token, uint256 _amount)
+        internal
+        view
+        returns (DYDXDataTypes.ActionArgs memory)
     {
-        return DYDXDataTypes.ActionArgs({
-            actionType: DYDXDataTypes.ActionType.Deposit,
-            accountId: 0,
-            amount: DYDXDataTypes.AssetAmount({
-                sign: true,
-                denomination: DYDXDataTypes.AssetDenomination.Wei,
-                ref: DYDXDataTypes.AssetReference.Delta,
-                value: repaymentAmount
-            }),
-            primaryMarketId: tokenAddressToMarketId[token],
-            secondaryMarketId: NULL_MARKET_ID,
-            otherAddress: address(this),
-            otherAccountId: NULL_ACCOUNT_ID,
-            data: NULL_DATA
-        });
+        return
+            DYDXDataTypes.ActionArgs({
+                actionType: DYDXDataTypes.ActionType.Withdraw,
+                accountId: 0,
+                amount: DYDXDataTypes.AssetAmount({
+                    sign: false,
+                    denomination: DYDXDataTypes.AssetDenomination.Wei,
+                    ref: DYDXDataTypes.AssetReference.Delta,
+                    value: _amount
+                }),
+                primaryMarketId: tokenAddressToMarketId[_token],
+                secondaryMarketId: NULL_MARKET_ID,
+                otherAddress: address(this),
+                otherAccountId: NULL_ACCOUNT_ID,
+                data: NULL_DATA
+            });
     }
 
-    function getCallAction(bytes memory data_)
-    internal
-    view
-    returns (DYDXDataTypes.ActionArgs memory)
+    function getDepositAction(address _token, uint256 _repaymentAmount)
+        internal
+        view
+        returns (DYDXDataTypes.ActionArgs memory)
     {
-        return DYDXDataTypes.ActionArgs({
-            actionType: DYDXDataTypes.ActionType.Call,
-            accountId: 0,
-            amount: NULL_AMOUNT,
-            primaryMarketId: NULL_MARKET_ID,
-            secondaryMarketId: NULL_MARKET_ID,
-            otherAddress: address(this),
-            otherAccountId: NULL_ACCOUNT_ID,
-            data: data_
-        });
+        return
+            DYDXDataTypes.ActionArgs({
+                actionType: DYDXDataTypes.ActionType.Deposit,
+                accountId: 0,
+                amount: DYDXDataTypes.AssetAmount({
+                    sign: true,
+                    denomination: DYDXDataTypes.AssetDenomination.Wei,
+                    ref: DYDXDataTypes.AssetReference.Delta,
+                    value: _repaymentAmount
+                }),
+                primaryMarketId: tokenAddressToMarketId[_token],
+                secondaryMarketId: NULL_MARKET_ID,
+                otherAddress: address(this),
+                otherAccountId: NULL_ACCOUNT_ID,
+                data: NULL_DATA
+            });
+    }
+
+    function getCallAction(bytes memory _data)
+        internal
+        view
+        returns (DYDXDataTypes.ActionArgs memory)
+    {
+        return
+            DYDXDataTypes.ActionArgs({
+                actionType: DYDXDataTypes.ActionType.Call,
+                accountId: 0,
+                amount: NULL_AMOUNT,
+                primaryMarketId: NULL_MARKET_ID,
+                secondaryMarketId: NULL_MARKET_ID,
+                otherAddress: address(this),
+                otherAccountId: NULL_ACCOUNT_ID,
+                data: _data
+            });
     }
 }

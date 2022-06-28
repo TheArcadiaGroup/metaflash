@@ -12,7 +12,7 @@ import "./interfaces/UniswapV2FactoryLike.sol";
 import "./interfaces/UniswapV2FlashBorrowerLike.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract UniswapERC3156 is
+contract UniswapV2ERC3156 is
     IERC3156FlashLender,
     UniswapV2FlashBorrowerLike,
     Ownable
@@ -36,36 +36,60 @@ contract UniswapERC3156 is
 
     Pair[] public pairs;
 
-    constructor(address feeTo_) {
-        FEETO = feeTo_;
+    constructor(address _feeTo) {
+        require(
+            address(_feeTo) != address(0),
+            "UniswapV2ERC3156: feeTo address is zero address!"
+        );
+        FEETO = _feeTo;
     }
 
-    function setFeeTo(address feeTo) public onlyOwner {
-        FEETO = feeTo;
+    function setFeeTo(address _feeTo) public onlyOwner {
+        require(
+            address(_feeTo) != address(0),
+            "UniswapV2ERC3156: feeTo address is zero address!"
+        );
+        FEETO = _feeTo;
     }
 
     function addPair(
-        address[] memory token0,
-        address[] memory token1,
-        address[] memory pair
+        address[] memory _token0,
+        address[] memory _token1,
+        address[] memory _pair
     ) public onlyOwner returns (bool) {
         require(
-            (token0.length == token1.length) && (token1.length == pair.length),
-            "mismatch length of token0, token1, pair"
+            (_token0.length == _token1.length) &&
+                (_token1.length == _pair.length),
+            "UniswapV2ERC3156: mismatch length of token0, token1, pair"
         );
-        for (uint256 i = 0; i < pair.length; i++) {
-            require(token0[i] != address(0), "Unsupported currency");
-            require(token1[i] != address(0), "Unsupported currency");
-            require(pair[i] != address(0), "Unsupported currency");
-            pairs.push(Pair({token0: token0[i], token1: token1[i], pair: pair[i]}));
+        for (uint256 i = 0; i < _pair.length; i++) {
+            require(
+                _token0[i] != address(0),
+                "UniswapV2ERC3156: Unsupported currency"
+            );
+            require(
+                _token1[i] != address(0),
+                "UniswapV2ERC3156: Unsupported currency"
+            );
+            require(
+                _pair[i] != address(0),
+                "UniswapV2ERC3156: Unsupported currency"
+            );
+            pairs.push(
+                Pair({token0: _token0[i], token1: _token1[i], pair: _pair[i]})
+            );
         }
         return true;
     }
 
-    function removePair(address[] memory pair) public onlyOwner returns (bool) {
-        for (uint256 i = 0; i < pair.length; i++) {
+    function removePair(address[] memory _pair)
+        public
+        onlyOwner
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _pair.length; i++) {
             for (uint256 j = 0; j < pairs.length; j++) {
-                if (pairs[j].pair == pair[i]) {
+                if (pairs[j].pair == _pair[i]) {
                     pairs[j].token0 = pairs[pairs.length - 1].token0;
                     pairs[j].token1 = pairs[pairs.length - 1].token1;
                     pairs[j].pair = pairs[pairs.length - 1].pair;
@@ -76,7 +100,7 @@ contract UniswapERC3156 is
         return true;
     }
 
-    function _biggestPair(address token)
+    function _biggestPair(address _token)
         private
         view
         returns (address, uint256)
@@ -84,8 +108,8 @@ contract UniswapERC3156 is
         uint256 maxloan;
         address pair;
         for (uint256 i = 0; i < pairs.length; i++) {
-            if (pairs[i].token0 == token || pairs[i].token1 == token) {
-                uint256 balance = IERC20(token).balanceOf(pairs[i].pair);
+            if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
+                uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
                 if (balance > maxloan) {
                     maxloan = balance;
                     pair = pairs[i].pair;
@@ -95,12 +119,7 @@ contract UniswapERC3156 is
         return (pair, maxloan);
     }
 
-    /**
-     * @dev From ERC-3156. The amount of currency available to be lended.
-     * @param token The loan currency.
-     * @return The amount of `token` that can be borrowed.
-     */
-    function maxFlashLoan(address token)
+    function maxFlashLoan(address _token)
         external
         view
         override
@@ -108,54 +127,56 @@ contract UniswapERC3156 is
     {
         uint256 maxloan;
         address pairAddress;
-        (pairAddress, maxloan) = _biggestPair(token);
-        require(pairAddress != address(0), "Unsupported currency");
+        (pairAddress, maxloan) = _biggestPair(_token);
+        require(
+            pairAddress != address(0),
+            "UniswapV2ERC3156: Unsupported currency"
+        );
         if (maxloan > 0) return maxloan - 1;
     }
 
-    function flashFee(address token, uint256 amount)
+    function flashFee(address _token, uint256 _amount)
         public
         view
         override
         returns (uint256)
     {
-        uint256 uniswapFee = _uniswapFee(token, amount);
-        uint256 additionalFee = _additionalFee(amount);
+        uint256 uniswapFee = _uniswapFee(_token, _amount);
+        uint256 additionalFee = _additionalFee(_amount);
         uint256 totalFee = uniswapFee.add(additionalFee);
         return totalFee;
     }
 
-    function _uniswapFee(address token, uint256 amount)
+    function _uniswapFee(address _token, uint256 _amount)
         internal
         view
         returns (uint256)
     {
         address pairAddress;
-        (pairAddress, ) = _biggestPair(token);
-        require(pairAddress != address(0), "Unsupported currency");
-        return ((amount * 3) / 997) + 1;
+        (pairAddress, ) = _biggestPair(_token);
+        require(
+            pairAddress != address(0),
+            "UniswapV2ERC3156: Unsupported currency"
+        );
+        return ((_amount * 3) / 997) + 1;
     }
 
-    function _additionalFee(uint256 amount) internal view returns (uint256) {
-        return amount.mul(5).div(1000);
+    function _additionalFee(uint256 _amount) internal view returns (uint256) {
+        return _amount.mul(5).div(1000);
     }
 
-    /**
-     * @dev From ERC-3156. Loan `amount` tokens to `receiver`, which needs to return them plus fee to this contract within the same transaction.
-     * @param receiver The contract receiving the tokens, needs to implement the `onFlashLoan(address user, uint256 amount, uint256 fee, bytes calldata)` interface.
-     * @param token The loan currency.
-     * @param amount The amount of tokens lent.
-     * @param userData A data parameter to be passed on to the `receiver` for any custom use.
-     */
     function flashLoan(
-        IERC3156FlashBorrower receiver,
-        address token,
-        uint256 amount,
-        bytes memory userData
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes memory _userData
     ) external override returns (bool) {
         address pairAddress;
-        (pairAddress, ) = _biggestPair(token);
-        require(pairAddress != address(0), "Unsupported currency");
+        (pairAddress, ) = _biggestPair(_token);
+        require(
+            pairAddress != address(0),
+            "UniswapV2ERC3156: Unsupported currency"
+        );
 
         UniswapV2PairLike pair = UniswapV2PairLike(pairAddress);
 
@@ -164,28 +185,36 @@ contract UniswapERC3156 is
 
         address token0 = pair.token0();
         address token1 = pair.token1();
-        uint256 amount0Out = token == token0 ? amount : 0;
-        uint256 amount1Out = token == token1 ? amount : 0;
-        bytes memory data = abi.encode(msg.sender, receiver, token, userData);
+        uint256 amount0Out = _token == token0 ? _amount : 0;
+        uint256 amount1Out = _token == token1 ? _amount : 0;
+        bytes memory data = abi.encode(
+            msg.sender,
+            _receiver,
+            _token,
+            _userData
+        );
         pair.swap(amount0Out, amount1Out, address(this), data);
         return true;
     }
 
     /// @dev Uniswap flash loan callback. It sends the value borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
     function uniswapV2Call(
-        address sender,
-        uint256 amount0,
-        uint256 amount1,
-        bytes calldata data
+        address _sender,
+        uint256 _amount0,
+        uint256 _amount1,
+        bytes calldata _data
     ) external override {
         // access control
         require(
             msg.sender == permissionedPairAddress,
-            "only permissioned UniswapV2 pair can call"
+            "UniswapV2ERC3156: only permissioned UniswapV2 pair can call"
         );
-        require(sender == address(this), "only this contract may initiate");
+        require(
+            _sender == address(this),
+            "UniswapV2ERC3156: only this contract may initiate"
+        );
 
-        uint256 amount = amount0 > 0 ? amount0 : amount1;
+        uint256 amount = _amount0 > 0 ? _amount0 : _amount1;
 
         // decode data
         (
@@ -193,7 +222,7 @@ contract UniswapERC3156 is
             IERC3156FlashBorrower receiver,
             address token,
             bytes memory userData
-        ) = abi.decode(data, (address, IERC3156FlashBorrower, address, bytes));
+        ) = abi.decode(_data, (address, IERC3156FlashBorrower, address, bytes));
 
         uint256 totalFee = flashFee(token, amount);
 
@@ -203,7 +232,7 @@ contract UniswapERC3156 is
         require(
             receiver.onFlashLoan(origin, token, amount, totalFee, userData) ==
                 CALLBACK_SUCCESS,
-            "Callback failed"
+            "UniswapV2ERC3156: Callback failed"
         );
         // retrieve the borrowed amount plus fee from the receiver and send it to the uniswap pair
         IERC20(token).transferFrom(

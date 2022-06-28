@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('UniswapERC3156', () => {
+describe('UniswapV2ERC3156', () => {
   let user, feeTo;
   let weth, dai, usdc, wethDaiPair, wethUsdcPair, uniswapFactory, lender;
   let borrower;
@@ -14,7 +14,7 @@ describe('UniswapERC3156', () => {
     const ERC20Currency = await ethers.getContractFactory('ERC20Mock');
     const UniswapV2Factory = await ethers.getContractFactory('UniswapV2FactoryMock');
     const UniswapV2Pair = await ethers.getContractFactory('UniswapV2PairMock');
-    const UniswapERC3156 = await ethers.getContractFactory('UniswapERC3156');
+    const UniswapERC3156 = await ethers.getContractFactory('UniswapV2ERC3156');
     const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
 
     weth = await ERC20Currency.deploy('WETH', 'WETH');
@@ -118,7 +118,7 @@ describe('UniswapERC3156', () => {
     const fee = await lender.flashFee(dai.address, loan);
 
     const balanceBeforeFeeTo = await dai.balanceOf(feeTo.address);
-    
+
     await dai.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, dai.address, loan);
 

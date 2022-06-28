@@ -27,8 +27,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract DefiSwapERC3156 is IERC3156FlashLender, ICroDefiSwapCallee, Ownable {
     using SafeMath for uint256;
 
-    bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
-    bytes32 public constant CALLBACK_SUCCESS_VAT_DAI = keccak256("VatDaiFlashBorrower.onVatDaiFlashLoan");
+    bytes32 public constant CALLBACK_SUCCESS =
+        keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     ICroDefiSwapFactory public factory;
     address permissionedPairAddress;
@@ -43,13 +43,25 @@ contract DefiSwapERC3156 is IERC3156FlashLender, ICroDefiSwapCallee, Ownable {
     Pair[] public pairs;
 
     // --- Init ---
-    constructor(address factory_, address feeTo_) {
-        factory = ICroDefiSwapFactory(factory_);
-        FEETO = feeTo_;
+    constructor(address _factory, address _feeTo) {
+        factory = ICroDefiSwapFactory(_factory);
+        require(
+            address(factory) != address(0),
+            "DefiSwapERC3156: factory address is zero address!"
+        );
+        require(
+            address(_feeTo) != address(0),
+            "DefiSwapERC3156: feeTo address is zero address!"
+        );
+        FEETO = _feeTo;
     }
 
-    function setFeeTo(address feeTo) public onlyOwner {
-        FEETO = feeTo;
+    function setFeeTo(address _feeTo) public onlyOwner {
+        require(
+            address(_feeTo) != address(0),
+            "DefiSwapERC3156: feeTo address is zero address!"
+        );
+        FEETO = _feeTo;
     }
 
     function addPair(
@@ -59,13 +71,24 @@ contract DefiSwapERC3156 is IERC3156FlashLender, ICroDefiSwapCallee, Ownable {
     ) public onlyOwner returns (bool) {
         require(
             (token0.length == token1.length) && (token1.length == pair.length),
-            "mismatch length of token0, token1, pair"
+            "DefiSwapERC3156: mismatch length of token0, token1, pair"
         );
         for (uint256 i = 0; i < pair.length; i++) {
-            require(token0[i] != address(0), "Unsupported currency");
-            require(token1[i] != address(0), "Unsupported currency");
-            require(pair[i] != address(0), "Unsupported currency");
-            pairs.push(Pair({token0: token0[i], token1: token1[i], pair: pair[i]}));
+            require(
+                token0[i] != address(0),
+                "DefiSwapERC3156: Unsupported currency"
+            );
+            require(
+                token1[i] != address(0),
+                "DefiSwapERC3156:Unsupported currency"
+            );
+            require(
+                pair[i] != address(0),
+                "DefiSwapERC3156: Unsupported currency"
+            );
+            pairs.push(
+                Pair({token0: token0[i], token1: token1[i], pair: pair[i]})
+            );
         }
         return true;
     }
@@ -112,7 +135,10 @@ contract DefiSwapERC3156 is IERC3156FlashLender, ICroDefiSwapCallee, Ownable {
         uint256 maxloan;
         address pairAddress;
         (pairAddress, maxloan) = _biggestPair(token);
-        require(pairAddress != address(0), "Unsupported currency");
+        require(
+            pairAddress != address(0),
+            "DefiSwapERC3156: Unsupported currency"
+        );
         if (maxloan > 0) return maxloan - 1;
     }
 
@@ -135,10 +161,16 @@ contract DefiSwapERC3156 is IERC3156FlashLender, ICroDefiSwapCallee, Ownable {
     {
         address pairAddress;
         (pairAddress, ) = _biggestPair(token);
-        require(pairAddress != address(0), "Unsupported currency");
-        uint magnifier = 10000;
-        uint totalFeeBasisPoint = ICroDefiSwapFactory(factory).totalFeeBasisPoint();
-        return ((amount * totalFeeBasisPoint) / (magnifier - totalFeeBasisPoint) + 1);
+        require(
+            pairAddress != address(0),
+            "DefiSwapERC3156: Unsupported currency"
+        );
+        uint256 magnifier = 10000;
+        uint256 totalFeeBasisPoint = ICroDefiSwapFactory(factory)
+            .totalFeeBasisPoint();
+        return ((amount * totalFeeBasisPoint) /
+            (magnifier - totalFeeBasisPoint) +
+            1);
     }
 
     function _additionalFee(uint256 amount) internal view returns (uint256) {
@@ -150,35 +182,45 @@ contract DefiSwapERC3156 is IERC3156FlashLender, ICroDefiSwapCallee, Ownable {
         address token,
         uint256 amount,
         bytes calldata data
-    ) external override returns (bool) {    
+    ) external override returns (bool) {
         address pairAddress;
         (pairAddress, ) = _biggestPair(token);
-        require(pairAddress != address(0), "Unsupported currency");
+        require(
+            pairAddress != address(0),
+            "DefiSwapERC3156: Unsupported currency"
+        );
 
         ICroDefiSwapPair pair = ICroDefiSwapPair(pairAddress);
 
-        if (permissionedPairAddress != pairAddress) permissionedPairAddress = pairAddress; // access control
+        if (permissionedPairAddress != pairAddress)
+            permissionedPairAddress = pairAddress; // access control
 
         address token0 = pair.token0();
         address token1 = pair.token1();
-        uint amount0Out = token == token0 ? amount : 0;
-        uint amount1Out = token == token1 ? amount : 0;
-        bytes memory data = abi.encode(
-            msg.sender,
-            receiver,
-            token,
-            data
-        );
+        uint256 amount0Out = token == token0 ? amount : 0;
+        uint256 amount1Out = token == token1 ? amount : 0;
+        bytes memory data = abi.encode(msg.sender, receiver, token, data);
         pair.swap(amount0Out, amount1Out, address(this), data);
         return true;
     }
 
     /// @dev flash loan callback. It sends the amount borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
-    function croDefiSwapCall(address sender, uint amount0, uint amount1, bytes calldata data) external override {
-        require(msg.sender == permissionedPairAddress, "only permissioned UniswapV2 pair can call");
-        require(sender == address(this), "only this contract may initiate");
+    function croDefiSwapCall(
+        address sender,
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata data
+    ) external override {
+        require(
+            msg.sender == permissionedPairAddress,
+            "DefiSwapERC3156: only permissioned UniswapV2 pair can call"
+        );
+        require(
+            sender == address(this),
+            "DefiSwapERC3156: only this contract may initiate"
+        );
 
-        uint amount = amount0 > 0 ? amount0 : amount1;
+        uint256 amount = amount0 > 0 ? amount0 : amount1;
 
         // decode data
         (
@@ -196,7 +238,7 @@ contract DefiSwapERC3156 is IERC3156FlashLender, ICroDefiSwapCallee, Ownable {
         require(
             receiver.onFlashLoan(origin, token, amount, totalFee, userData) ==
                 CALLBACK_SUCCESS,
-            "Callback failed"
+            "DefiSwapERC3156: Callback failed"
         );
         // retrieve the borrowed amount plus fee from the receiver and send it to the uniswap pair
         IERC20(token).transferFrom(

@@ -16,7 +16,6 @@ describe('DssFlash', () => {
   beforeEach(async function () {
     const DssFlashTest = await ethers.getContractFactory('DssFlashTest');
     dssflashtest = await DssFlashTest.deploy();
-    console.log("dssflashtest:", dssflashtest.address)
     await dssflashtest.setUp();
 
     [_, user, feeTo] = await ethers.getSigners();

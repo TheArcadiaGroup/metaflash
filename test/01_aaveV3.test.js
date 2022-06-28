@@ -125,7 +125,7 @@ describe('AaveERC3156', () => {
     await pool.initReserve(dai.address, aDai.address, stabledebttoken.address, variabledebttoken.address, reserveinterestratestrategy.address);
 
 
-    lender = await AaveERC3156.deploy(pool.address, feeTo.address);
+    lender = await AaveERC3156.deploy(poolAddressProvider.address, feeTo.address);
 
     borrower = await FlashBorrower.deploy();
 

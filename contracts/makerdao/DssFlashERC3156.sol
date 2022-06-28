@@ -22,144 +22,133 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DssFlashERC3156 is IERC3156FlashLender, IERC3156FlashBorrower, Ownable {
+contract DssFlashERC3156 is
+    IERC3156FlashLender,
+    IERC3156FlashBorrower,
+    Ownable
+{
     using SafeMath for uint256;
     IDssFlash dssflash;
-    bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
-    bytes32 public constant CALLBACK_SUCCESS_VAT_DAI = keccak256("VatDaiFlashBorrower.onVatDaiFlashLoan");
+    bytes32 public constant CALLBACK_SUCCESS =
+        keccak256("ERC3156FlashBorrower.onFlashLoan");
     address public FEETO;
 
     // --- Init ---
     constructor(address _dssflash, address _feeTo) public {
+        require(
+            address(_dssflash) != address(0),
+            "DssFlashERC3156: factory address is zero address!"
+        );
+        require(
+            address(_feeTo) != address(0),
+            "DssFlashERC3156: feeTo address is zero address!"
+        );
         dssflash = IDssFlash(_dssflash);
         FEETO = _feeTo;
     }
 
-    function setFeeTo(address feeTo) public onlyOwner {
-        FEETO = feeTo;
+    function setFeeTo(address _feeTo) public onlyOwner {
+        require(
+            address(_feeTo) != address(0),
+            "DssFlashERC3156: feeTo address is zero address!"
+        );
+        FEETO = _feeTo;
     }
 
     // --- ERC 3156 Spec ---
-    function maxFlashLoan(
-        address token
-    ) external override view returns (uint256) {
-        return dssflash.maxFlashLoan(token);
+    function maxFlashLoan(address _token)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return dssflash.maxFlashLoan(_token);
     }
 
-    function flashFee(
-        address token,
-        uint256 amount
-    ) public override view returns (uint256) {
-        uint256 dssflashFee = _dssflashFee(token, amount);
-        uint256 additionalFee = _additionalFee(amount);
+    function flashFee(address _token, uint256 _amount)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        uint256 dssflashFee = _dssflashFee(_token, _amount);
+        uint256 additionalFee = _additionalFee(_amount);
         uint256 totalFee = dssflashFee.add(additionalFee);
         return totalFee;
     }
 
-    function _dssflashFee(
-        address token,
-        uint256 amount
-    ) internal view returns (uint256) {
-        return dssflash.flashFee(token, amount);
+    function _dssflashFee(address _token, uint256 _amount)
+        internal
+        view
+        returns (uint256)
+    {
+        return dssflash.flashFee(_token, _amount);
     }
 
-    function _additionalFee(
-        uint256 amount
-    ) internal view returns (uint256) {
-        return amount.mul(5).div(1000);
+    function _additionalFee(uint256 _amount) internal view returns (uint256) {
+        return _amount.mul(5).div(1000);
     }
 
     function flashLoan(
-        IERC3156FlashBorrower receiver,
-        address token,
-        uint256 amount,
-        bytes calldata data
-    ) external override returns (bool) {    
-        bytes memory ndata = abi.encode(
-            msg.sender,
-            receiver,
-            token,
-            amount,
-            data
-        );  
-        dssflash.flashLoan(this, token, amount, ndata);                                         
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _data
+    ) external override returns (bool) {
+        bytes memory ndata = abi.encode(msg.sender, _receiver, _data);
+        dssflash.flashLoan(this, _token, _amount, ndata);
         return true;
     }
 
-    // // --- Vat Dai Flash Loan ---
-    // function vatDaiFlashLoan(
-    //     IVatDaiFlashBorrower receiver,          // address of conformant IVatDaiFlashBorrower
-    //     uint256 amount,                         // amount to flash loan [rad]
-    //     bytes calldata data                     // arbitrary data to pass to the receiver
-    // ) external override lock returns (bool) {
-    //     bytes memory data = abi.encode(
-    //         msg.sender,
-    //         receiver,
-    //         token,
-    //         userData
-    //     );
-    //     dssflash.vatDaiFlashLoan(address(this), amount, _data);
-    //     return true;
-    // }
-
     /// @dev flash loan callback. It sends the amount borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
     function onFlashLoan(
-        address initiator,
-        address token,
-        uint256 amount,
-        uint256 fee,
-        bytes calldata data
+        address _sender,
+        address _token,
+        uint256 _amount,
+        uint256 _fee,
+        bytes calldata _data
     ) external override returns (bytes32) {
-        require(msg.sender == address(dssflash), "Callback only from dssflash");
-        require(initiator == address(this), "FlashLoan only from this contract");
+        require(
+            msg.sender == address(dssflash),
+            "DssFlashERC3156: Callback only from dssflash"
+        );
+        require(
+            _sender == address(this),
+            "DssFlashERC3156: FlashLoan only from this contract"
+        );
 
-        (address origin, IERC3156FlashBorrower receiver, address token, uint256 amount, bytes memory userData) = 
-            abi.decode(data, (address, IERC3156FlashBorrower, address, uint256, bytes));
+        (
+            address origin,
+            IERC3156FlashBorrower receiver,
+            bytes memory userData
+        ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
 
-        uint256 totalFee = flashFee(token, amount);
+        uint256 totalFee = flashFee(_token, _amount);
 
         // Transfer to `receiver`
-        require(IERC20(token).transfer(address(receiver), amount), "Transfer failed");
         require(
-            receiver.onFlashLoan(origin, token, amount, totalFee, userData) == CALLBACK_SUCCESS,
-            "Callback failed"
+            IERC20(_token).transfer(address(receiver), _amount),
+            "DssFlashERC3156: Transfer failed"
         );
-        require(IERC20(token).transferFrom(address(receiver), address(this), amount.add(totalFee)), "Transfer failed");
+        require(
+            receiver.onFlashLoan(origin, _token, _amount, totalFee, userData) ==
+                CALLBACK_SUCCESS,
+            "DssFlashERC3156: Callback failed"
+        );
+        require(
+            IERC20(_token).transferFrom(
+                address(receiver),
+                address(this),
+                _amount.add(totalFee)
+            ),
+            "DssFlashERC3156: Transfer failed"
+        );
 
-        uint256 addtionalFee = _additionalFee(amount);
-        IERC20(token).transfer(FEETO, addtionalFee);
+        uint256 addtionalFee = _additionalFee(_amount);
+        IERC20(_token).transfer(FEETO, addtionalFee);
 
-        IERC20(token).approve(address(dssflash), amount.add(fee));
-        
+        IERC20(_token).approve(address(dssflash), _amount.add(_fee));
+
         return CALLBACK_SUCCESS;
     }
-
-// /// @dev flash loan callback. It sends the amount borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
-//     function onVatDaiFlashLoan(
-//         address initiator,
-//         address token,
-//         uint256 amount,
-//         uint256 fee,
-//         bytes calldata data
-//     ) external override returns (bytes32) {
-//         require(msg.sender == address(dssflash), "Callback only from dssflash");
-//         require(initiator == address(this), "FlashLoan only from this contract");
-
-//         (address origin, IERC3156FlashBorrower receiver, bytes memory userData) = 
-//             abi.decode(data, (address, IERC3156FlashBorrower, bytes));
-
-//         uint256 fee = dssflash.flashFee(token, amount);
-
-//         // Transfer to `receiver`
-//         require(IERC20(token).transfer(address(receiver), amount), "Transfer failed");
-//         require(
-//             receiver.onFlashLoan(origin, token, amount, fee, userData) == CALLBACK_SUCCESS,
-//             "Callback failed"
-//         );
-//         require(IERC20(token).transferFrom(address(receiver), address(this), amount.add(fee)), "Transfer failed");
-
-//         IERC20(token).approve(address(dssflash), amount.add(fee));
-        
-//         return CALLBACK_SUCCESS
-//     }
 }

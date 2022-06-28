@@ -16,7 +16,7 @@ describe('AaveERC3156', () => {
       'LendingPoolAddressesProviderMock'
     );
     const LendingPool = await ethers.getContractFactory('LendingPoolMock');
-    const AaveERC3156 = await ethers.getContractFactory('AaveERC3156');
+    const AaveERC3156 = await ethers.getContractFactory('AaveV2ERC3156');
     const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
 
     weth = await MockToken.deploy('WETH', 'WETH');
@@ -34,6 +34,15 @@ describe('AaveERC3156', () => {
 
     await weth.mint(aWeth.address, aaveBal);
     await dai.mint(aDai.address, aaveBal);
+  });
+
+  it("Revert if sender is not owner", async function () {
+    await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('Ownable: caller is not the owner');
+  });
+
+  it("Should update feeTo", async function () {
+    await lender.setFeeTo(user.address);
+    expect(await lender.FEETO()).to.equal(user.address);
   });
 
   it('flash supply', async function () {
@@ -98,14 +107,5 @@ describe('AaveERC3156', () => {
 
     const balanceAfterFeeTo = await dai.balanceOf(feeTo.address);
     expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(aaveBal.mul(5).div(1000));
-  });
-
-  it("Revert if sender is not owner", async function () {
-    await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('Ownable: caller is not the owner');
-  });
-
-  it("Should update feeTo", async function () {
-    await lender.setFeeTo(user.address);
-    expect(await lender.FEETO()).to.equal(user.address);
   });
 });
