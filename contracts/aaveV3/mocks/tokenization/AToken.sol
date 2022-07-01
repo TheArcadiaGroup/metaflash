@@ -14,7 +14,7 @@ import {IInitializableAToken} from '../../interfaces/IInitializableAToken.sol';
 import {ScaledBalanceTokenBase} from './base/ScaledBalanceTokenBase.sol';
 import {IncentivizedERC20} from './base/IncentivizedERC20.sol';
 import {EIP712Base} from './base/EIP712Base.sol';
-import "hardhat/console.sol";
+
 /**
  * @title Aave ERC20 AToken
  * @author Aave

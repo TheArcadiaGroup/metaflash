@@ -18,7 +18,7 @@ import {IPoolAddressesProvider} from '../interfaces/IPoolAddressesProvider.sol';
 import {IPool} from '../interfaces/IPool.sol';
 import {IACLManager} from '../interfaces/IACLManager.sol';
 import {PoolStorage} from './PoolStorage.sol';
-import "hardhat/console.sol";
+
 /**
  * @title Pool contract
  * @author Aave

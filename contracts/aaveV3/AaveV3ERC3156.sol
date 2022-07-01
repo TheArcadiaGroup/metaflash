@@ -12,7 +12,6 @@ import "./interfaces/IFlashLoanSimpleReceiver.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IPoolAddressesProvider.sol";
 import "./libraries/types/DataTypes.sol";
-import "hardhat/console.sol";
 
 contract AaveV3ERC3156 is
     IERC3156FlashLender,

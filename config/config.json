@@ -56,6 +56,11 @@
             "Borrower": "",
             "Lender": "",
             "Factory": ""
+        },
+        "dodo": {
+            "Borrower": "",
+            "Lender": "",
+            "Factory": ""
         }
     }
 }

@@ -17,7 +17,7 @@ import {DataTypes} from '../types/DataTypes.sol';
 import {ValidationLogic} from './ValidationLogic.sol';
 import {BorrowLogic} from './BorrowLogic.sol';
 import {ReserveLogic} from './ReserveLogic.sol';
-import "hardhat/console.sol";
+
 /**
  * @title FlashLoanLogic library
  * @author Aave
