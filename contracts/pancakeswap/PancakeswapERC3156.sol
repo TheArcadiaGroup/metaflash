@@ -39,7 +39,7 @@ contract PancakeswapERC3156 is
     constructor(address _factory, address _feeTo) public {
         require(
             address(_factory) != address(0),
-            "PancakeswapERC3156: feeToSetter address is zero address!"
+            "PancakeswapERC3156: factory address is zero address!"
         );
         require(
             address(_feeTo) != address(0),
