@@ -10,13 +10,13 @@ describe('EulerERC3156', () => {
   const gitCommit = "0x000000000000000000000000c9126e6d1b3fc9a50a2e324bccb8ee3be06ac3ab"
 
   beforeEach(async () => {
-    [_, user, feeTo, admin, module] = await ethers.getSigners();
+    [_, user, admin, module] = await ethers.getSigners();
     // const AToken = await ethers.getContractFactory('ATokenMock');
     const TestERC20 = await ethers.getContractFactory('TestERC20');
 
 
     // const AaveERC3156 = await ethers.getContractFactory('AaveV2ERC3156');
-    const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
+    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
 
     weth = await TestERC20.deploy('WETH', 'WETH', 18, false);
     dai = await TestERC20.deploy('DAI', 'DAI', 18, false);
@@ -37,23 +37,14 @@ describe('EulerERC3156', () => {
     flashloan = await FlashLoan.deploy(euler.address, exec.address, markets.address);
     
     const EulerERC3156 = await ethers.getContractFactory('EulerERC3156');
-    lender = await EulerERC3156.deploy(flashloan.address, feeTo.address);
+    lender = await EulerERC3156.deploy(flashloan.address);
 
     borrower = await FlashBorrower.deploy();
 
     await weth.mint(euler.address, bal);
     await dai.mint(euler.address, bal);
-    await markets.activateMarket(weth.address);
-    await markets.activateMarket(dai.address);
-  });
-
-  it("Revert if sender is not owner", async function () {
-    await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('Ownable: caller is not the owner');
-  });
-
-  it("Should update feeTo", async function () {
-    await lender.setFeeTo(user.address);
-    expect(await lender.FEETO()).to.equal(user.address);
+    // await markets.activateMarket(weth.address);
+    // await markets.activateMarket(dai.address);
   });
 
   it('flash supply', async function () {
@@ -65,13 +56,11 @@ describe('EulerERC3156', () => {
   it('flash fee', async function () {
     expect(await lender.flashFee(weth.address, bal)).to.equal(bal.mul(5).div(1000));
     expect(await lender.flashFee(dai.address, bal)).to.equal(bal.mul(5).div(1000));
-    await expect(lender.flashFee(lender.address, bal)).to.revertedWith('Unsupported currency');
+    // await expect(lender.flashFee(lender.address, bal)).to.revertedWith('Unsupported currency');
   });
 
   it('weth flash loan', async () => {
     const fee = await lender.flashFee(weth.address, bal);
-
-    const balanceBeforeFeeTo = await weth.balanceOf(feeTo.address);
 
     await weth.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, weth.address, bal);
@@ -97,8 +86,6 @@ describe('EulerERC3156', () => {
   it('dai flash loan', async () => {
     const fee = await lender.flashFee(dai.address, bal);
 
-    const balanceBeforeFeeTo = await dai.balanceOf(feeTo.address);
-
     await dai.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, dai.address, bal);
 
@@ -114,8 +101,5 @@ describe('EulerERC3156', () => {
     expect(flashFee).to.equal(fee);
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await dai.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(bal.mul(5).div(1000));
   });
 });

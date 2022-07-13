@@ -10,7 +10,7 @@ const {
 
 describe('SaddleFinance', () => {
     let signers, swapFlashLoan, flashLoanExample, DAI, USDC, USDT, SUSD, swapToken, owner, user1, user2, attacker, ownerAddress, user1Address, user2Address
-    let fixture, lender, borrower, feeTo, user, DAI2
+    let fixture, lender, borrower, user, DAI2
 
     const INITIAL_A_VALUE = 50
     const SWAP_FEE = 1e7
@@ -184,8 +184,8 @@ describe('SaddleFinance', () => {
 
 
             const SaddleFinanceERC3156 = await ethers.getContractFactory('SaddleFinanceERC3156');
-            const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
-            lender = await SaddleFinanceERC3156.deploy(feeTo.address);
+            const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
+            lender = await SaddleFinanceERC3156.deploy();
             borrower = await FlashBorrower.deploy();
             await lender.addPools([swapFlashLoan.address]);
         })
@@ -195,21 +195,12 @@ describe('SaddleFinance', () => {
         await fixture()
     })
 
-    it("setFeeTo: Revert if sender is not owner", async function () {
-        await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('Ownable: caller is not the owner');
-    });
-
-    it("setFeeTo: Should update feeTo", async function () {
-        await lender.setFeeTo(user.address);
-        expect(await lender.FEETO()).to.equal(user.address);
-    });
-
     it('addPools: Revert if sender is not owner', async function () {
         await expect(lender.connect(user).addPools([swapFlashLoan2.address])).to.revertedWith('Ownable: caller is not the owner');
     });
 
     it("addPools: Should update", async function () {
-        await expect(lender.maxFlashLoan(DAI2.address)).to.revertedWith('Unsupported currency');
+        expect(await lender.maxFlashLoan(DAI2.address)).to.equal(0);
         expect(await lender.maxFlashLoan(USDC.address)).to.equal(String(50e6));
         await lender.addPools([swapFlashLoan2.address]);
         expect(await lender.maxFlashLoan(DAI2.address)).to.equal(String(60e18));
@@ -225,7 +216,7 @@ describe('SaddleFinance', () => {
         expect(await lender.maxFlashLoan(DAI2.address)).to.equal(String(60e18));
         expect(await lender.maxFlashLoan(USDC.address)).to.equal(String(60e6));
         await lender.removePools([swapFlashLoan2.address]);
-        await expect(lender.maxFlashLoan(DAI2.address)).to.revertedWith('Unsupported currency');
+        expect(await lender.maxFlashLoan(DAI2.address)).to.equal(0);
         expect(await lender.maxFlashLoan(USDC.address)).to.equal(String(50e6));
     });
 
@@ -234,14 +225,11 @@ describe('SaddleFinance', () => {
     });
 
     it('flash fee', async function () {
-        expect(await lender.flashFee(DAI.address, getBigNumber(50))).to.equal((getBigNumber(50).mul(5).div(1000)).add(getBigNumber(50).mul(100).div(10000)));
+        expect(await lender.flashFee(DAI.address, getBigNumber(50))).to.equal(getBigNumber(50).mul(100).div(10000));
     });
 
     it('flash loan', async function () {
-       
         let fee = await lender.flashFee(DAI.address, getBigNumber(50));
-
-        const balanceBeforeFeeTo = await DAI.balanceOf(feeTo.address);
 
         await DAI.mint(borrower.address, fee);
         expect(await DAI.balanceOf(borrower.address)).to.equal(fee);
@@ -259,9 +247,6 @@ describe('SaddleFinance', () => {
         expect(flashFee).to.equal(fee);
         const flashSender = await borrower.flashSender();
         expect(flashSender).to.equal(borrower.address);
-
-        const balanceAfterFeeTo = await DAI.balanceOf(feeTo.address);
-        expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(getBigNumber(50).mul(500).div(100000));
     });
 
     it("Reverts when the borrower does not have enough to pay back", async () => {

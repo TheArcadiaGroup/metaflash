@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.5.0;
+pragma solidity ^0.7.5;
 
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 // import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-import "./libraries/SafeMath.sol";
-import "./interfaces/IERC20.sol";
-import "./interfaces/IFlashLender.sol";
-
-contract FlashBorrower is IERC3156FlashBorrower {
-    using SafeMath for uint256;
-
+import "./interfaces/IAaveV2FlashLender.sol";
+import "hardhat/console.sol";
+contract AaveV2FlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
         STEAL,
@@ -34,7 +30,7 @@ contract FlashBorrower is IERC3156FlashBorrower {
         uint256 amount,
         uint256 fee,
         bytes calldata data
-    ) external returns (bytes32) {
+    ) external override returns (bytes32) {
         require(
             sender == address(this),
             "FlashBorrower: External loan initiator"
@@ -46,7 +42,7 @@ contract FlashBorrower is IERC3156FlashBorrower {
         flashFee = fee;
         if (action == Action.NORMAL) {
             flashBalance = IERC20(token).balanceOf(address(this));
-            totalFlashBalance = totalFlashBalance.add(amount).add(fee);
+            totalFlashBalance = totalFlashBalance + amount + fee;
         } else if (action == Action.STEAL) {
             // do nothing
         } else if (action == Action.REENTER) {
@@ -55,8 +51,8 @@ contract FlashBorrower is IERC3156FlashBorrower {
         return CALLBACK_SUCCESS;
     }
 
-    function flashBorrowWithCheapestProvider(
-        IFlashLender lender,
+    function flashBorrow(
+        IAaveV2FlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -64,16 +60,16 @@ contract FlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFeeWithCheapestProvider(token, amount);
-        uint256 _repayment = amount.add(_fee);
-        IERC20(token).approve(address(lender), _allowance.add(_repayment));
+        uint256 _fee = lender.flashFee(token, amount);
+        uint256 _repayment = amount + _fee;
+        IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoanWithCheapestProvider(this, token, amount, data);
+        lender.flashLoan(this, token, amount, data);
     }
 
-    function flashBorrowWithManyProviders(
-        IFlashLender lender,
+    function flashBorrowWithManyPairs_OR_ManyPools(
+        IAaveV2FlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -81,11 +77,11 @@ contract FlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFeeWithManyProviders(token, amount);
-        uint256 _repayment = amount.add(_fee);
-        IERC20(token).approve(address(lender), _allowance.add(_repayment));
+        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
+        uint256 _repayment = amount + _fee;
+        IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoanWithManyProviders(this, token, amount, data);
+        lender.flashLoanWithManyPairs_OR_ManyPools(this, token, amount, data);
     }
 }

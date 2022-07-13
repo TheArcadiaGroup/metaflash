@@ -9,11 +9,12 @@ describe('CreamFinanceERC3156', () => {
   const bal = BigNumber.from(100000);
 
   let baseRate = 0;
-  let multiplier = ethers.utils.parseEther('0.15');
-  let jump = ethers.utils.parseEther('5');
+  let multiplier = ethers.utils.parseEther('0.23');
+  let jump = ethers.utils.parseEther('8');
   let kink1 = ethers.utils.parseEther('0.8');
   let kink2 = ethers.utils.parseEther('0.9');
   let roof = ethers.utils.parseEther('1.5');
+
   const exchangeRate = '0.02';
   const initialExchangeRate = ethers.utils.parseUnits(exchangeRate, 18 + 18 - 8);
 
@@ -29,7 +30,6 @@ describe('CreamFinanceERC3156', () => {
 
     const CreamFinanceERC3156 = await ethers.getContractFactory('CreamFinanceERC3156');
     const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
-
 
     const InterestRateModel = await ethers.getContractFactory('TripleSlopeRateModel');
     interestratemodel = await InterestRateModel.deploy(

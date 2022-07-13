@@ -3,19 +3,19 @@ const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
 describe('PancakeswapERC3156', () => {
-  let user, feeTo;
+  let user;
   let weth, dai, usdc, wethDaiPair, wethUsdcPair, uniswapFactory, lender;
   let borrower;
   const reserves = BigNumber.from(100000);
 
   beforeEach(async () => {
-    [owner, feeTo, user] = await ethers.getSigners();
+    [owner, user] = await ethers.getSigners();
 
     const ERC20Currency = await ethers.getContractFactory('PancakeswapERC20');
     const PancakeFactory = await ethers.getContractFactory('PancakeFactory');
     const PancakePair = await ethers.getContractFactory('PancakePair');
     const PancakeswapERC3156 = await ethers.getContractFactory('PancakeswapERC3156');
-    const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
+    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
 
     weth = await ERC20Currency.deploy('WETH', 'WETH');
     dai = await ERC20Currency.deploy('DAI', 'DAI');
@@ -32,7 +32,7 @@ describe('PancakeswapERC3156', () => {
     await pancakeFactory.createPair(weth.address, usdc.address);
     wethUsdcPair = await PancakePair.attach(wethUsdcPairAddress);
 
-    lender = await PancakeswapERC3156.deploy(owner.address, feeTo.address);
+    lender = await PancakeswapERC3156.deploy(owner.address);
 
     borrower = await FlashBorrower.deploy();
 
@@ -47,21 +47,12 @@ describe('PancakeswapERC3156', () => {
     await lender.addPairs([weth.address], [dai.address], [wethDaiPairAddress]);
   });
 
-  it("feeTo: Revert if sender is not owner", async function () {
-    await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('PancakeswapERC3156: Not factory');
-  });
-
-  it("feeTo: Should update", async function () {
-    await lender.setFeeTo(user.address);
-    expect(await lender.FEETO()).to.equal(user.address);
-  });
-
   it('addPair: Revert if sender is not owner', async function () {
     await expect(lender.connect(user).addPairs([weth.address], [usdc.address], [wethUsdcPairAddress])).to.revertedWith('PancakeswapERC3156: Not factory');
   });
 
   it("addPair: Should update", async function () {
-    await expect(lender.maxFlashLoan(usdc.address)).to.revertedWith('Unsupported currency');
+    expect(await lender.maxFlashLoan(usdc.address)).to.equal(0);
     await lender.addPairs([weth.address], [usdc.address], [wethUsdcPairAddress]);
     expect(await lender.maxFlashLoan(usdc.address)).to.equal(reserves.sub(1));
   });
@@ -74,26 +65,25 @@ describe('PancakeswapERC3156', () => {
     await lender.addPairs([weth.address], [usdc.address], [wethUsdcPairAddress]);
     expect(await lender.maxFlashLoan(usdc.address)).to.equal(reserves.sub(1));
     await lender.removePairs([wethUsdcPairAddress]);
-    await expect(lender.maxFlashLoan(usdc.address)).to.revertedWith('Unsupported currency');
+    expect(await lender.maxFlashLoan(usdc.address)).to.equal(0);
   });
 
   it('flash supply', async function () {
     expect(await lender.maxFlashLoan(weth.address)).to.equal(reserves.sub(1));
     expect(await lender.maxFlashLoan(dai.address)).to.equal(reserves.sub(1));
-    await expect(lender.maxFlashLoan(lender.address)).to.revertedWith('Unsupported currency');
+    expect(await lender.maxFlashLoan(lender.address)).to.equal(0);
+    // await expect(lender.maxFlashLoan(lender.address)).to.revertedWith('Unsupported currency');
   });
 
   it('flash fee', async function () {
-    expect(await lender.flashFee(weth.address, reserves)).to.equal((reserves.mul(25).div(9975).add(1)).add(reserves.mul(5).div(1000)));
-    expect(await lender.flashFee(dai.address, reserves)).to.equal((reserves.mul(25).div(9975).add(1)).add(reserves.mul(5).div(1000)));
-    await expect(lender.flashFee(lender.address, reserves)).to.revertedWith('Unsupported currency');
+    expect(await lender.flashFee(weth.address, reserves)).to.equal((reserves.mul(25).div(9975).add(1)));
+    expect(await lender.flashFee(dai.address, reserves)).to.equal((reserves.mul(25).div(9975).add(1)));
+    // await expect(lender.flashFee(lender.address, reserves)).to.revertedWith('Unsupported currency');
   });
 
   it('weth flash loan', async () => {
     const loan = await lender.maxFlashLoan(weth.address);
     const fee = await lender.flashFee(weth.address, loan);
-
-    const balanceBeforeFeeTo = await weth.balanceOf(feeTo.address);
 
     await weth.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, weth.address, loan);
@@ -108,16 +98,11 @@ describe('PancakeswapERC3156', () => {
     expect(flashFee).to.equal(fee);
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await weth.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(loan.mul(5).div(1000));
   });
 
   it('dai flash loan', async () => {
     const loan = await lender.maxFlashLoan(dai.address);
     const fee = await lender.flashFee(dai.address, loan);
-
-    const balanceBeforeFeeTo = await dai.balanceOf(feeTo.address);
 
     await dai.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, dai.address, loan);
@@ -132,8 +117,5 @@ describe('PancakeswapERC3156', () => {
     expect(flashFee).to.equal(fee);
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await dai.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(loan.mul(5).div(1000));
   });
 });

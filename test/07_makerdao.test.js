@@ -6,7 +6,7 @@ const {
 const { BigNumber } = require('ethers');
 
 describe('DssFlash', () => {
-  let dssflashtest, user, feeTo, chainId, vat, dai, daijoin, dssflash, lender, borrower;
+  let dssflashtest, user, chainId, vat, dai, daijoin, dssflash, lender, borrower;
   chainId = chainIdByName(network.name);
 
   const {
@@ -18,19 +18,19 @@ describe('DssFlash', () => {
     dssflashtest = await DssFlashTest.deploy();
     await dssflashtest.setUp();
 
-    [_, user, feeTo] = await ethers.getSigners();
+    [_, user] = await ethers.getSigners();
     const Vat = await ethers.getContractFactory('Vat');
     const Dai = await ethers.getContractFactory('Dai');
     const DaiJoin = await ethers.getContractFactory('DaiJoin');
     const DssFlash = await ethers.getContractFactory('DssFlash');
     const DssFlashERC3156 = await ethers.getContractFactory('DssFlashERC3156');
-    const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
+    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
 
     vat = await Vat.deploy();
     dai = await Dai.deploy(chainId);
     daijoin = await DaiJoin.deploy(vat.address, dai.address);
     dssflash = await DssFlash.deploy(daijoin.address);
-    lender = await DssFlashERC3156.deploy(dssflash.address, feeTo.address);
+    lender = await DssFlashERC3156.deploy(dssflash.address);
     borrower = await FlashBorrower.deploy();
     await dssflash.file("max", getBigNumber(100))
     vat.rely(dssflash.address);
@@ -38,27 +38,16 @@ describe('DssFlash', () => {
     dai.rely(daijoin.address);
   });
 
-  it("Revert if sender is not owner", async function () {
-    await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('Ownable: caller is not the owner');
-  });
-
-  it("Should update feeTo", async function () {
-    await lender.setFeeTo(user.address);
-    expect(await lender.FEETO()).to.equal(user.address);
-  });
-
   it('flash supply', async function () {
     expect(await lender.maxFlashLoan(dai.address)).to.equal(getBigNumber(100));
   });
 
   it('flash fee', async function () {
-    expect(await lender.flashFee(dai.address, getBigNumber(100))).to.equal(getBigNumber(100).mul(5).div(1000));
+    expect(await lender.flashFee(dai.address, getBigNumber(100))).to.equal(0);
   });
 
   it('flash loan', async function () {
     let fee = await lender.flashFee(dai.address, getBigNumber(100));
-
-    const balanceBeforeFeeTo = await dai.balanceOf(feeTo.address);
 
     await dai.mint(borrower.address, fee);
     expect(await dai.balanceOf(borrower.address)).to.equal(fee);
@@ -76,9 +65,6 @@ describe('DssFlash', () => {
     expect(flashFee).to.equal(fee);
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await dai.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(getBigNumber(100).mul(500).div(100000));
   });
 
   it('test_mint_payback', async function () {

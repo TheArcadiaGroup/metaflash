@@ -3,19 +3,19 @@ const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
 describe('DefiSwapERC3156', () => {
-  let user, feeTo;
-  let weth, dai, usdc, wethDaiPair, wethUsdcPair, uniswapFactory, lender;
+  let user;
+  let weth, dai, usdc, wethDaiPair, wethUsdcPair, lender;
   let borrower;
   const reserves = BigNumber.from(100000);
 
   beforeEach(async () => {
-    [_, feeTo, user] = await ethers.getSigners();
+    [_, user] = await ethers.getSigners();
 
     const ERC20Currency = await ethers.getContractFactory('ERC20Mock');
     const CroDefiSwapFactory = await ethers.getContractFactory('CroDefiSwapFactory');
     const CroDefiSwapPair = await ethers.getContractFactory('CroDefiSwapPair');
     const DefiSwapERC3156 = await ethers.getContractFactory('DefiSwapERC3156');
-    const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
+    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
 
     weth = await ERC20Currency.deploy('WETH', 'WETH');
     dai = await ERC20Currency.deploy('DAI', 'DAI');
@@ -32,7 +32,7 @@ describe('DefiSwapERC3156', () => {
     await crodefiswapFactory.createPair(weth.address, usdc.address);
     wethUsdcPair = await CroDefiSwapPair.attach(wethUsdcPairAddress);
 
-    lender = await DefiSwapERC3156.deploy(crodefiswapFactory.address, feeTo.address);
+    lender = await DefiSwapERC3156.deploy(crodefiswapFactory.address);
 
     borrower = await FlashBorrower.deploy();
 
@@ -45,15 +45,6 @@ describe('DefiSwapERC3156', () => {
     await wethUsdcPair.mint(wethUsdcPair.address);
 
     await lender.addPair([weth.address], [dai.address], [wethDaiPairAddress]);
-  });
-
-  it("feeTo: Revert if sender is not owner", async function () {
-    await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('Ownable: caller is not the owner');
-  });
-
-  it("feeTo: Should update", async function () {
-    await lender.setFeeTo(user.address);
-    expect(await lender.FEETO()).to.equal(user.address);
   });
 
   it('addPair: Revert if sender is not owner', async function () {
@@ -85,17 +76,15 @@ describe('DefiSwapERC3156', () => {
 
   it('flash fee', async function () {
     let totalFeeBasisPoint = await crodefiswapFactory.totalFeeBasisPoint()
-    expect(await lender.flashFee(weth.address, reserves)).to.equal((reserves.mul(totalFeeBasisPoint).div(10000 - totalFeeBasisPoint).add(1)).add(reserves.mul(5).div(1000)));
-    expect(await lender.flashFee(dai.address, reserves)).to.equal((reserves.mul(totalFeeBasisPoint).div(10000- totalFeeBasisPoint).add(1)).add(reserves.mul(5).div(1000)));
+    expect(await lender.flashFee(weth.address, reserves)).to.equal((reserves.mul(totalFeeBasisPoint).div(10000 - totalFeeBasisPoint).add(1)));
+    expect(await lender.flashFee(dai.address, reserves)).to.equal((reserves.mul(totalFeeBasisPoint).div(10000- totalFeeBasisPoint).add(1)));
     // return ((amount * totalFeeBasisPoint) / (magnifier - totalFeeBasisPoint) + 1);
-    await expect(lender.flashFee(lender.address, reserves)).to.revertedWith('Unsupported currency');
+    // await expect(lender.flashFee(lender.address, reserves)).to.revertedWith('Unsupported currency');
   });
 
   it('weth flash loan', async () => {
     const loan = await lender.maxFlashLoan(weth.address);
     const fee = await lender.flashFee(weth.address, loan);
-
-    const balanceBeforeFeeTo = await weth.balanceOf(feeTo.address);
 
     await weth.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, weth.address, loan);
@@ -110,16 +99,11 @@ describe('DefiSwapERC3156', () => {
     expect(flashFee).to.equal(fee);
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await weth.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(loan.mul(5).div(1000));
   });
 
   it('dai flash loan', async () => {
     const loan = await lender.maxFlashLoan(dai.address);
     const fee = await lender.flashFee(dai.address, loan);
-
-    const balanceBeforeFeeTo = await dai.balanceOf(feeTo.address);
 
     await dai.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, dai.address, loan);
@@ -135,49 +119,5 @@ describe('DefiSwapERC3156', () => {
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
 
-    const balanceAfterFeeTo = await dai.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(loan.mul(5).div(1000));
   });
-
-  // it('flash fee', async function () {
-  //   expect(await lender.flashFee(weth.address, reserves)).to.equal(reserves.mul(3).div(997).add(1));
-  //   expect(await lender.flashFee(dai.address, reserves)).to.equal(reserves.mul(3).div(997).add(1));
-  //   await expect(lender.flashFee(lender.address, reserves)).to.revertedWith('Unsupported currency');
-  // });
-
-  // it('weth flash loan', async () => {
-  //   const loan = await lender.maxFlashLoan(weth.address);
-  //   const fee = await lender.flashFee(weth.address, loan);
-  //   await weth.connect(user).mint(borrower.address, fee);
-  //   await borrower.connect(user).flashBorrow(lender.address, weth.address, loan);
-
-  //   const balanceAfter = await weth.balanceOf(await user.getAddress());
-  //   expect(balanceAfter).to.equal(BigNumber.from('0'));
-  //   const flashBalance = await borrower.flashBalance();
-  //   expect(flashBalance).to.equal(loan.add(fee));
-  //   const flashAmount = await borrower.flashAmount();
-  //   expect(flashAmount).to.equal(loan);
-  //   const flashFee = await borrower.flashFee();
-  //   expect(flashFee).to.equal(fee);
-  //   const flashSender = await borrower.flashSender();
-  //   expect(flashSender).to.equal(borrower.address);
-  // });
-
-  // it('dai flash loan', async () => {
-  //   const loan = await lender.maxFlashLoan(dai.address);
-  //   const fee = await lender.flashFee(dai.address, loan);
-  //   await dai.connect(user).mint(borrower.address, fee);
-  //   await borrower.connect(user).flashBorrow(lender.address, dai.address, loan);
-
-  //   const balanceAfter = await dai.balanceOf(await user.getAddress());
-  //   expect(balanceAfter).to.equal(BigNumber.from('0'));
-  //   const flashBalance = await borrower.flashBalance();
-  //   expect(flashBalance).to.equal(loan.add(fee));
-  //   const flashAmount = await borrower.flashAmount();
-  //   expect(flashAmount).to.equal(loan);
-  //   const flashFee = await borrower.flashFee();
-  //   expect(flashFee).to.equal(fee);
-  //   const flashSender = await borrower.flashSender();
-  //   expect(flashSender).to.equal(borrower.address);
-  // });
 });

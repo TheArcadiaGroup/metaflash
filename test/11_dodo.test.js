@@ -3,13 +3,13 @@ const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
 describe('DODOERC3156', () => {
-  let user, feeTo;
+  let user;
   let basetoken, quotetoken, dvmpool, dvmfactory, lender;
   let borrower, dvmPoolAddress, dvmPoolAddress2;
   const reserves = BigNumber.from(100000);
 
   beforeEach(async () => {
-    [owner, feeTo, user] = await ethers.getSigners();
+    [owner, user] = await ethers.getSigners();
     
     const CloneFactory = await ethers.getContractFactory('CloneFactory');
     const ERC20Currency = await ethers.getContractFactory('MintableERC20');
@@ -17,7 +17,7 @@ describe('DODOERC3156', () => {
     const DVM = await ethers.getContractFactory('DVM');
     const FeeRateModel = await ethers.getContractFactory('FeeRateModel');
     const DODOERC3156 = await ethers.getContractFactory('DODOERC3156');
-    const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
+    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
 
     basetoken = await ERC20Currency.deploy('BASE', 'BASE', 18);
     quotetoken = await ERC20Currency.deploy('QUOTE', 'QUOTE', 18);
@@ -34,7 +34,7 @@ describe('DODOERC3156', () => {
     dvmPoolAddress = await dvmfactory.getDODOPool(basetoken.address, quotetoken.address)
     dvmPoolAddress2 = await dvmfactory.getDODOPool(basetoken.address, quotetoken2.address)
 
-    lender = await DODOERC3156.deploy(feeTo.address);
+    lender = await DODOERC3156.deploy();
 
     borrower = await FlashBorrower.deploy();
 
@@ -47,15 +47,6 @@ describe('DODOERC3156', () => {
     // // await wethDaiPair.mint();
 
     await lender.addDVMPools([basetoken.address], [quotetoken.address], [dvmPoolAddress[0]]);
-  });
-
-  it("feeTo: Revert if sender is not owner", async function () {
-    await expect(lender.connect(user).setFeeTo(user.address)).to.revertedWith('NOT_OWNER');
-  });
-
-  it("feeTo: Should update", async function () {
-    await lender.setFeeTo(user.address);
-    expect(await lender.FEETO()).to.equal(user.address);
   });
 
   it('addDVMPool: Revert if sender is not owner', async function () {
@@ -86,16 +77,14 @@ describe('DODOERC3156', () => {
   });
 
   it('flash fee', async function () {
-    // expect(await lender.flashFee(basetoken.address, reserves)).to.equal((reserves.mul(3).div(997).add(1)).add(reserves.mul(5).div(1000)));
-    // expect(await lender.flashFee(quotetoken.address, reserves)).to.equal((reserves.mul(3).div(997).add(1)).add(reserves.mul(5).div(1000)));
+    expect(await lender.flashFee(basetoken.address, reserves)).to.equal(0);
+    expect(await lender.flashFee(quotetoken.address, reserves)).to.equal(0);
     // await expect(lender.flashFee(lender.address, reserves)).to.revertedWith('Unsupported currency');
   });
 
   it('basetoken flash loan', async () => {
     const loan = await lender.maxFlashLoan(basetoken.address);
     const fee = await lender.flashFee(basetoken.address, loan);
-
-    const balanceBeforeFeeTo = await basetoken.balanceOf(feeTo.address);
 
     await basetoken.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, basetoken.address, loan);
@@ -110,16 +99,11 @@ describe('DODOERC3156', () => {
     expect(flashFee).to.equal(fee);
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await basetoken.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(loan.mul(5).div(1000));
   });
 
   it('quotetoken flash loan', async () => {
     const loan = await lender.maxFlashLoan(quotetoken.address);
     const fee = await lender.flashFee(quotetoken.address, loan);
-
-    const balanceBeforeFeeTo = await quotetoken.balanceOf(feeTo.address);
     
     await quotetoken.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, quotetoken.address, loan);
@@ -134,8 +118,5 @@ describe('DODOERC3156', () => {
     expect(flashFee).to.equal(fee);
     const flashSender = await borrower.flashSender();
     expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await quotetoken.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(loan.mul(5).div(1000));
   });
 });

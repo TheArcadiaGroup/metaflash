@@ -24,20 +24,9 @@ describe('Sushiswap flashloan', () => {
             await cmd.deploy('borrower', 'FlashBorrowerSushi')
 
             await cmd.addToken('a', 'Token A', 'A', 18)
-            // await cmd.addToken('b', 'Token B', 'B', 6, 'RevertingERC20Mock')
-            // await cmd.addToken('c', 'Token C', 'C', 8, 'RevertingERC20Mock')
 
             await cmd.deploy('flashLoaner', 'FlashLoanerMock')
             await cmd.deploy('sneakyFlashLoaner', 'SneakyFlashLoanerMock')
-            // await cmd.deploy('strategy', 'SimpleStrategyMock', this.bentoBox.address, this.a.address)
-
-            // await this.bentoBox.setStrategy(this.a.address, this.strategy.address)
-            // await advanceTime(1209600, ethers)
-            // await this.bentoBox.setStrategy(this.a.address, this.strategy.address)
-            // await this.bentoBox.setStrategyTargetPercentage(this.a.address, 20)
-
-            // await cmd.deploy('erc20', 'ERC20Mockk', 10000000)
-            // await cmd.deploy('masterContractMock', 'MasterContractMock', this.bentoBox.address)
 
             this.a.approve = function (...params) {
                 console.log(params)
@@ -53,23 +42,6 @@ describe('Sushiswap flashloan', () => {
                 .withArgs(this.fred.address, this.bentoBox.address, getBigNumber(100))
                 .to.emit(this.bentoBox, 'LogDeposit')
                 .withArgs(this.a.address, this.fred.address, this.fred.address, getBigNumber(100), getBigNumber(100))
-
-            // this.bentoBox.connect(this.fred).addProfit(this.a.address, getBigNumber(30))
-
-            // await this.b.connect(this.fred).approve(this.bentoBox.address, getBigNumber(400, 6))
-            // await expect(
-            //     this.bentoBox
-            //         .connect(this.fred)
-            //         .deposit(this.b.address, this.fred.address, this.fred.address, getBigNumber(200, 6), 0)
-            // )
-            //     .to.emit(this.b, 'Transfer')
-            //     .withArgs(this.fred.address, this.bentoBox.address, getBigNumber(200, 6))
-            //     .to.emit(this.bentoBox, 'LogDeposit')
-            //     .withArgs(this.b.address, this.fred.address, this.fred.address, getBigNumber(200, 6), getBigNumber(200, 6))
-
-            // this.bentoBox.connect(this.fred).addProfit(this.b.address, getBigNumber(200, 6))
-
-            // await this.bentoBox.harvest(this.a.address, true, 0)
         })
     })
 
