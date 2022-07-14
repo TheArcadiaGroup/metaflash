@@ -27,7 +27,7 @@ contract MockUSDT {
         symbol = "USDT";
 
         decimals = 6;
-        _totalSupply = 1000000000;
+        _totalSupply = 10000000000000000000000000;
 
         _balances[msg.sender] = _totalSupply;
     }

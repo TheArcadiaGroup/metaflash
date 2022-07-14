@@ -3,12 +3,12 @@ pragma experimental ABIEncoderV2;
 pragma solidity 0.6.4;
 
 import "../libraries/SafeMath.sol";
-import "../interfaces/IFToken.sol";
-import "../interfaces/IBankController.sol";
+import "./IFToken.sol";
+import "./IBankController.sol";
 import "./RewardType.sol";
-import "../libraries/EthAddressLib.sol";
+import "./EthAddressLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "../interfaces/IFlashLoanReceiver.sol";
+import "./IFlashLoanReceiver.sol";
 
 // Contract Entry
 contract Bank is Initializable {

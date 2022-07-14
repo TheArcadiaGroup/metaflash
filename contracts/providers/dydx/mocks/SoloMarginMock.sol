@@ -5,10 +5,10 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../interfaces/SoloMarginLike.sol";
-import "../interfaces/DYDXFlashBorrowerLike.sol";
+import "../interfaces/ISoloMargin.sol";
+import "../interfaces/IDYDXFlashBorrower.sol";
 
-contract SoloMarginMock is SoloMarginLike {
+contract SoloMarginMock is ISoloMargin {
     using SafeMath for uint256;
 
     mapping(uint256 => address) internal _markets;
@@ -53,7 +53,7 @@ contract SoloMarginMock is SoloMarginLike {
 
         transfer(withdraw.primaryMarketId, msg.sender, withdraw.amount.value);
 
-        DYDXFlashBorrowerLike(msg.sender).callFunction(msg.sender, DYDXDataTypes.AccountInfo({
+        IDYDXFlashBorrower(msg.sender).callFunction(msg.sender, DYDXDataTypes.AccountInfo({
             owner: accounts[0].owner,
             number: accounts[0].number
         }), call.data);

@@ -10,7 +10,7 @@ import "../libraries/DYDXDataTypes.sol";
  *
  * Interface that Callees for Solo must implement in order to ingest data.
  */
-interface DYDXFlashBorrowerLike {
+interface IDYDXFlashBorrower {
 
     // ============ Public Functions ============
 

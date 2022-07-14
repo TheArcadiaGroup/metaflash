@@ -5,7 +5,7 @@ const {
 } = require("../js-helpers/deploy");
 const { BigNumber } = require('ethers');
 
-describe('DssFlash', () => {
+describe('MakerDao', () => {
   let dssflashtest, user, chainId, vat, dai, daijoin, dssflash, lender, borrower;
   chainId = chainIdByName(network.name);
 
@@ -23,8 +23,8 @@ describe('DssFlash', () => {
     const Dai = await ethers.getContractFactory('Dai');
     const DaiJoin = await ethers.getContractFactory('DaiJoin');
     const DssFlash = await ethers.getContractFactory('DssFlash');
-    const DssFlashERC3156 = await ethers.getContractFactory('DssFlashERC3156');
-    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
+    const DssFlashERC3156 = await ethers.getContractFactory('MakerDaoFlashLender');
+    const FlashBorrower = await ethers.getContractFactory('MakerDaoFlashBorrower');
 
     vat = await Vat.deploy();
     dai = await Dai.deploy(chainId);
@@ -39,32 +39,35 @@ describe('DssFlash', () => {
   });
 
   it('flash supply', async function () {
-    expect(await lender.maxFlashLoan(dai.address)).to.equal(getBigNumber(100));
+    expect(await lender.maxFlashLoan(dai.address, 1)).to.equal(getBigNumber(100));
+    expect(await lender.maxFlashLoan(lender.address, 1)).to.equal('0');
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address)).to.equal(getBigNumber(100));
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(lender.address)).to.equal('0');
   });
 
   it('flash fee', async function () {
     expect(await lender.flashFee(dai.address, getBigNumber(100))).to.equal(0);
+    expect(await lender.flashFee(lender.address,  getBigNumber(100))).to.equal(0);
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, getBigNumber(100))).to.equal(0);
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(lender.address,  getBigNumber(100))).to.equal(0);
   });
 
-  it('flash loan', async function () {
-    let fee = await lender.flashFee(dai.address, getBigNumber(100));
-
+  it('flashLoan', async () => {
+    const maxloan = await lender.maxFlashLoan(dai.address, 1);
+    const fee = await lender.flashFee(dai.address, maxloan);
     await dai.mint(borrower.address, fee);
-    expect(await dai.balanceOf(borrower.address)).to.equal(fee);
-    await borrower.connect(user).flashBorrow(lender.address, dai.address, getBigNumber(100));
+    await borrower.connect(user).flashBorrow(lender.address, dai.address, maxloan);
+    const totalFlashBalance = await borrower.totalFlashBalance();
+    expect(totalFlashBalance).to.equal(maxloan.add(fee));
+  });
 
-    const balanceAfter = await dai.balanceOf(user.address);
-    expect(balanceAfter).to.equal(BigNumber.from('0'));
-    const flashBalance = await borrower.flashBalance();
-    expect(flashBalance).to.equal(getBigNumber(100).add(fee));
-    const flashToken = await borrower.flashToken();
-    expect(flashToken).to.equal(dai.address);
-    const flashAmount = await borrower.flashAmount();
-    expect(flashAmount).to.equal(getBigNumber(100));
-    const flashFee = await borrower.flashFee();
-    expect(flashFee).to.equal(fee);
-    const flashSender = await borrower.flashSender();
-    expect(flashSender).to.equal(borrower.address);
+  it('flashLoanWithManyPairs_OR_ManyPools', async () => {
+    const maxloan = await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address);
+    const fee = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, maxloan);
+    await dai.mint(borrower.address, fee);
+    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, dai.address, maxloan);
+    const totalFlashBalance = await borrower.totalFlashBalance();
+    expect(totalFlashBalance).to.equal(maxloan.add(fee));
   });
 
   it('test_mint_payback', async function () {

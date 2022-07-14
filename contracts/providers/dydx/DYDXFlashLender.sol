@@ -6,13 +6,14 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-import "./interfaces/SoloMarginLike.sol";
-import "./interfaces/DYDXFlashBorrowerLike.sol";
+// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
+import "./interfaces/IDYDXFlashLender.sol";
+import "./interfaces/ISoloMargin.sol";
+import "./interfaces/IDYDXFlashBorrower.sol";
 import "./libraries/DYDXDataTypes.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
+contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
@@ -28,14 +29,14 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
         });
     bytes internal NULL_DATA = "";
 
-    SoloMarginLike public soloMargin;
+    ISoloMargin public soloMargin;
     mapping(address => uint256) public tokenAddressToMarketId;
     mapping(address => bool) public tokensRegistered;
 
-    constructor(SoloMarginLike _soloMargin) {
+    constructor(ISoloMargin _soloMargin) {
         require(
             address(_soloMargin) != address(0),
-            "DYDXERC3156: _soloMargin address is zero address!"
+            "DYDXFlashLender: _soloMargin address is zero address!"
         );
         soloMargin = _soloMargin;
 
@@ -46,16 +47,37 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
         }
     }
 
-    function maxFlashLoan(address _token)
+    function maxFlashLoan(address _token, uint256 _amount)
         external
         view
         override
         returns (uint256)
     {
-        return
-            tokensRegistered[_token] == true
+        return _maxFlashLoan(_token, _amount);
+    }
+
+    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _maxFlashLoan(_token, 1);
+    }
+
+    function _maxFlashLoan(address _token, uint256 _amount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 maxloan = tokensRegistered[_token] == true
                 ? IERC20(_token).balanceOf(address(soloMargin))
                 : 0;
+        if(maxloan >= _amount){
+            return maxloan;
+        }else{
+            return 0;
+        }
     }
 
     function flashFee(address _token, uint256 _amount)
@@ -64,16 +86,56 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
         override
         returns (uint256)
     {
-        // require(tokensRegistered[_token], "DYDXERC3156: Unsupported currency");
-        return 2;
+        uint256 maxloan = tokensRegistered[_token] == true
+                ? IERC20(_token).balanceOf(address(soloMargin))
+                : 0;
+        if(maxloan >= _amount){
+            return 2;
+        }else{
+            return 0;
+        }
+    }
+
+    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        uint256 maxloan = tokensRegistered[_token] == true
+                ? IERC20(_token).balanceOf(address(soloMargin))
+                : 0;
+        if(maxloan > 0){
+            return 2;
+        }else{
+            return 0;
+        }
     }
 
     function flashLoan(
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes memory _userData
+        bytes calldata _userData
     ) external override returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+    }
+
+    function flashLoanWithManyPairs_OR_ManyPools(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _userData
+    ) external override returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+    }
+
+    function _flashLoan(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes memory _userData
+    ) internal returns (bool) {
         DYDXDataTypes.ActionArgs[]
             memory operations = new DYDXDataTypes.ActionArgs[](3);
         operations[0] = getWithdrawAction(_token, _amount);
@@ -82,7 +144,7 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
         );
         operations[2] = getDepositAction(
             _token,
-            _amount.add(flashFee(_token, _amount))
+            _amount.add(2)
         );
         DYDXDataTypes.AccountInfo[]
             memory accountInfos = new DYDXDataTypes.AccountInfo[](1);
@@ -118,7 +180,7 @@ contract DYDXERC3156 is IERC3156FlashLender, DYDXFlashBorrowerLike, Ownable {
                 (address, IERC3156FlashBorrower, address, uint256, bytes)
             );
 
-        uint256 fee = flashFee(token, amount);
+        uint256 fee = 2;
 
         // Transfer to `receiver`
         require(

@@ -16,9 +16,9 @@
 
 pragma solidity >=0.6.12;
 
-import "../interfaces/IERC3156FlashLender.sol";
-import "../interfaces/IERC3156FlashBorrower.sol";
-import "../interfaces/IVatDaiFlashLender.sol";
+import "./IERC3156FlashLender.sol";
+import "./IERC3156FlashBorrower.sol";
+import "./IVatDaiFlashLender.sol";
 
 interface DaiLike {
     function balanceOf(address) external returns (uint256);

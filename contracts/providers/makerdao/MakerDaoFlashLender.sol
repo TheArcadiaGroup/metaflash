@@ -16,19 +16,21 @@
 
 pragma solidity >=0.6.12;
 
-import "./interfaces/IERC3156FlashLender.sol";
-import "./interfaces/IDssFlash.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "./interfaces/IMakerDaoFlashLender.sol";
+import "./interfaces/IMakerDaoFlashBorrower.sol";
+import "./interfaces/IMakerDaoDssFlash.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DssFlashERC3156 is
-    IERC3156FlashLender,
+contract MakerDaoFlashLender is
+    IMakerDaoFlashLender,
     IERC3156FlashBorrower,
     Ownable
 {
     using SafeMath for uint256;
-    IDssFlash dssflash;
+    IMakerDaoDssFlash dssflash;
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
@@ -38,17 +40,38 @@ contract DssFlashERC3156 is
             address(_dssflash) != address(0),
             "DssFlashERC3156: factory address is zero address!"
         );
-        dssflash = IDssFlash(_dssflash);
+        dssflash = IMakerDaoDssFlash(_dssflash);
     }
 
-    // --- ERC 3156 Spec ---
-    function maxFlashLoan(address _token)
+    function maxFlashLoan(address _token, uint256 _amount)
         external
         view
         override
         returns (uint256)
     {
-        return dssflash.maxFlashLoan(_token);
+        return _maxFlashLoan(_token, _amount);
+    }
+
+    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _maxFlashLoan(_token, 1);
+    }
+
+    function _maxFlashLoan(address _token, uint256 _amount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 maxloan = dssflash.maxFlashLoan(_token);
+        if(maxloan >= _amount){
+            return maxloan;
+        }else{
+            return 0;
+        }
     }
 
     function flashFee(address _token, uint256 _amount)
@@ -57,15 +80,52 @@ contract DssFlashERC3156 is
         override
         returns (uint256)
     {
-        return dssflash.flashFee(_token, _amount);
+        uint256 maxloan = dssflash.maxFlashLoan(_token);
+        if(maxloan >= _amount){
+            return dssflash.flashFee(_token, _amount);
+        }else{
+            return 0;
+        }
+    }
+
+    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        uint256 maxloan = dssflash.maxFlashLoan(_token);
+        if(maxloan > 0){
+            return dssflash.flashFee(_token, _amount);
+        }else{
+            return 0;
+        }
     }
 
     function flashLoan(
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes calldata _data
+        bytes calldata _userData
     ) external override returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+    }
+
+    function flashLoanWithManyPairs_OR_ManyPools(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _userData
+    ) external override returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+    }
+
+    function _flashLoan(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _data
+    ) internal returns (bool) {
         bytes memory ndata = abi.encode(msg.sender, _receiver, _data);
         dssflash.flashLoan(this, _token, _amount, ndata);
         return true;

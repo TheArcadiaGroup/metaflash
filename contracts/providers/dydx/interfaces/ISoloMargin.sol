@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "../libraries/DYDXDataTypes.sol";
 
-interface SoloMarginLike {
+interface ISoloMargin {
     function operate(DYDXDataTypes.AccountInfo[] memory accounts, DYDXDataTypes.ActionArgs[] memory actions) external;
     function getMarketTokenAddress(uint256 marketId) external view returns (address);
 }

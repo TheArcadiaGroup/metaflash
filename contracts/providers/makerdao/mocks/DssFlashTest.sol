@@ -26,7 +26,7 @@ import {GemJoin, DaiJoin} from "./Join.sol";
 import {Dai}              from "./Dai.sol";
 
 import "./DssFlash.sol";
-import "../base/FlashLoanReceiverBase.sol";
+import "./FlashLoanReceiverBase.sol";
 
 interface Hevm {
     function warp(uint256) external;

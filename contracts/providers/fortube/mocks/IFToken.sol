@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.6.4;
-import "./IERC20.sol";
+import "../interfaces/IERC20.sol";
 
 interface IFToken is IERC20 {
     function mint(address user, uint256 amount) external returns (bytes memory);

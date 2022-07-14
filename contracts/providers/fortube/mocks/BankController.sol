@@ -2,17 +2,17 @@
 pragma experimental ABIEncoderV2;
 pragma solidity 0.6.4;
 
-import "../libraries/EthAddressLib.sol";
-import "../libraries/Address.sol";
+import "./EthAddressLib.sol";
+import "./Address.sol";
 import "./Exponential.sol";
-import "../interfaces/IFToken.sol";
-import "../interfaces/IOracle.sol";
+import "./IFToken.sol";
+import "./IOracle.sol";
 import "../interfaces/IERC20.sol";
-import "../libraries/SafeERC20.sol";
+import "./SafeERC20.sol";
 import "./RewardType.sol";
 import "../libraries/SafeMath.sol";
-import "../interfaces/IBank.sol";
-import "../interfaces/IRewardPool.sol";
+import "./IBank.sol";
+import "./IRewardPool.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
 contract BankController is Exponential, Initializable {
