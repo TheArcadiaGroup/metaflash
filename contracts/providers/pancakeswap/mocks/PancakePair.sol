@@ -6,8 +6,8 @@ import './PancakeERC20.sol';
 import '../libraries/Math.sol';
 import '../libraries/UQ112x112.sol';
 import '../interfaces/IERC20.sol';
-import '../interfaces/IPancakeFactory.sol';
-import '../interfaces/IPancakeCallee.sol';
+import './IPancakeFactory.sol';
+import './IPancakeCallee.sol';
 
 contract PancakePair is IPancakePair, PancakeERC20 {
     using SafeMath  for uint;

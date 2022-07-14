@@ -316,6 +316,11 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             _amount
         );
 
+        require(
+            sortedTempProviders[0].provider != address(0),
+            "FlashLender: Unsupported currency"
+        );
+
         IERC3156FlashLender(sortedTempProviders[0].provider).flashLoan(
             this,
             _token,

@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Derived from https://github.com/Austin-Williams/uniswap-flash-swapper
 
-pragma solidity ^0.7.5;
+pragma solidity >=0.6.12;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// import "@openzeppelin/contracts/math/SafeMath.sol";
+// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
+import {SafeMath} from "./libraries/SafeMath.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "./interfaces/IUniswapV2Pair.sol";
-import "./interfaces/IUniswapV2FlashLender.sol";
-import "./interfaces/IUniswapV2FlashBorrower.sol";
+import "./interfaces/IPancakePair.sol";
+import "./interfaces/IPancakeswapFlashBorrower.sol";
+import "./interfaces/IPancakeswapFlashLender.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract UniswapV2FlashLender is
-    IUniswapV2FlashLender,
-    IUniswapV2FlashBorrower,
+contract PancakeswapFlashLender is
+    IPancakeswapFlashLender,
+    IPancakeswapFlashBorrower,
     Ownable
 {
     using SafeMath for uint256;
@@ -21,6 +23,9 @@ contract UniswapV2FlashLender is
     // CONSTANTS
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
+
+    address permissionedPairAddress;
+    address public factory;
 
     struct Pair {
         address token0;
@@ -35,7 +40,7 @@ contract UniswapV2FlashLender is
 
     Pair[] public pairs;
 
-    constructor() {}
+    constructor() public {}
 
     function addPairs(
         address[] memory _tokens0,
@@ -45,20 +50,20 @@ contract UniswapV2FlashLender is
         require(
             (_tokens0.length == _tokens1.length) &&
                 (_tokens1.length == _pairs.length),
-            "UniswapV2FlashLender: mismatch length of token0, token1, pair"
+            "PancakeswapFlashLender: mismatch length of token0, token1, pair"
         );
         for (uint256 i = 0; i < _pairs.length; i++) {
             require(
                 _tokens0[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "PancakeswapFlashLender: Unsupported currency"
             );
             require(
                 _tokens1[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "PancakeswapFlashLender: Unsupported currency"
             );
             require(
                 _pairs[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "PancakeswapFlashLender: Unsupported currency"
             );
             pairs.push(
                 Pair({
@@ -102,8 +107,8 @@ contract UniswapV2FlashLender is
     //     for (uint256 i = 0; i < pairs.length; i++) {
     //         if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
     //             uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
-    //             if (balance > biggestMaxLoan.add(1)) {
-    //                 biggestMaxLoan = balance.sub(1);
+    //             if (balance > biggestMaxLoan) {
+    //                 biggestMaxLoan = balance;
     //                 biggestPair = pairs[i].pair;
     //             }
     //         }
@@ -209,6 +214,7 @@ contract UniswapV2FlashLender is
         returns (uint256)
     {
         PairInfo[] memory validPairInfos = _getValidPairs(_token, _amount);
+
         if (validPairInfos[0].maxloan > 0) {
             return _flashFee(_token, _amount);
         } else {
@@ -236,7 +242,7 @@ contract UniswapV2FlashLender is
         view
         returns (uint256)
     {
-        return ((_amount * 3) / 997) + 1;
+        return ((_amount * 25) / 9975) + 1;
     }
 
     function flashLoan(
@@ -249,10 +255,16 @@ contract UniswapV2FlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported currency"
+            "PancakeswapFlashLender: Unsupported currency"
         );
 
-        _swap(_receiver, validPairInfos[0].pair, _token, _amount, _userData);
+        _flashLoan(
+            _receiver,
+            validPairInfos[0].pair,
+            _token,
+            _amount,
+            _userData
+        );
 
         return true;
     }
@@ -261,16 +273,15 @@ contract UniswapV2FlashLender is
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes memory _userData
+        bytes calldata _data
     ) external override returns (bool) {
         uint256 totalMaxLoan;
         uint256 totalAmount = _amount;
-
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
 
         require(
             validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported currency"
+            "PancakeswapFlashLender: Unsupported currency"
         );
 
         for (uint256 i = 0; i < validPairInfos.length; i++) {
@@ -279,46 +290,48 @@ contract UniswapV2FlashLender is
 
         require(
             totalMaxLoan >= totalAmount,
-            "UniswapV2FlashLender: Amount is more than maxFlashLoan"
+            "PancakeswapFlashLender: Amount is more than maxFlashLoan"
         );
 
         uint256 amount = 0;
         for (uint256 i = 0; i < validPairInfos.length; i++) {
             if (amount.add(validPairInfos[i].maxloan) <= totalAmount) {
-                _swap(
+                _flashLoan(
                     _receiver,
                     validPairInfos[i].pair,
                     _token,
                     validPairInfos[i].maxloan,
-                    _userData
+                    _data
                 );
                 amount = amount.add(validPairInfos[i].maxloan);
+
                 if (amount == totalAmount) {
                     break;
                 }
             } else {
-                _swap(
+                _flashLoan(
                     _receiver,
                     validPairInfos[i].pair,
                     _token,
                     totalAmount.sub(amount),
-                    _userData
+                    _data
                 );
                 amount = totalAmount;
                 break;
             }
         }
+
         return true;
     }
 
-    function _swap(
+    function _flashLoan(
         IERC3156FlashBorrower _receiver,
         address _pair,
         address _token,
         uint256 _amount,
-        bytes memory _userData
+        bytes memory _data
     ) internal {
-        IUniswapV2Pair pair = IUniswapV2Pair(_pair);
+        IPancakePair pair = IPancakePair(_pair);
 
         address token0 = pair.token0();
         address token1 = pair.token1();
@@ -329,12 +342,12 @@ contract UniswapV2FlashLender is
             msg.sender,
             _receiver,
             _token,
-            _userData
+            _data
         );
         pair.swap(amount0Out, amount1Out, address(this), data);
     }
 
-    function uniswapV2Call(
+    function pancakeCall(
         address _sender,
         uint256 _amount0,
         uint256 _amount1,
@@ -342,7 +355,7 @@ contract UniswapV2FlashLender is
     ) external override {
         require(
             _sender == address(this),
-            "UniswapV2FlashLender: only this contract may initiate"
+            "PancakeswapFlashLender: only this contract may initiate"
         );
 
         (
@@ -358,7 +371,7 @@ contract UniswapV2FlashLender is
 
         require(
             msg.sender == pair,
-            "UniswapV2FlashLender: only permissioned UniswapV2 pair can call"
+            "PancakeswapFlashLender: only permissioned pair can call"
         );
 
         uint256 amount = _amount0 > 0 ? _amount0 : _amount1;
@@ -369,7 +382,7 @@ contract UniswapV2FlashLender is
         require(
             receiver.onFlashLoan(origin, token, amount, fee, userData) ==
                 CALLBACK_SUCCESS,
-            "UniswapV2FlashLender: Callback failed"
+            "PancakeswapFlashLender: Callback failed"
         );
 
         IERC20(token).transferFrom(

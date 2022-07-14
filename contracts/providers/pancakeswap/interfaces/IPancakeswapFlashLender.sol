@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.5;
+pragma solidity 0.6.12;
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 
-interface IUniswapV2FlashLender {
-    function maxFlashLoan(address token, uint256 _amount) external view returns (uint256);
+interface IPancakeswapFlashLender {
+    function maxFlashLoan(address token, uint256 amount) external view returns (uint256);
 
     function flashFee(address token, uint256 amount)
         external

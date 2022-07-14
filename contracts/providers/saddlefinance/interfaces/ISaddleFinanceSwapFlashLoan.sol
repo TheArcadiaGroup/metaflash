@@ -2,10 +2,11 @@
 
 pragma solidity 0.6.12;
 
-import "./ISwap.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface ISwapFlashLoan is ISwap {
+interface ISaddleFinanceSwapFlashLoan {
     function flashLoanFeeBPS() external view returns (uint256);
+    
     function flashLoan(
         address receiver,
         IERC20 token,

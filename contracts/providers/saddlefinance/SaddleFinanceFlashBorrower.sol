@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.5;
+pragma solidity >=0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "./interfaces/IUniswapV2FlashLender.sol";
+import "./interfaces/ISaddleFinanceFlashLender.sol";
 
-contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
+contract SaddleFinanceFlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
         STEAL,
@@ -32,7 +32,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "UniswapV2FlashBorrower: External loan initiator"
+            "SaddleFinanceFlashBorrower: External loan initiator"
         );
         Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
         flashSender = sender;
@@ -51,7 +51,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
-        IUniswapV2FlashLender lender,
+        ISaddleFinanceFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -68,7 +68,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrowWithManyPairs_OR_ManyPools(
-        IUniswapV2FlashLender lender,
+        ISaddleFinanceFlashLender lender,
         address token,
         uint256 amount
     ) public {

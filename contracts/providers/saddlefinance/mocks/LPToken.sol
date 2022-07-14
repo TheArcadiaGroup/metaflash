@@ -4,7 +4,7 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "../interfaces/ISwap.sol";
+import "./ISwap.sol";
 
 /**
  * @title Liquidity Provider Token

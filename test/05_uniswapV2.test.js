@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('UniswapV2ERC3156', () => {
+describe('UniswapV2', () => {
   let user;
   let weth, dai, usdc, wethDaiPair, wethUsdcPair, uniswapFactory, lender, daiUsdcPairAddress;
   let borrower;
@@ -52,7 +52,6 @@ describe('UniswapV2ERC3156', () => {
     await usdc.mint(daiUsdcPair.address, reserves.mul(3));
     await daiUsdcPair.mint();
 
-
     await lender.addPairs([weth.address], [dai.address], [wethDaiPairAddress]);
     await lender.addPairs([weth.address], [usdc.address], [wethUsdcPairAddress]);
   });
@@ -62,10 +61,10 @@ describe('UniswapV2ERC3156', () => {
   });
 
   it("addPair: Should update", async function () {
-    expect(await lender.maxFlashLoan(usdc.address)).to.equal(reserves.mul(2).sub(1));
+    expect(await lender.maxFlashLoan(usdc.address, 1)).to.equal(reserves.mul(2).sub(1));
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdc.address)).to.equal(reserves.mul(2).sub(1));
     await lender.addPairs([dai.address], [usdc.address], [daiUsdcPairAddress]);
-    expect(await lender.maxFlashLoan(usdc.address)).to.equal(reserves.mul(3).sub(1));
+    expect(await lender.maxFlashLoan(usdc.address, 1)).to.equal(reserves.mul(3).sub(1));
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdc.address)).to.equal(reserves.mul(5).sub(2));
   });
 
@@ -75,18 +74,18 @@ describe('UniswapV2ERC3156', () => {
 
   it("removePair: Should update", async function () {
     await lender.addPairs([dai.address], [usdc.address], [daiUsdcPairAddress]);
-    expect(await lender.maxFlashLoan(usdc.address)).to.equal(reserves.mul(3).sub(1));
+    expect(await lender.maxFlashLoan(usdc.address, 1)).to.equal(reserves.mul(3).sub(1));
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdc.address)).to.equal(reserves.mul(5).sub(2));
     await lender.removePairs([daiUsdcPairAddress]);
-    expect(await lender.maxFlashLoan(usdc.address)).to.equal(reserves.mul(2).sub(1));
+    expect(await lender.maxFlashLoan(usdc.address, 1)).to.equal(reserves.mul(2).sub(1));
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdc.address)).to.equal(reserves.mul(2).sub(1));
   });
 
   it('flash supply', async function () {
-    expect(await lender.maxFlashLoan(weth.address)).to.equal(reserves.mul(2).sub(1));
-    expect(await lender.maxFlashLoan(dai.address)).to.equal(reserves.sub(1));
-    expect(await lender.maxFlashLoan(usdc.address)).to.equal(reserves.mul(2).sub(1));
-    expect(await lender.maxFlashLoan(lender.address)).to.equal(0);
+    expect(await lender.maxFlashLoan(weth.address, 1)).to.equal(reserves.mul(2).sub(1));
+    expect(await lender.maxFlashLoan(dai.address, 1)).to.equal(reserves.sub(1));
+    expect(await lender.maxFlashLoan(usdc.address, 1)).to.equal(reserves.mul(2).sub(1));
+    expect(await lender.maxFlashLoan(lender.address, 1)).to.equal(0);
 
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(weth.address)).to.equal(reserves.mul(3).sub(2));
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address)).to.equal(reserves.sub(1));
@@ -96,7 +95,7 @@ describe('UniswapV2ERC3156', () => {
 
   it('flash fee', async function () {
     expect(await lender.flashFee(weth.address, reserves)).to.equal((reserves.mul(3).div(997).add(1)));
-    expect(await lender.flashFee(dai.address, reserves)).to.equal((reserves.mul(3).div(997).add(1)));
+    expect(await lender.flashFee(dai.address, reserves.sub(1))).to.equal((reserves.sub(1)).mul(3).div(997).add(1));
     expect(await lender.flashFee(usdc.address, reserves)).to.equal((reserves.mul(3).div(997).add(1)));
     expect(await lender.flashFee(lender.address, reserves)).to.equal(0);
 
@@ -107,27 +106,21 @@ describe('UniswapV2ERC3156', () => {
   });
 
   it('flashLoan', async () => {
-    const maxloan = await lender.maxFlashLoan(weth.address);
+    const maxloan = await lender.maxFlashLoan(weth.address, 1);
     expect(maxloan).to.equal(reserves.mul(2).sub(1));
     const fee = await lender.flashFee(weth.address, maxloan);
     expect(fee).to.equal(maxloan.mul(3).div(997).add(1));
-
     await weth.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrow(lender.address, weth.address, maxloan);
-
     const totalFlashBalance = await borrower.totalFlashBalance();
     expect(totalFlashBalance).to.equal(maxloan.add(fee));
   });
 
   it('flashLoanWithManyPairs_OR_ManyPools', async () => {
     const maxloan = await lender.maxFlashLoanWithManyPairs_OR_ManyPools(weth.address);
-    expect(maxloan).to.equal(reserves.mul(3).sub(2));
     const fee = await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, maxloan);
-    expect(fee).to.equal(maxloan.mul(3).div(997).add(1));
-
     await weth.connect(user).mint(borrower.address, fee);
     await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, weth.address, maxloan);
-
     const totalFlashBalance = await borrower.totalFlashBalance();
     expect(totalFlashBalance).to.equal(maxloan.add(fee));
   });

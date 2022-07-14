@@ -4,10 +4,10 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../interfaces/IFlashLoanReceiver.sol";
-import "../interfaces/ISwapFlashLoan.sol";
+import "../interfaces/ISaddleFinanceFlashBorrower.sol";
+import "./ISwapFlashLoan.sol";
 
-contract FlashLoanBorrowerExample is IFlashLoanReceiver {
+contract FlashLoanBorrowerExample is ISaddleFinanceFlashBorrower {
     using SafeMath for uint256;
 
     // Typical executeOperation function should do the 3 following actions

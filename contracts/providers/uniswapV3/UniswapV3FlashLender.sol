@@ -6,14 +6,14 @@ pragma solidity ^0.7.5;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "./interfaces/IUniswapV2Pair.sol";
-import "./interfaces/IUniswapV2FlashLender.sol";
-import "./interfaces/IUniswapV2FlashBorrower.sol";
+import "./interfaces/IUniswapV3Pair.sol";
+import "./interfaces/IUniswapV3FlashLender.sol";
+import "./interfaces/IUniswapV3FlashBorrower.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract UniswapV2FlashLender is
-    IUniswapV2FlashLender,
-    IUniswapV2FlashBorrower,
+contract UniswapV3FlashLender is
+    IUniswapV3FlashLender,
+    IUniswapV3FlashBorrower,
     Ownable
 {
     using SafeMath for uint256;
@@ -45,20 +45,20 @@ contract UniswapV2FlashLender is
         require(
             (_tokens0.length == _tokens1.length) &&
                 (_tokens1.length == _pairs.length),
-            "UniswapV2FlashLender: mismatch length of token0, token1, pair"
+            "UniswapV3FlashLender: mismatch length of token0, token1, pair"
         );
         for (uint256 i = 0; i < _pairs.length; i++) {
             require(
                 _tokens0[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "UniswapV3FlashLender: Unsupported currency"
             );
             require(
                 _tokens1[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "UniswapV3FlashLender: Unsupported currency"
             );
             require(
                 _pairs[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "UniswapV3FlashLender: Unsupported currency"
             );
             pairs.push(
                 Pair({
@@ -68,7 +68,6 @@ contract UniswapV2FlashLender is
                 })
             );
         }
-
         return true;
     }
 
@@ -87,7 +86,6 @@ contract UniswapV2FlashLender is
                 }
             }
         }
-
         return true;
     }
 
@@ -249,10 +247,10 @@ contract UniswapV2FlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported currency"
+            "UniswapV3FlashLender: Unsupported currency"
         );
 
-        _swap(_receiver, validPairInfos[0].pair, _token, _amount, _userData);
+        _flash(_receiver, validPairInfos[0].pair, _token, _amount, _userData);
 
         return true;
     }
@@ -270,7 +268,7 @@ contract UniswapV2FlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported currency"
+            "UniswapV3FlashLender: Unsupported currency"
         );
 
         for (uint256 i = 0; i < validPairInfos.length; i++) {
@@ -279,13 +277,12 @@ contract UniswapV2FlashLender is
 
         require(
             totalMaxLoan >= totalAmount,
-            "UniswapV2FlashLender: Amount is more than maxFlashLoan"
+            "UniswapV3FlashLender: Amount is more than maxFlashLoan"
         );
-
         uint256 amount = 0;
         for (uint256 i = 0; i < validPairInfos.length; i++) {
             if (amount.add(validPairInfos[i].maxloan) <= totalAmount) {
-                _swap(
+                _flash(
                     _receiver,
                     validPairInfos[i].pair,
                     _token,
@@ -297,7 +294,7 @@ contract UniswapV2FlashLender is
                     break;
                 }
             } else {
-                _swap(
+                _flash(
                     _receiver,
                     validPairInfos[i].pair,
                     _token,
@@ -311,14 +308,14 @@ contract UniswapV2FlashLender is
         return true;
     }
 
-    function _swap(
+    function _flash(
         IERC3156FlashBorrower _receiver,
         address _pair,
         address _token,
         uint256 _amount,
         bytes memory _userData
     ) internal {
-        IUniswapV2Pair pair = IUniswapV2Pair(_pair);
+        IUniswapV3Pair pair = IUniswapV3Pair(_pair);
 
         address token0 = pair.token0();
         address token1 = pair.token1();
@@ -329,39 +326,42 @@ contract UniswapV2FlashLender is
             msg.sender,
             _receiver,
             _token,
+            _amount,
             _userData
         );
-        pair.swap(amount0Out, amount1Out, address(this), data);
+        pair.flash(address(this), amount0Out, amount1Out, data);
     }
 
-    function uniswapV2Call(
-        address _sender,
-        uint256 _amount0,
-        uint256 _amount1,
+    /// @dev Uniswap flash loan callback. It sends the value borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
+    function uniswapV3FlashCallback(
+        uint256 _fee0,
+        uint256 _fee1,
         bytes calldata _data
     ) external override {
-        require(
-            _sender == address(this),
-            "UniswapV2FlashLender: only this contract may initiate"
-        );
-
         (
             address pair,
             address origin,
             IERC3156FlashBorrower receiver,
             address token,
+            uint256 amount,
             bytes memory userData
         ) = abi.decode(
                 _data,
-                (address, address, IERC3156FlashBorrower, address, bytes)
+                (
+                    address,
+                    address,
+                    IERC3156FlashBorrower,
+                    address,
+                    uint256,
+                    bytes
+                )
             );
 
         require(
             msg.sender == pair,
-            "UniswapV2FlashLender: only permissioned UniswapV2 pair can call"
+            "UniswapV3FlashLender: only permissioned pair can call"
         );
 
-        uint256 amount = _amount0 > 0 ? _amount0 : _amount1;
         uint256 fee = _flashFee(token, amount);
 
         IERC20(token).transfer(address(receiver), amount);
@@ -369,7 +369,7 @@ contract UniswapV2FlashLender is
         require(
             receiver.onFlashLoan(origin, token, amount, fee, userData) ==
                 CALLBACK_SUCCESS,
-            "UniswapV2FlashLender: Callback failed"
+            "UniswapV3FlashLender: Callback failed"
         );
 
         IERC20(token).transferFrom(

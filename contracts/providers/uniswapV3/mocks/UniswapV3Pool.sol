@@ -1,31 +1,31 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.7.6;
 
-import '../interfaces/IUniswapV3Pool.sol';
+import './IUniswapV3Pool.sol';
 
 import './NoDelegateCall.sol';
 
-import '../libraries/LowGasSafeMath.sol';
-import '../libraries/SafeCast.sol';
-import '../libraries/Tick.sol';
-import '../libraries/TickBitmap.sol';
-import '../libraries/Position.sol';
-import '../libraries/Oracle.sol';
+import './libraries/LowGasSafeMath.sol';
+import './libraries/SafeCast.sol';
+import './libraries/Tick.sol';
+import './libraries/TickBitmap.sol';
+import './libraries/Position.sol';
+import './libraries/Oracle.sol';
 
-import '../libraries/FullMath.sol';
-import '../libraries/FixedPoint128.sol';
-import '../libraries/TransferHelper.sol';
-import '../libraries/TickMath.sol';
-import '../libraries/LiquidityMath.sol';
-import '../libraries/SqrtPriceMath.sol';
-import '../libraries/SwapMath.sol';
+import './libraries/FullMath.sol';
+import './libraries/FixedPoint128.sol';
+import './libraries/TransferHelper.sol';
+import './libraries/TickMath.sol';
+import './libraries/LiquidityMath.sol';
+import './libraries/SqrtPriceMath.sol';
+import './libraries/SwapMath.sol';
 
-import '../interfaces/IUniswapV3PoolDeployer.sol';
-import '../interfaces/IUniswapV3Factory.sol';
-import '../interfaces/IERC20Minimal.sol';
-import '../interfaces/callback/IUniswapV3MintCallback.sol';
-import '../interfaces/callback/IUniswapV3SwapCallback.sol';
-import '../interfaces/callback/IUniswapV3FlashCallback.sol';
+import './IUniswapV3PoolDeployer.sol';
+import './IUniswapV3Factory.sol';
+import './IERC20Minimal.sol';
+import './callback/IUniswapV3MintCallback.sol';
+import './callback/IUniswapV3SwapCallback.sol';
+import './callback/IUniswapV3FlashCallback.sol';
 
 contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     using LowGasSafeMath for uint256;

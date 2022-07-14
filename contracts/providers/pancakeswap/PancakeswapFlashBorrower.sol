@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.5;
+pragma solidity >=0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "./interfaces/IUniswapV2FlashLender.sol";
+import "./interfaces/IPancakeswapFlashLender.sol";
 
-contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
+contract PancakeswapFlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
         STEAL,
@@ -51,7 +51,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
-        IUniswapV2FlashLender lender,
+        IPancakeswapFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -68,7 +68,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrowWithManyPairs_OR_ManyPools(
-        IUniswapV2FlashLender lender,
+        IPancakeswapFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -77,7 +77,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
             address(lender)
         );
         uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
-        uint256 _repayment = amount + _fee;
+        uint256 _repayment = amount + _fee + 1;
         IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);

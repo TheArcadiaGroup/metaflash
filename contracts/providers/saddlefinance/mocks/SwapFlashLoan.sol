@@ -3,7 +3,7 @@
 pragma solidity 0.6.12;
 
 import "./Swap.sol";
-import "../interfaces/IFlashLoanReceiver.sol";
+import "../interfaces/ISaddleFinanceFlashBorrower.sol";
 
 /**
  * @title Swap - A StableSwap implementation in solidity.
@@ -121,7 +121,7 @@ contract SwapFlashLoan is Swap {
         token.safeTransfer(receiver, amount);
 
         // Execute callback function on receiver
-        IFlashLoanReceiver(receiver).executeOperation(
+        ISaddleFinanceFlashBorrower(receiver).executeOperation(
             address(this),
             address(token),
             amount,
