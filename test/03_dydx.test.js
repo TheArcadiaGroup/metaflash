@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('DYDXERC3156', () => {
+describe('DYDX', () => {
   let user;
   let weth, dai, usdc, borrower, solo, lender;
   const soloBalance = BigNumber.from(100000);
@@ -46,9 +46,6 @@ describe('DYDXERC3156', () => {
 
     expect(await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, soloBalance)).to.equal(2);
     expect(await lender.flashFeeWithManyPairs_OR_ManyPools(usdc.address, soloBalance)).to.equal(0);
-    // await expect(lender.flashFee(lender.address, soloBalance)).to.revertedWith(
-    //   'Unsupported currency',
-    // );
   });
 
   it('flashLoan', async () => {

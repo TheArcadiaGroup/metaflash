@@ -8,9 +8,9 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {InitializableOwnable} from "../libraries/InitializableOwnable.sol";
-import {ICloneFactory} from "../libraries/CloneFactory.sol";
-import {IDVM} from "../interfaces/IDVM.sol";
+import {InitializableOwnable} from "./InitializableOwnable.sol";
+import {ICloneFactory} from "./CloneFactory.sol";
+import {IDVMMock} from "./IDVMMock.sol";
 
 interface IDVMFactory {
     function createDODOVendingMachine(
@@ -81,7 +81,7 @@ contract DVMFactory is InitializableOwnable {
         newVendingMachine = ICloneFactory(_CLONE_FACTORY_).clone(_DVM_TEMPLATE_);
         
         {
-            IDVM(newVendingMachine).init(
+            IDVMMock(newVendingMachine).init(
                 _DEFAULT_MAINTAINER_,
                 baseToken,
                 quoteToken,

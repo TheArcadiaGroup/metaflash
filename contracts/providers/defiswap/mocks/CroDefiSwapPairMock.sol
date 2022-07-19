@@ -1,14 +1,14 @@
 pragma solidity =0.5.16;
 
-import '../interfaces/ICroDefiSwapPair.sol';
+import './ICroDefiSwapPairMock.sol';
 import './CroDefiSwapERC20.sol';
 import '../libraries/Math.sol';
 import '../libraries/UQ112x112.sol';
 import '../interfaces/IERC20.sol';
-import '../interfaces/ICroDefiSwapFactory.sol';
-import '../interfaces/ICroDefiSwapCallee.sol';
+import './ICroDefiSwapFactoryMock.sol';
+import '../interfaces/ICroDefiSwapFlashBorrower.sol';
 
-contract CroDefiSwapPair is ICroDefiSwapPair, CroDefiSwapERC20 {
+contract CroDefiSwapPairMock is ICroDefiSwapPairMock, CroDefiSwapERC20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
 
@@ -87,8 +87,8 @@ contract CroDefiSwapPair is ICroDefiSwapPair, CroDefiSwapERC20 {
 
     // if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
-        address feeTo = ICroDefiSwapFactory(factory).feeTo();
-        uint feeToBasisPoint = ICroDefiSwapFactory(factory).feeToBasisPoint();
+        address feeTo = ICroDefiSwapFactoryMock(factory).feeTo();
+        uint feeToBasisPoint = ICroDefiSwapFactoryMock(factory).feeToBasisPoint();
 
         feeOn = (feeTo != address(0)) && (feeToBasisPoint > 0);
         uint _kLast = kLast; // gas savings
@@ -171,7 +171,7 @@ contract CroDefiSwapPair is ICroDefiSwapPair, CroDefiSwapERC20 {
         require(to != _token0 && to != _token1, 'CroDefiSwap: INVALID_TO');
         if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
         if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-        if (data.length > 0) ICroDefiSwapCallee(to).croDefiSwapCall(msg.sender, amount0Out, amount1Out, data);
+        if (data.length > 0) ICroDefiSwapFlashBorrower(to).croDefiSwapCall(msg.sender, amount0Out, amount1Out, data);
         balance0 = IERC20(_token0).balanceOf(address(this));
         balance1 = IERC20(_token1).balanceOf(address(this));
         }
@@ -180,7 +180,7 @@ contract CroDefiSwapPair is ICroDefiSwapPair, CroDefiSwapERC20 {
         require(amount0In > 0 || amount1In > 0, 'CroDefiSwap: INSUFFICIENT_INPUT_AMOUNT');
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
         uint magnifier = 10000;
-        uint totalFeeBasisPoint = ICroDefiSwapFactory(factory).totalFeeBasisPoint();
+        uint totalFeeBasisPoint = ICroDefiSwapFactoryMock(factory).totalFeeBasisPoint();
         uint balance0Adjusted = balance0.mul(magnifier).sub(amount0In.mul(totalFeeBasisPoint));
         uint balance1Adjusted = balance1.mul(magnifier).sub(amount1In.mul(totalFeeBasisPoint));
         // reference: https://uniswap.org/docs/v2/protocol-overview/glossary/#constant-product-formula

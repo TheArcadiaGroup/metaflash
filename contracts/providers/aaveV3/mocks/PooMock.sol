@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {VersionedInitializable} from '../libraries/aave-upgradeability/VersionedInitializable.sol';
-import {Errors} from '../libraries/helpers/Errors.sol';
-import {ReserveConfiguration} from '../libraries/configuration/ReserveConfiguration.sol';
-import {PoolLogic} from '../libraries/logic/PoolLogic.sol';
-import {ReserveLogic} from '../libraries/logic/ReserveLogic.sol';
-import {EModeLogic} from '../libraries/logic/EModeLogic.sol';
-import {SupplyLogic} from '../libraries/logic/SupplyLogic.sol';
-import {FlashLoanLogic} from '../libraries/logic/FlashLoanLogic.sol';
-import {BorrowLogic} from '../libraries/logic/BorrowLogic.sol';
-import {LiquidationLogic} from '../libraries/logic/LiquidationLogic.sol';
-import {DataTypes} from '../libraries/types/DataTypes.sol';
-import {BridgeLogic} from '../libraries/logic/BridgeLogic.sol';
-import {IERC20WithPermit} from '../interfaces/IERC20WithPermit.sol';
-import {IPoolAddressesProvider} from '../interfaces/IPoolAddressesProvider.sol';
-import {IPool} from '../interfaces/IPool.sol';
-import {IACLManager} from '../interfaces/IACLManager.sol';
+import {VersionedInitializable} from './libraries/aave-upgradeability/VersionedInitializable.sol';
+import {Errors} from './libraries/helpers/Errors.sol';
+import {ReserveConfiguration} from './libraries/configuration/ReserveConfiguration.sol';
+import {PoolLogic} from './libraries/logic/PoolLogic.sol';
+import {ReserveLogic} from './libraries/logic/ReserveLogic.sol';
+import {EModeLogic} from './libraries/logic/EModeLogic.sol';
+import {SupplyLogic} from './libraries/logic/SupplyLogic.sol';
+import {FlashLoanLogic} from './libraries/logic/FlashLoanLogic.sol';
+import {BorrowLogic} from './libraries/logic/BorrowLogic.sol';
+import {LiquidationLogic} from './libraries/logic/LiquidationLogic.sol';
+import {DataTypes} from './libraries/types/DataTypes.sol';
+import {BridgeLogic} from './libraries/logic/BridgeLogic.sol';
+import {IERC20WithPermit} from './interfaces/IERC20WithPermit.sol';
+import {IPoolAddressesProvider} from './interfaces/IPoolAddressesProvider.sol';
+import {IPool} from './interfaces/IPool.sol';
+import {IACLManager} from './interfaces/IACLManager.sol';
 import {PoolStorage} from './PoolStorage.sol';
 
 /**

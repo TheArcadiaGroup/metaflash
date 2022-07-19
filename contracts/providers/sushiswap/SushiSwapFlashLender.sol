@@ -17,56 +17,64 @@
 pragma solidity >=0.6.12;
 
 import "./interfaces/IBentoBox.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
+// import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "./interfaces/ISushiSwapFlashLender.sol";
 import "./interfaces/IFlashLoan.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
 import "@boringcrypto/boring-solidity/contracts/BoringOwnable.sol";
 
-contract SushiSwapERC3156 is
-    IERC3156FlashLender,
+contract SushiSwapFlashLender is
+    ISushiSwapFlashLender,
     IFlashBorrower,
     BoringOwnable
 {
     using BoringERC20 for IERC20;
     using BoringMath for uint256;
-    address public FEETO;
 
     IBentoBox bentobox;
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     // --- Init ---
-    constructor(address _bentobox, address _feeTo) public {
+    constructor(address _bentobox) public {
         require(
             address(_bentobox) != address(0),
             "SushiSwapERC3156: bentobox address is zero address!"
         );
-        require(
-            address(_feeTo) != address(0),
-            "SushiSwapERC3156: feeTo address is zero address!"
-        );
         bentobox = IBentoBox(_bentobox);
-        FEETO = _feeTo;
     }
 
-    function setFeeTo(address _feeTo) public onlyOwner {
-        require(
-            address(_feeTo) != address(0),
-            "SushiSwapERC3156: feeTo address is zero address!"
-        );
-        FEETO = _feeTo;
-    }
-
-    // --- ERC 3156 Spec ---
-    function maxFlashLoan(address _token)
+    function maxFlashLoan(address _token, uint256 _amount)
         external
         view
         override
         returns (uint256)
     {
-        return IERC20(_token).balanceOf(address(bentobox));
+        return _maxFlashLoan(_token, _amount);
+    }
+
+    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _maxFlashLoan(_token, 1);
+    }
+
+    function _maxFlashLoan(address _token, uint256 _amount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 maxloan = IERC20(_token).balanceOf(address(bentobox));
+        if(maxloan >= _amount){
+            return maxloan;
+        }else{
+            return 0;
+        }
     }
 
     function flashFee(address _token, uint256 _amount)
@@ -75,31 +83,53 @@ contract SushiSwapERC3156 is
         override
         returns (uint256)
     {
-        uint256 sushiFee = _sushiFee(_token, _amount);
-        uint256 additionalFee = _additionalFee(_amount);
-        uint256 totalFee = sushiFee.add(additionalFee);
-        return totalFee;
+        uint256 maxloan = IERC20(_token).balanceOf(address(bentobox));
+        if(maxloan >= _amount){
+            return _amount.mul(50) / 100000;
+        }else{
+            return 0;
+        }
     }
 
-    function _sushiFee(address _token, uint256 _amount)
-        internal
+    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
+        public
         view
+        override
         returns (uint256)
     {
-        return _amount.mul(50) / 100000;
-    }
-
-    function _additionalFee(uint256 _amount) internal view returns (uint256) {
-        return _amount.mul(5) / (1000);
+        uint256 maxloan = IERC20(_token).balanceOf(address(bentobox));
+        if(maxloan > 0){
+            return _amount.mul(50) / 100000;
+        }else{
+            return 0;
+        }
     }
 
     function flashLoan(
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes calldata _data
+        bytes calldata _userData
     ) external override returns (bool) {
-        bytes memory data = abi.encode(msg.sender, _receiver, _data);
+        _flashLoan(_receiver, _token, _amount, _userData);
+    }
+
+    function flashLoanWithManyPairs_OR_ManyPools(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _userData
+    ) external override returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+    }
+
+    function _flashLoan(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes memory _userData
+    ) internal returns (bool) {
+        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
         bentobox.flashLoan(
             IFlashBorrower(this),
             address(this),
@@ -132,16 +162,14 @@ contract SushiSwapERC3156 is
             bytes memory userData
         ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
 
-        // Transfer to `receiver`
         _token.safeTransfer(address(receiver), _amount);
 
-        uint256 totalFee = flashFee(address(_token), _amount);
         require(
             receiver.onFlashLoan(
                 origin,
                 address(_token),
                 _amount,
-                totalFee,
+                _fee,
                 userData
             ) == CALLBACK_SUCCESS,
             "SushiSwapERC3156: Callback failed"
@@ -150,11 +178,8 @@ contract SushiSwapERC3156 is
         _token.safeTransferFrom(
             address(receiver),
             address(this),
-            _amount.add(totalFee)
+            _amount.add(_fee)
         );
-
-        uint256 addtionalFee = _additionalFee(_amount);
-        IERC20(_token).safeTransfer(FEETO, addtionalFee);
 
         // uint256 sushiFee = _sushiFee(address(token), amount);
         _token.safeTransfer(address(bentobox), _amount.add(_fee));

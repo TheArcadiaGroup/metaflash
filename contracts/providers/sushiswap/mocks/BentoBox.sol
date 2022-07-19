@@ -16,8 +16,8 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 import "../interfaces/IFlashLoan.sol";
-import "../interfaces/IWETH.sol";
-import "../interfaces/IStrategy.sol";
+import "./IWETH.sol";
+import "./IStrategy.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringRebase.sol";
 import "./MasterContractManager.sol";

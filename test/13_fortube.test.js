@@ -42,10 +42,6 @@ describe('Fortube', () => {
 
   it('flash fee', async function () {
     expect(await lender.flashFee(usdt.address, bal)).to.equal(bal.mul(100).div(10000));
-  });
-
-  it('flash fee', async function () {
-    expect(await lender.flashFee(usdt.address, bal)).to.equal(bal.mul(100).div(10000));
     // expect(await lender.flashFee(lender.address,  bal)).to.equal(bal.mul(100).div(10000));
     expect(await lender.flashFeeWithManyPairs_OR_ManyPools(usdt.address, bal)).to.equal(bal.mul(100).div(10000));
     // expect(await lender.flashFeeWithManyPairs_OR_ManyPools(lender.address,  bal)).to.equal(bal.mul(100).div(10000));

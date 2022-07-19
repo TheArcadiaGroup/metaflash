@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
-import "./IFlashLoan.sol";
+import "../interfaces/IFlashLoan.sol";
 
 interface IBentoBox {
     function flashLoan(

@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.10;
 
-import {ERC20} from '../../dependencies/openzeppelin/contracts/ERC20.sol';
-import {Ownable} from '../../dependencies/openzeppelin/contracts/Ownable.sol';
+import {ERC20} from '../dependencies/openzeppelin/contracts/ERC20.sol';
+import {Ownable} from '../dependencies/openzeppelin/contracts/Ownable.sol';
 
 /**
  * @title Generic ERC20 token

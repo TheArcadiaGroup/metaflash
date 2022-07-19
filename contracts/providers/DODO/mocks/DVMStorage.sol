@@ -8,13 +8,13 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {ReentrancyGuard} from "../libraries/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "./ReentrancyGuard.sol";
 import {SafeMath} from "../libraries/SafeMath.sol";
-import {DODOMath} from "../libraries/DODOMath.sol";
-import {DecimalMath} from "../libraries/DecimalMath.sol";
-import {IFeeRateModel} from "../libraries/FeeRateModel.sol";
+import {DODOMath} from "./DODOMath.sol";
+import {DecimalMath} from "./DecimalMath.sol";
+import {IFeeRateModel} from "./FeeRateModel.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
-import {PMMPricing} from "../libraries/PMMPricing.sol";
+import {PMMPricing} from "./PMMPricing.sol";
 
 contract DVMStorage is ReentrancyGuard {
     using SafeMath for uint256;

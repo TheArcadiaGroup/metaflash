@@ -10,10 +10,10 @@ pragma experimental ABIEncoderV2;
 
 import {DVMVault} from "./DVMVault.sol";
 import {SafeMath} from "../libraries/SafeMath.sol";
-import {DecimalMath} from "../libraries/DecimalMath.sol";
-import {DODOMath} from "../libraries/DODOMath.sol";
-import {IDODOCallee} from "../interfaces/IDODOCallee.sol";
-import {PMMPricing} from "../libraries/PMMPricing.sol";
+import {DecimalMath} from "./DecimalMath.sol";
+import {DODOMath} from "./DODOMath.sol";
+import {IDODOCallee} from "./IDODOCallee.sol";
+import {PMMPricing} from "./PMMPricing.sol";
 
 contract DVMTrader is DVMVault {
     using SafeMath for uint256;

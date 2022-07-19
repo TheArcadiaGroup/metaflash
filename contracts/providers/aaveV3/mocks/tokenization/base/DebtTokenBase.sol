@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {Context} from '../../../dependencies/openzeppelin/contracts/Context.sol';
-import {Errors} from '../../../libraries/helpers/Errors.sol';
-import {VersionedInitializable} from '../../../libraries/aave-upgradeability/VersionedInitializable.sol';
-import {ICreditDelegationToken} from '../../../interfaces/ICreditDelegationToken.sol';
+import {Context} from '../../dependencies/openzeppelin/contracts/Context.sol';
+import {Errors} from '../../libraries/helpers/Errors.sol';
+import {VersionedInitializable} from '../../libraries/aave-upgradeability/VersionedInitializable.sol';
+import {ICreditDelegationToken} from '../../interfaces/ICreditDelegationToken.sol';
 import {EIP712Base} from './EIP712Base.sol';
 
 /**

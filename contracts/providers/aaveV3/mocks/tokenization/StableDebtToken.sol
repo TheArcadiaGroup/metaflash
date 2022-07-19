@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
-import {VersionedInitializable} from '../../libraries/aave-upgradeability/VersionedInitializable.sol';
-import {MathUtils} from '../../libraries/math/MathUtils.sol';
-import {WadRayMath} from '../../libraries/math/WadRayMath.sol';
-import {Errors} from '../../libraries/helpers/Errors.sol';
-import {IAaveIncentivesController} from '../../interfaces/IAaveIncentivesController.sol';
-import {IInitializableDebtToken} from '../../interfaces/IInitializableDebtToken.sol';
-import {IStableDebtToken} from '../../interfaces/IStableDebtToken.sol';
-import {IPool} from '../../interfaces/IPool.sol';
+import {IERC20} from '../dependencies/openzeppelin/contracts/IERC20.sol';
+import {VersionedInitializable} from '../libraries/aave-upgradeability/VersionedInitializable.sol';
+import {MathUtils} from '../libraries/math/MathUtils.sol';
+import {WadRayMath} from '../libraries/math/WadRayMath.sol';
+import {Errors} from '../libraries/helpers/Errors.sol';
+import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
+import {IInitializableDebtToken} from '../interfaces/IInitializableDebtToken.sol';
+import {IStableDebtToken} from '../interfaces/IStableDebtToken.sol';
+import {IPool} from '../interfaces/IPool.sol';
 import {EIP712Base} from './base/EIP712Base.sol';
 import {DebtTokenBase} from './base/DebtTokenBase.sol';
 import {IncentivizedERC20} from './base/IncentivizedERC20.sol';
-import {SafeCast} from '../../dependencies/openzeppelin/contracts/SafeCast.sol';
+import {SafeCast} from '../dependencies/openzeppelin/contracts/SafeCast.sol';
 
 /**
  * @title StableDebtToken

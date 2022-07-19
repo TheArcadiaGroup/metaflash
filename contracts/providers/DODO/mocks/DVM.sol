@@ -8,7 +8,7 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {IFeeRateModel} from "../libraries/FeeRateModel.sol";
+import {IFeeRateModel} from "./FeeRateModel.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
 import {DVMTrader} from "./DVMTrader.sol";
 import {DVMFunding} from "./DVMFunding.sol";

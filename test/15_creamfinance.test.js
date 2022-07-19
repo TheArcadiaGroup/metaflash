@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('CreamFinanceERC3156', () => {
+describe('CreamFinance', () => {
   let user, feeTo;
   let weth, dai, usdc, wethDaiPair, wethUsdcPair, lender;
   let borrower;

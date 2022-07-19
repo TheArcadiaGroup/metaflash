@@ -92,7 +92,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 providerCount = 0;
         for (uint256 i = 0; i < providers.length; i++) {
             uint256 maxloan = IERC3156FlashLender(providers[i]).maxFlashLoan(
-                _token
+                _token, _amount
             );
             
             if (maxloan >= _amount) {
@@ -107,7 +107,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
 
         for (uint256 i = 0; i < providers.length; i++) {
             uint256 maxloan = IERC3156FlashLender(providers[i]).maxFlashLoan(
-                _token
+                _token, _amount
             );
             if (maxloan >= _amount) {
                 uint256 fee = IERC3156FlashLender(providers[i]).flashFee(
@@ -207,7 +207,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             _token,
             _amount
         );
-
+        
         require(
             sortedTempProvider.length > 0,
             "FlashLender: Found no providers"

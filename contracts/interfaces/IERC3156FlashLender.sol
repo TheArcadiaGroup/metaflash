@@ -4,7 +4,8 @@ import "./IERC3156FlashBorrower.sol";
 
 interface IERC3156FlashLender {
     function maxFlashLoan(
-        address token
+        address token,
+        uint256 amount
     ) external view returns (uint256);
 
     function flashFee(

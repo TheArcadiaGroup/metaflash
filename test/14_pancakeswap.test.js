@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('PancakeswapERC3156', () => {
+describe('Pancakeswap', () => {
   let user;
   let weth, dai, usdc, wethDaiPair, wethUsdcPair, uniswapFactory, lender;
   let borrower;

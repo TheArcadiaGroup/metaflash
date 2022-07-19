@@ -8,7 +8,7 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {InitializableOwnable} from "../libraries/InitializableOwnable.sol";
+import {InitializableOwnable} from "./InitializableOwnable.sol";
 
 interface IExternalValue {
     function init(address owner, uint256 value) external;

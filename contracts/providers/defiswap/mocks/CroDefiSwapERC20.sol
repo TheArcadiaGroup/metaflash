@@ -1,6 +1,6 @@
 pragma solidity =0.5.16;
 
-import '../interfaces/ICroDefiSwapERC20.sol';
+import './ICroDefiSwapERC20.sol';
 import '../libraries/SafeMath.sol';
 
 contract CroDefiSwapERC20 is ICroDefiSwapERC20 {

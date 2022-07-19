@@ -1,12 +1,10 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.5;
+pragma solidity ^0.6.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-import "./interfaces/IAaveV2FlashLender.sol";
+import "./interfaces/IDODOFlashLender.sol";
 
-contract AaveV2FlashBorrower is IERC3156FlashBorrower {
+contract DODOFlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
         STEAL,
@@ -33,7 +31,7 @@ contract AaveV2FlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "FlashBorrower: External loan initiator"
+            "DODOFlashBorrower: External loan initiator"
         );
         Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
         flashSender = sender;
@@ -52,7 +50,7 @@ contract AaveV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
-        IAaveV2FlashLender lender,
+        IDODOFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -69,7 +67,7 @@ contract AaveV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrowWithManyPairs_OR_ManyPools(
-        IAaveV2FlashLender lender,
+        IDODOFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -78,7 +76,8 @@ contract AaveV2FlashBorrower is IERC3156FlashBorrower {
             address(lender)
         );
         uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
-        uint256 _repayment = amount + _fee;
+        uint256 _repayment = amount + _fee + 1;
+
         IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);

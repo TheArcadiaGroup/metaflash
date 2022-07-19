@@ -10,8 +10,8 @@ pragma experimental ABIEncoderV2;
 
 import {IERC20} from "../interfaces/IERC20.sol";
 import {SafeMath} from "../libraries/SafeMath.sol";
-import {DecimalMath} from "../libraries/DecimalMath.sol";
-import {SafeERC20} from "../libraries/SafeERC20.sol";
+import {DecimalMath} from "./DecimalMath.sol";
+import {SafeERC20} from "./SafeERC20.sol";
 import {DVMStorage} from "./DVMStorage.sol";
 
 contract DVMVault is DVMStorage {

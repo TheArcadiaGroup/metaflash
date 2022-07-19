@@ -1,30 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Derived from https://docs.aave.com/developers/guides/flash-loans
-pragma solidity ^0.7.5;
+pragma solidity 0.8.10;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "./interfaces/IAaveV2FlashLender.sol";
-import "./interfaces/IAaveV2FlashBorrower.sol";
-import "./interfaces/ILendingPool.sol";
-import "./interfaces/ILendingPoolAddressesProvider.sol";
-import "./libraries/AaveDataTypes.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
+import {SafeMath} from "./libraries/SafeMath.sol";
+import {Ownable} from "./libraries/Ownable.sol";
+// import {SafeMath} from "./dependencies/openzeppelin/contracts/SafeMath.sol";
+// import {Ownable} from "./dependencies/openzeppelin/contracts/Ownable.sol";
+// import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
+import "./interfaces/IAaveV3FlashBorrower.sol";
+import "./interfaces/IAaveV3FlashLender.sol";
+import "./interfaces/IAaveV3Pool.sol";
+import "./interfaces/IAaveV3PoolAddressesProvider.sol";
+import "./libraries/DataTypes.sol";
 
-contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable {
+contract AaveV3FlashLender is
+    IAaveV3FlashLender,
+    IAaveV3FlashBorrower,
+    Ownable
+{
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
-    ILendingPool public lendingPool;
+    IAaveV3Pool public pool;
 
-    constructor(ILendingPoolAddressesProvider _provider) {
-        lendingPool = ILendingPool(_provider.getLendingPool());
+    constructor(IAaveV3PoolAddressesProvider _provider) {
+        pool = IAaveV3Pool(_provider.getPool());
         require(
-            address(lendingPool) != address(0),
-            "AaveV2FlashLender: lendingPool address is zero address!"
+            address(pool) != address(0),
+            "AaveV3ERC3156: pool address is zero address!"
         );
     }
 
@@ -51,7 +58,7 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
         view
         returns (uint256)
     {
-        AaveDataTypes.ReserveData memory reserveData = lendingPool
+        DataTypes.ReserveData memory reserveData = pool
             .getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
@@ -68,12 +75,12 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
         override
         returns (uint256)
     {
-        AaveDataTypes.ReserveData memory reserveData = lendingPool
+        DataTypes.ReserveData memory reserveData = pool
             .getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
         if(reserveData.aTokenAddress != address(0) && maxloan >= _amount){
-            return _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
+            return _amount.mul(pool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
         }else{
             return 0;
         }
@@ -85,12 +92,12 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
         override
         returns (uint256)
     {
-        AaveDataTypes.ReserveData memory reserveData = lendingPool
+        DataTypes.ReserveData memory reserveData = pool
             .getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
         if(reserveData.aTokenAddress != address(0) && maxloan > 0){
-            return _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
+            return _amount.mul(pool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
         }else{
             return 0;
         }
@@ -120,46 +127,34 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
         uint256 _amount,
         bytes calldata _userData
     ) internal returns (bool) {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(_token);
-
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = _amount;
-
-        // 0 = no debt, 1 = stable, 2 = variable
-        uint256[] memory modes = new uint256[](1);
-        modes[0] = 0;
-
-        address onBehalfOf = address(this);
         bytes memory data = abi.encode(msg.sender, _receiver, _userData);
         uint16 referralCode = 0;
 
-        lendingPool.flashLoan(
+        pool.flashLoanSimple(
             address(this),
-            tokens,
-            amounts,
-            modes,
-            onBehalfOf,
+            _token,
+            _amount,
             data,
             referralCode
         );
+
         return true;
     }
 
     function executeOperation(
-        address[] calldata _tokens,
-        uint256[] calldata _amounts,
-        uint256[] calldata _fees,
+        address _token,
+        uint256 _amount,
+        uint256 _premium,
         address _sender,
         bytes calldata _data
-    ) external override returns (bool) {
+    ) external returns (bool) {
         require(
-            msg.sender == address(lendingPool),
-            "AaveV2FlashLender: Callbacks only allowed from Lending Pool"
+            msg.sender == address(pool),
+            "AaveV3ERC3156: Callbacks only allowed from Lending Pool"
         );
         require(
             _sender == address(this),
-            "AaveV2FlashLender: Callbacks only initiated from this contract"
+            "AaveV3ERC3156: Callbacks only initiated from this contract"
         );
 
         (
@@ -168,21 +163,19 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
             bytes memory userData
         ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
 
-        address token = _tokens[0];
-        uint256 amount = _amounts[0];
-        uint256 fee = _fees[0];
-
-        // Send the tokens to the original receiver using the ERC-3156 interface
-        IERC20(token).transfer(origin, amount);
+        IERC20(_token).transfer(origin, _amount);
         require(
-            receiver.onFlashLoan(origin, token, amount, fee, userData) ==
+            receiver.onFlashLoan(origin, _token, _amount, _premium, userData) ==
                 CALLBACK_SUCCESS,
-            "AaveV2FlashLender:Callback failed"
+            "AaveV3ERC3156: Callback failed"
         );
-        IERC20(token).transferFrom(origin, address(this), amount.add(fee));
+        IERC20(_token).transferFrom(
+            origin,
+            address(this),
+            _amount.add(_premium)
+        );
 
-        // Approve the LendingPool contract allowance to *pull* the owed amount
-        IERC20(token).approve(address(lendingPool), amount.add(fee));
+        IERC20(_token).approve(address(pool), _amount.add(_premium));
 
         return true;
     }

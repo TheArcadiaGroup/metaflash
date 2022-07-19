@@ -9,8 +9,8 @@ pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
 import {DVMVault} from "./DVMVault.sol";
-import {DecimalMath} from "../libraries/DecimalMath.sol";
-import {IDODOCallee} from "../interfaces/IDODOCallee.sol";
+import {DecimalMath} from "./DecimalMath.sol";
+import {IDODOCallee} from "./IDODOCallee.sol";
 
 contract DVMFunding is DVMVault {
     // ============ Events ============

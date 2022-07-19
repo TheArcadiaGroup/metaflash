@@ -10,7 +10,7 @@ pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
 import {IERC20} from "../interfaces/IERC20.sol";
-import {SafeMath} from "./SafeMath.sol";
+import {SafeMath} from "../libraries/SafeMath.sol";
 
 
 /**

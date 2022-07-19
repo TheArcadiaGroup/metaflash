@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity >=0.6.12;
 
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
+import "./interfaces/ISushiSwapFlashLender.sol";
 
-contract ERC3156FlashBorrowerSushi is IERC3156FlashBorrower {
+contract SushiSwapFlashBorrower is IERC3156FlashBorrower {
     using BoringERC20 for IERC20;
     using BoringMath for uint256;
 
@@ -25,6 +24,7 @@ contract ERC3156FlashBorrowerSushi is IERC3156FlashBorrower {
     address public flashToken;
     uint256 public flashAmount;
     uint256 public flashFee;
+    uint256 public totalFlashBalance;
 
     /// @dev ERC-3156 Flash loan callback
     function onFlashLoan(
@@ -45,40 +45,17 @@ contract ERC3156FlashBorrowerSushi is IERC3156FlashBorrower {
         flashFee = fee;
         if (action == Action.NORMAL) {
             flashBalance = IERC20(token).balanceOf(address(this));
+            totalFlashBalance = totalFlashBalance + amount + fee;
         } else if (action == Action.STEAL) {
             // do nothing
         } else if (action == Action.REENTER) {
-            flashBorrow(IERC3156FlashLender(msg.sender), token, amount * 2);
+            // flashBorrow(IERC3156FlashLender(msg.sender), token, amount * 2);
         }
         return CALLBACK_SUCCESS;
     }
 
     function flashBorrow(
-        IERC3156FlashLender lender,
-        address token,
-        uint256 amount
-    ) public {
-        // Use this to pack arbitrary data to `onFlashLoan`
-        bytes memory data = abi.encode(Action.NORMAL);
-        approveRepayment(lender, token, amount);
-        lender.flashLoan(this, token, amount, data);
-    }
-
-    function flashBorrowAndSteal(IERC3156FlashLender lender, address token, uint256 amount) public {
-        // Use this to pack arbitrary data to `onFlashLoan`
-        bytes memory data = abi.encode(Action.STEAL);
-        lender.flashLoan(this, token, amount, data);
-    }
-
-    function flashBorrowAndReenter(IERC3156FlashLender lender, address token, uint256 amount) public {
-        // Use this to pack arbitrary data to `onFlashLoan`
-        bytes memory data = abi.encode(Action.REENTER);
-        approveRepayment(lender, token, amount);
-        lender.flashLoan(this, token, amount, data);
-    }
-
-    function approveRepayment(
-        IERC3156FlashLender lender,
+        ISushiSwapFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -89,5 +66,25 @@ contract ERC3156FlashBorrowerSushi is IERC3156FlashBorrower {
         uint256 _fee = lender.flashFee(token, amount);
         uint256 _repayment = amount + _fee;
         IERC20(token).approve(address(lender), _allowance + _repayment);
+        // Use this to pack arbitrary data to `onFlashLoan`
+        bytes memory data = abi.encode(Action.NORMAL);
+        lender.flashLoan(this, token, amount, data);
+    }
+
+    function flashBorrowWithManyPairs_OR_ManyPools(
+        ISushiSwapFlashLender lender,
+        address token,
+        uint256 amount
+    ) public {
+        uint256 _allowance = IERC20(token).allowance(
+            address(this),
+            address(lender)
+        );
+        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
+        uint256 _repayment = amount + _fee;
+        IERC20(token).approve(address(lender), _allowance + _repayment);
+        // Use this to pack arbitrary data to `onFlashLoan`
+        bytes memory data = abi.encode(Action.NORMAL);
+        lender.flashLoanWithManyPairs_OR_ManyPools(this, token, amount, data);
     }
 }

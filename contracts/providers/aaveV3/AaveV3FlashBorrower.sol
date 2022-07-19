@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.5;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 // import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-import "./interfaces/IAaveV2FlashLender.sol";
+import "./interfaces/IAaveV3FlashLender.sol";
 
-contract AaveV2FlashBorrower is IERC3156FlashBorrower {
+contract AaveV3FlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
         STEAL,
@@ -52,7 +52,7 @@ contract AaveV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
-        IAaveV2FlashLender lender,
+        IAaveV3FlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -69,7 +69,7 @@ contract AaveV2FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrowWithManyPairs_OR_ManyPools(
-        IAaveV2FlashLender lender,
+        IAaveV3FlashLender lender,
         address token,
         uint256 amount
     ) public {

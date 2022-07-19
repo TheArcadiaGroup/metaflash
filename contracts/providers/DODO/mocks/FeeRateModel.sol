@@ -8,7 +8,7 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {InitializableOwnable} from "../libraries/InitializableOwnable.sol";
+import {InitializableOwnable} from "./InitializableOwnable.sol";
 
 interface IFeeRateImpl {
     function getFeeRate(address pool, address trader) external view returns (uint256);

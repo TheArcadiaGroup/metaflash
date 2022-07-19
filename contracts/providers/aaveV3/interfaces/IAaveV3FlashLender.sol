@@ -1,8 +1,10 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.5;
+// SPDX-License-Identifier: MIT
+
+pragma solidity 0.8.10;
+
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 
-interface IAaveV2FlashLender {
+interface IAaveV3FlashLender {
     function maxFlashLoan(
         address token,
         uint256 amount

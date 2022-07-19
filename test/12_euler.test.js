@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('EulerERC3156', () => {
+describe('Euler', () => {
   let user;
   let weth, dai, aWeth, aDai, lendingPool, lendingPoolAddressProvider, lender, premium, additionalFee;
   let borrower;

@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('AaveERC3156', () => {
+describe('AaveV3', () => {
   let user;
   let weth, dai, aWeth, aDai, pool, poolAddressProvider, lender, premium;
   let borrower;
@@ -17,11 +17,12 @@ describe('AaveERC3156', () => {
     const PoolAddressesProvider = await ethers.getContractFactory(
       'PoolAddressesProvider'
     );
-    const AaveERC3156 = await ethers.getContractFactory('AaveV3ERC3156');
-    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrowerAAVEV3');
+    const AaveERC3156 = await ethers.getContractFactory('AaveV3FlashLender');
+    const FlashBorrower = await ethers.getContractFactory('AaveV3FlashBorrower');
 
     weth = await MockToken.deploy('WETH', 'WETH');
     dai = await MockToken.deploy('DAI', 'DAI');
+    usdc = await MockToken.deploy('USDC', 'USDC');
 
     poolAddressProvider = await PoolAddressesProvider.deploy("marketid", owner.address);
 
@@ -90,8 +91,10 @@ describe('AaveERC3156', () => {
     const AToken = await ethers.getContractFactory('AToken');
     aWeth = await AToken.deploy(pool.address);
     aDai = await AToken.deploy(pool.address);
+    aUsdc = await AToken.deploy(pool.address);
     await aWeth.initialize(pool.address, ZERO_ADDRESS, weth.address, ZERO_ADDRESS, 18, "AWETH", "AWETH", [])
     await aDai.initialize(pool.address, ZERO_ADDRESS, dai.address, ZERO_ADDRESS, 18, "ADAI", "ADAI", [])
+    await aUsdc.initialize(pool.address, ZERO_ADDRESS, usdc.address, ZERO_ADDRESS, 18, "USDC", "USDC", [])
 
     const StableDebtToken = await ethers.getContractFactory("StableDebtToken");
     const stabledebttoken = await StableDebtToken.deploy(pool.address);
@@ -123,14 +126,14 @@ describe('AaveERC3156', () => {
     
     await pool.initReserve(weth.address, aWeth.address, stabledebttoken.address, variabledebttoken.address, reserveinterestratestrategy.address);
     await pool.initReserve(dai.address, aDai.address, stabledebttoken.address, variabledebttoken.address, reserveinterestratestrategy.address);
-
+    await pool.initReserve(usdc.address, aUsdc.address, stabledebttoken.address, variabledebttoken.address, reserveinterestratestrategy.address);
 
     lender = await AaveERC3156.deploy(poolAddressProvider.address);
 
     borrower = await FlashBorrower.deploy();
 
     await weth.mint(aWeth.address, aaveBal);
-    await dai.mint(aDai.address, aaveBal);
+    await dai.mint(aDai.address, aaveBal.mul(2));
 
     await pool.setConfiguration(weth.address, { data: "1" })
     await pool.setConfiguration(dai.address, { data: "1" })
@@ -145,56 +148,45 @@ describe('AaveERC3156', () => {
   });
 
   it('flash supply', async function () {
-    expect(await lender.maxFlashLoan(weth.address)).to.equal(aaveBal);
-    expect(await lender.maxFlashLoan(dai.address)).to.equal(aaveBal);
-    expect(await lender.maxFlashLoan(lender.address)).to.equal('0');
+    expect(await lender.maxFlashLoan(weth.address, 1)).to.equal(aaveBal);
+    expect(await lender.maxFlashLoan(dai.address, 1)).to.equal(aaveBal.mul(2));
+    expect(await lender.maxFlashLoan(usdc.address, 1)).to.equal('0');
+
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(weth.address)).to.equal(aaveBal);
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address)).to.equal(aaveBal.mul(2));
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdc.address)).to.equal('0');
   });
 
   it('flash fee', async function () {
     premium = await pool.FLASHLOAN_PREMIUM_TOTAL()
     expect(await lender.flashFee(weth.address, aaveBal)).to.equal(aaveBal.mul(premium).div(10000));
     expect(await lender.flashFee(dai.address, aaveBal)).to.equal(aaveBal.mul(premium).div(10000));
-    // await expect(lender.flashFee(lender.address, aaveBal)).to.revertedWith('Unsupported currency');
+    expect(await lender.flashFee(usdc.address, aaveBal)).to.equal(0);
+
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, aaveBal)).to.equal(aaveBal.mul(premium).div(10000));
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, aaveBal)).to.equal(aaveBal.mul(premium).div(10000));
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(usdc.address, aaveBal)).to.equal(0);
   });
 
-  it('weth flash loan', async () => {
-    const fee = await lender.flashFee(weth.address, aaveBal);
+  it('flashLoan', async () => {
+    const maxloan = await lender.maxFlashLoan(weth.address, 1);
+    const fee = await lender.flashFee(weth.address, maxloan);
 
     await weth.connect(user).mint(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, weth.address, aaveBal);
+    await borrower.connect(user).flashBorrow(lender.address, weth.address, maxloan);
 
-    const balanceAfter = await weth.balanceOf(user.address);
-    expect(balanceAfter).to.equal(BigNumber.from('0'));
-    const flashBalance = await borrower.flashBalance();
-    expect(flashBalance).to.equal(aaveBal.add(fee));
-    const flashToken = await borrower.flashToken();
-    expect(flashToken).to.equal(weth.address);
-    const flashAmount = await borrower.flashAmount();
-    expect(flashAmount).to.equal(aaveBal);
-    const flashFee = await borrower.flashFee();
-    expect(flashFee).to.equal(fee);
-    const flashSender = await borrower.flashSender();
-    expect(flashSender).to.equal(borrower.address);
-
+    const totalFlashBalance = await borrower.totalFlashBalance();
+    expect(totalFlashBalance).to.equal(maxloan.add(fee));
   });
 
-  it('dai flash loan', async () => {
-    const fee = await lender.flashFee(dai.address, aaveBal);
+  it('flashLoanWithManyPairs_OR_ManyPools', async () => {
+    const maxloan = await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address);
+    const fee = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, maxloan);
 
     await dai.connect(user).mint(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, dai.address, aaveBal);
+    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, dai.address, maxloan);
 
-    const balanceAfter = await dai.balanceOf(user.address);
-    expect(balanceAfter).to.equal(BigNumber.from('0'));
-    const flashBalance = await borrower.flashBalance();
-    expect(flashBalance).to.equal(aaveBal.add(fee));
-    const flashToken = await borrower.flashToken();
-    expect(flashToken).to.equal(dai.address);
-    const flashAmount = await borrower.flashAmount();
-    expect(flashAmount).to.equal(aaveBal);
-    const flashFee = await borrower.flashFee();
-    expect(flashFee).to.equal(fee);
-    const flashSender = await borrower.flashSender();
-    expect(flashSender).to.equal(borrower.address);
+    const totalFlashBalance = await borrower.totalFlashBalance();
+    expect(totalFlashBalance).to.equal(maxloan.add(fee));
   });
 });
