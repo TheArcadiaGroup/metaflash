@@ -24,7 +24,11 @@ import "./interfaces/ICroDefiSwapFactory.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBorrower, Ownable {
+contract CroDefiSwapFlashLender is
+    ICroDefiSwapFlashLender,
+    ICroDefiSwapFlashBorrower,
+    Ownable
+{
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
@@ -61,7 +65,8 @@ contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBor
         address[] memory _pairs
     ) public onlyOwner returns (bool) {
         require(
-            (_tokens0.length == _tokens1.length) && (_tokens1.length == _pairs.length),
+            (_tokens0.length == _tokens1.length) &&
+                (_tokens1.length == _pairs.length),
             "CroDefiSwapFlashLender: mismatch length of token0, token1, pair"
         );
         for (uint256 i = 0; i < _pairs.length; i++) {
@@ -78,13 +83,21 @@ contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBor
                 "CroDefiSwapFlashLender: Unsupported currency"
             );
             pairs.push(
-                Pair({token0: _tokens0[i], token1: _tokens1[i], pair: _pairs[i]})
+                Pair({
+                    token0: _tokens0[i],
+                    token1: _tokens1[i],
+                    pair: _pairs[i]
+                })
             );
         }
         return true;
     }
 
-    function removePairs(address[] memory _pairs) public onlyOwner returns (bool) {
+    function removePairs(address[] memory _pairs)
+        public
+        onlyOwner
+        returns (bool)
+    {
         for (uint256 i = 0; i < _pairs.length; i++) {
             for (uint256 j = 0; j < pairs.length; j++) {
                 if (pairs[j].pair == _pairs[i]) {
@@ -129,8 +142,13 @@ contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBor
                     uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
                     if (balance >= _amount.add(1)) {
                         uint256 magnifier = 10000;
-                        uint256 totalFeeBasisPoint = ICroDefiSwapFactory(factory).totalFeeBasisPoint();
-                        uint256 fee = amount.mul(totalFeeBasisPoint).div(magnifier.sub(totalFeeBasisPoint)).add(1);
+                        uint256 totalFeeBasisPoint = ICroDefiSwapFactory(
+                            factory
+                        ).totalFeeBasisPoint();
+                        uint256 fee = amount
+                            .mul(totalFeeBasisPoint)
+                            .div(magnifier.sub(totalFeeBasisPoint))
+                            .add(1);
                         validPairInfos[validCount].pair = pairs[i].pair;
                         validPairInfos[validCount].maxloan = balance.sub(1);
                         validPairInfos[validCount].fee = fee;
@@ -159,12 +177,14 @@ contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBor
                 for (uint256 i = 1; i < validPairInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
                         if (validPairInfos[i].fee == validPairInfos[j].fee) {
-                            if(validPairInfos[i].maxloan > validPairInfos[j].maxloan){
+                            if (
+                                validPairInfos[i].maxloan >
+                                validPairInfos[j].maxloan
+                            ) {
                                 PairInfo memory x = validPairInfos[i];
                                 validPairInfos[i] = validPairInfos[j];
                                 validPairInfos[j] = x;
                             }
-
                         }
                     }
                 }
@@ -242,7 +262,11 @@ contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBor
         uint256 magnifier = 10000;
         uint256 totalFeeBasisPoint = ICroDefiSwapFactory(factory)
             .totalFeeBasisPoint();
-        return _amount.mul(totalFeeBasisPoint).div(magnifier.sub(totalFeeBasisPoint)).add(1);
+        return
+            _amount
+                .mul(totalFeeBasisPoint)
+                .div(magnifier.sub(totalFeeBasisPoint))
+                .add(1);
     }
 
     function flashLoan(
@@ -263,7 +287,7 @@ contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBor
         return true;
     }
 
-   function flashLoanWithManyPairs_OR_ManyPools(
+    function flashLoanWithManyPairs_OR_ManyPools(
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
@@ -339,7 +363,6 @@ contract CroDefiSwapFlashLender is ICroDefiSwapFlashLender, ICroDefiSwapFlashBor
         );
         pair.swap(amount0Out, amount1Out, address(this), data);
     }
-
 
     /// @dev flash loan callback. It sends the amount borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
     function croDefiSwapCall(

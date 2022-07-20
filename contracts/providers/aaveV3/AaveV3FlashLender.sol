@@ -58,13 +58,12 @@ contract AaveV3FlashLender is
         view
         returns (uint256)
     {
-        DataTypes.ReserveData memory reserveData = pool
-            .getReserveData(_token);
+        DataTypes.ReserveData memory reserveData = pool.getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
-        if(reserveData.aTokenAddress != address(0) && maxloan >= _amount){
+        if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
             return maxloan;
-        }else{
+        } else {
             return 0;
         }
     }
@@ -75,13 +74,12 @@ contract AaveV3FlashLender is
         override
         returns (uint256)
     {
-        DataTypes.ReserveData memory reserveData = pool
-            .getReserveData(_token);
+        DataTypes.ReserveData memory reserveData = pool.getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
-        if(reserveData.aTokenAddress != address(0) && maxloan >= _amount){
+        if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
             return _amount.mul(pool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
-        }else{
+        } else {
             return 0;
         }
     }
@@ -92,13 +90,12 @@ contract AaveV3FlashLender is
         override
         returns (uint256)
     {
-        DataTypes.ReserveData memory reserveData = pool
-            .getReserveData(_token);
+        DataTypes.ReserveData memory reserveData = pool.getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
-        if(reserveData.aTokenAddress != address(0) && maxloan > 0){
+        if (reserveData.aTokenAddress != address(0) && maxloan > 0) {
             return _amount.mul(pool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
-        }else{
+        } else {
             return 0;
         }
     }
@@ -110,6 +107,7 @@ contract AaveV3FlashLender is
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function flashLoanWithManyPairs_OR_ManyPools(
@@ -119,6 +117,7 @@ contract AaveV3FlashLender is
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function _flashLoan(
@@ -126,7 +125,7 @@ contract AaveV3FlashLender is
         address _token,
         uint256 _amount,
         bytes calldata _userData
-    ) internal returns (bool) {
+    ) internal {
         bytes memory data = abi.encode(msg.sender, _receiver, _userData);
         uint16 referralCode = 0;
 
@@ -137,8 +136,6 @@ contract AaveV3FlashLender is
             data,
             referralCode
         );
-
-        return true;
     }
 
     function executeOperation(

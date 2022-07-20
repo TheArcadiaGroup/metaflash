@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 import "./CToken.sol";
 import "./ERC3156FlashLenderInterface.sol";
 import "./ERC3156FlashBorrowerInterface.sol";
-
+import "hardhat/console.sol";
 /**
  * @title Cream's CCollateralCapErc20 Contract
  * @notice CTokens which wrap an EIP-20 underlying with collateral cap
@@ -155,6 +155,7 @@ contract CCollateralCapErc20 is CToken, CCollateralCapErc20Interface {
      * @return The amount of `token` that can be borrowed.
      */
     function maxFlashLoan(address token) external view returns (uint256) {
+        
         uint256 amount = 0;
         if (
             token == underlying &&

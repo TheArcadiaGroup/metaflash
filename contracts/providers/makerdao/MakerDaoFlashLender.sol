@@ -67,9 +67,9 @@ contract MakerDaoFlashLender is
         returns (uint256)
     {
         uint256 maxloan = dssflash.maxFlashLoan(_token);
-        if(maxloan >= _amount){
+        if (maxloan >= _amount) {
             return maxloan;
-        }else{
+        } else {
             return 0;
         }
     }
@@ -81,9 +81,9 @@ contract MakerDaoFlashLender is
         returns (uint256)
     {
         uint256 maxloan = dssflash.maxFlashLoan(_token);
-        if(maxloan >= _amount){
+        if (maxloan >= _amount) {
             return dssflash.flashFee(_token, _amount);
-        }else{
+        } else {
             return 0;
         }
     }
@@ -95,9 +95,9 @@ contract MakerDaoFlashLender is
         returns (uint256)
     {
         uint256 maxloan = dssflash.maxFlashLoan(_token);
-        if(maxloan > 0){
+        if (maxloan > 0) {
             return dssflash.flashFee(_token, _amount);
-        }else{
+        } else {
             return 0;
         }
     }
@@ -109,6 +109,7 @@ contract MakerDaoFlashLender is
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function flashLoanWithManyPairs_OR_ManyPools(
@@ -118,6 +119,7 @@ contract MakerDaoFlashLender is
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function _flashLoan(
@@ -125,10 +127,9 @@ contract MakerDaoFlashLender is
         address _token,
         uint256 _amount,
         bytes calldata _data
-    ) internal returns (bool) {
+    ) internal {
         bytes memory ndata = abi.encode(msg.sender, _receiver, _data);
         dssflash.flashLoan(this, _token, _amount, ndata);
-        return true;
     }
 
     /// @dev flash loan callback. It sends the amount borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.

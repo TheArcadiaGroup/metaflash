@@ -3,29 +3,34 @@
 
 pragma solidity ^0.5.16;
 
+
 import {IERC20} from "./interfaces/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
-import "./interfaces/IERC3156FlashLender.sol";
-import "./interfaces/IERC3156FlashBorrower.sol";
+import "./interfaces/ICreamFinanceFlashLender.sol";
 import "./interfaces/ICToken.sol";
 
-contract CreamFinanceERC3156 is
-    IERC3156FlashLender,
+contract CreamFinanceFlashLender is
+    ICreamFinanceFlashLender,
     IERC3156FlashBorrower
 {
     using SafeMath for uint256;
 
     // CONSTANTS
     bytes32 public constant CALLBACK_SUCCESS =
-        keccak256("ERC3156FlashBorrower.onFlashLoan");
+        keccak256("ERC3156FlashBorrowerInterface.onFlashLoan");
 
-    address permissionedPairAddress;
     address public factory;
     address permissionedCTokenAddress;
 
     struct CToken {
         address ctoken;
         address underlying;
+    }
+
+    struct PairInfo {
+        address ctoken;
+        uint256 maxloan;
+        // uint256 fee;
     }
 
     CToken[] public ctokens;
@@ -38,8 +43,10 @@ contract CreamFinanceERC3156 is
         factory = _factory;
     }
 
+    function() external payable {}
+
     function setFactory(address _factory) external {
-        require(msg.sender == factory, 'CreamFinanceERC3156: Not factory');
+        require(msg.sender == factory, "CreamFinanceERC3156: Not factory");
         factory = _factory;
     }
 
@@ -47,7 +54,7 @@ contract CreamFinanceERC3156 is
         address[] memory _ctokens,
         address[] memory _underlyings
     ) public returns (bool) {
-        require(msg.sender == factory, 'CreamFinanceERC3156: Not factory');
+        require(msg.sender == factory, "CreamFinanceERC3156: Not factory");
         require(
             (_ctokens.length == _underlyings.length),
             "CreamFinanceERC3156: mismatch length of _ctoken, _underlying"
@@ -68,16 +75,14 @@ contract CreamFinanceERC3156 is
         return true;
     }
 
-    function removeCTokens(address[] memory _ctokens)
-        public
-        returns (bool)
-    {
-        require(msg.sender == factory, 'CreamFinanceERC3156: Not factory');
+    function removeCTokens(address[] memory _ctokens) public returns (bool) {
+        require(msg.sender == factory, "CreamFinanceERC3156: Not factory");
         for (uint256 i = 0; i < _ctokens.length; i++) {
             for (uint256 j = 0; j < ctokens.length; j++) {
                 if (ctokens[j].ctoken == _ctokens[i]) {
                     ctokens[j].ctoken = ctokens[ctokens.length - 1].ctoken;
-                    ctokens[j].underlying = ctokens[ctokens.length - 1].underlying;
+                    ctokens[j].underlying = ctokens[ctokens.length - 1]
+                        .underlying;
                     ctokens.pop();
                 }
             }
@@ -85,22 +90,41 @@ contract CreamFinanceERC3156 is
         return true;
     }
 
-    function maxFlashLoan(address _token)
+    function maxFlashLoan(address _token, uint256 _amount)
         external
+        view
+        returns (uint256)
+    {
+        return _maxFlashLoan(_token, _amount);
+    }
+
+    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
+        external
+        view
+        returns (uint256)
+    {
+        return _maxFlashLoan(_token, 1);
+    }
+
+    function _maxFlashLoan(address _token, uint256 _amount)
+        internal
         view
         returns (uint256)
     {
         address ctoken;
         for (uint256 i = 0; i < ctokens.length; i++) {
-            if(ctokens[i].underlying == _token){
+            if (ctokens[i].underlying == _token) {
                 ctoken = ctokens[i].ctoken;
             }
         }
-        require(
-            ctoken != address(0),
-            "CreamFinanceERC3156: Unsupported currency"
-        );
-        return ICToken(ctoken).maxFlashLoan(_token);
+
+        uint256 maxloan = ICToken(ctoken).maxFlashLoan(_token);
+
+        if (maxloan >= _amount) {
+            return maxloan;
+        } else {
+            return 0;
+        }
     }
 
     function flashFee(address _token, uint256 _amount)
@@ -110,15 +134,35 @@ contract CreamFinanceERC3156 is
     {
         address ctoken;
         for (uint256 i = 0; i < ctokens.length; i++) {
-            if(ctokens[i].underlying == _token){
+            if (ctokens[i].underlying == _token) {
                 ctoken = ctokens[i].ctoken;
             }
         }
-        // require(
-        //     ctoken != address(0),
-        //     "CreamFinanceERC3156: Unsupported currency"
-        // );
-        return ICToken(ctoken).flashFee(_token, _amount);
+        uint256 maxloan = ICToken(ctoken).maxFlashLoan(_token);
+        if (maxloan >= _amount) {
+            return ICToken(ctoken).flashFee(_token, _amount);
+        } else {
+            return 0;
+        }
+    }
+
+    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
+        public
+        view
+        returns (uint256)
+    {
+        address ctoken;
+        for (uint256 i = 0; i < ctokens.length; i++) {
+            if (ctokens[i].underlying == _token) {
+                ctoken = ctokens[i].ctoken;
+            }
+        }
+        uint256 maxloan = ICToken(ctoken).maxFlashLoan(_token);
+        if (maxloan > 0) {
+            return ICToken(ctoken).flashFee(_token, _amount);
+        } else {
+            return 0;
+        }
     }
 
     function flashLoan(
@@ -127,25 +171,35 @@ contract CreamFinanceERC3156 is
         uint256 _amount,
         bytes calldata _userData
     ) external returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
+    }
+
+    function flashLoanWithManyPairs_OR_ManyPools(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _userData
+    ) external returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
+    }
+
+    function _flashLoan(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes memory _data
+    ) internal {
         address ctoken;
         for (uint256 i = 0; i < ctokens.length; i++) {
-            if(ctokens[i].underlying == _token){
+            if (ctokens[i].underlying == _token) {
                 ctoken = ctokens[i].ctoken;
             }
         }
-        require(
-            ctoken != address(0),
-            "CreamFinanceERC3156: Unsupported currency"
-        );
 
-        if (permissionedCTokenAddress != ctoken)
-            permissionedCTokenAddress = ctoken;
-
-        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
-
-        return ICToken(ctoken).flashLoan(_receiver, _token, _amount, data);
-
-        return true;
+        bytes memory data = abi.encode(ctoken, msg.sender, _receiver, _data);
+        ICToken(ctoken).flashLoan(this, _token, _amount, data);
     }
 
     function onFlashLoan(
@@ -156,19 +210,21 @@ contract CreamFinanceERC3156 is
         bytes calldata _data
     ) external returns (bytes32) {
         require(
-            msg.sender == permissionedCTokenAddress,
-            "CreamFinanceERC3156: only permissioned ctoken can call"
-        );
-        require(
             _sender == address(this),
             "CreamFinanceERC3156: FlashLoan only from this contract"
         );
 
         (
+            address ctoken,
             address origin,
             IERC3156FlashBorrower receiver,
             bytes memory userData
-        ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
+        ) = abi.decode(_data, (address, address, IERC3156FlashBorrower, bytes));
+
+        require(
+            msg.sender == ctoken,
+            "CreamFinanceERC3156: Callback only from permissioned ctoken"
+        );
 
         // Transfer to `receiver`
         require(
@@ -181,9 +237,13 @@ contract CreamFinanceERC3156 is
             "CreamFinanceERC3156: Callback failed"
         );
 
-        IERC20(_token).transferFrom(address(receiver), address(this), _amount.add(_fee));
+        IERC20(_token).transferFrom(
+            address(receiver),
+            address(this),
+            _amount.add(_fee)
+        );
 
-        IERC20(_token).approve(address(permissionedCTokenAddress), _amount.add(_fee));
+        IERC20(_token).approve(msg.sender, _amount.add(_fee));
 
         return CALLBACK_SUCCESS;
     }

@@ -14,7 +14,11 @@ import "./interfaces/IFortubeBank.sol";
 import "./interfaces/IFortubeBankController.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownable {
+contract FortubeFlashLender is
+    IFortubeFlashLender,
+    IFortubeFlashBorrower,
+    Ownable
+{
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
@@ -30,7 +34,7 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownab
             address(bank) != address(0),
             "FortubeERC3156: bank address is zero address!"
         );
-        
+
         require(
             address(bankcontroller) != address(0),
             "FortubeERC3156: bankcontroller address is zero address!"
@@ -61,9 +65,9 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownab
         returns (uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
-        if(maxloan >= _amount){
+        if (maxloan >= _amount) {
             return maxloan;
-        }else{
+        } else {
             return 0;
         }
     }
@@ -75,9 +79,9 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownab
         returns (uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
-        if(maxloan >= _amount){
+        if (maxloan >= _amount) {
             return _amount.mul(bankcontroller.flashloanFeeBips()).div(10000);
-        }else{
+        } else {
             return 0;
         }
     }
@@ -89,9 +93,9 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownab
         returns (uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
-        if(maxloan > 0){
+        if (maxloan > 0) {
             return _amount.mul(bankcontroller.flashloanFeeBips()).div(10000);
-        }else{
+        } else {
             return 0;
         }
     }
@@ -103,6 +107,7 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownab
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function flashLoanWithManyPairs_OR_ManyPools(
@@ -112,23 +117,17 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownab
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
-
 
     function _flashLoan(
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
         bytes memory _userData
-    ) internal returns (bool) {
+    ) internal {
         bytes memory data = abi.encode(msg.sender, _receiver, _userData);
-        bank.flashloan(
-            address(this),
-            _token,
-            _amount,
-            data
-        );
-        return true;
+        bank.flashloan(address(this), _token, _amount, data);
     }
 
     function executeOperation(
@@ -160,7 +159,7 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower, Ownab
 
         // Approve the LendingPool contract allowance to *pull* the owed amount
         // IERC20(_token).approve(address(bankcontroller), _amount.add(_fee));
-         IERC20(_token).transfer(address(bankcontroller), _amount.add(_fee));
+        IERC20(_token).transfer(address(bankcontroller), _amount.add(_fee));
 
         // return true;
     }

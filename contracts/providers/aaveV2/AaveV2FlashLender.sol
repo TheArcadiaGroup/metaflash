@@ -13,7 +13,11 @@ import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./libraries/AaveDataTypes.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable {
+contract AaveV2FlashLender is
+    IAaveV2FlashLender,
+    IAaveV2FlashBorrower,
+    Ownable
+{
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
@@ -55,9 +59,9 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
             .getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
-        if(reserveData.aTokenAddress != address(0) && maxloan >= _amount){
+        if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
             return maxloan;
-        }else{
+        } else {
             return 0;
         }
     }
@@ -72,9 +76,10 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
             .getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
-        if(reserveData.aTokenAddress != address(0) && maxloan >= _amount){
-            return _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
-        }else{
+        if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
+            return
+                _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
+        } else {
             return 0;
         }
     }
@@ -89,9 +94,10 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
             .getReserveData(_token);
         uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
 
-        if(reserveData.aTokenAddress != address(0) && maxloan > 0){
-            return _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
-        }else{
+        if (reserveData.aTokenAddress != address(0) && maxloan > 0) {
+            return
+                _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
+        } else {
             return 0;
         }
     }
@@ -103,6 +109,7 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function flashLoanWithManyPairs_OR_ManyPools(
@@ -112,6 +119,7 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function _flashLoan(
@@ -119,7 +127,7 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
         address _token,
         uint256 _amount,
         bytes calldata _userData
-    ) internal returns (bool) {
+    ) internal {
         address[] memory tokens = new address[](1);
         tokens[0] = address(_token);
 
@@ -143,7 +151,6 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower, Ownable 
             data,
             referralCode
         );
-        return true;
     }
 
     function executeOperation(

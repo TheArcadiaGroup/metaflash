@@ -70,9 +70,9 @@ contract SushiSwapFlashLender is
         returns (uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bentobox));
-        if(maxloan >= _amount){
+        if (maxloan >= _amount) {
             return maxloan;
-        }else{
+        } else {
             return 0;
         }
     }
@@ -84,9 +84,9 @@ contract SushiSwapFlashLender is
         returns (uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bentobox));
-        if(maxloan >= _amount){
+        if (maxloan >= _amount) {
             return _amount.mul(50) / 100000;
-        }else{
+        } else {
             return 0;
         }
     }
@@ -98,9 +98,9 @@ contract SushiSwapFlashLender is
         returns (uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bentobox));
-        if(maxloan > 0){
+        if (maxloan > 0) {
             return _amount.mul(50) / 100000;
-        }else{
+        } else {
             return 0;
         }
     }
@@ -112,6 +112,7 @@ contract SushiSwapFlashLender is
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function flashLoanWithManyPairs_OR_ManyPools(
@@ -121,6 +122,7 @@ contract SushiSwapFlashLender is
         bytes calldata _userData
     ) external override returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
     }
 
     function _flashLoan(
@@ -128,7 +130,7 @@ contract SushiSwapFlashLender is
         address _token,
         uint256 _amount,
         bytes memory _userData
-    ) internal returns (bool) {
+    ) internal {
         bytes memory data = abi.encode(msg.sender, _receiver, _userData);
         bentobox.flashLoan(
             IFlashBorrower(this),
@@ -137,7 +139,6 @@ contract SushiSwapFlashLender is
             _amount,
             data
         );
-        return true;
     }
 
     function onFlashLoan(

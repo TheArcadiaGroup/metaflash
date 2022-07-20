@@ -45,6 +45,9 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
+      // forking: {
+      //   url: `https://bsc-dataseed4.binance.org`,
+      // },
       allowUnlimitedContractSize: true
     },
     kovan: {

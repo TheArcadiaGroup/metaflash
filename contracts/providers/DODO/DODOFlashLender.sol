@@ -33,8 +33,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
     DVMPool[] public dvmpools;
 
     // --- Init ---
-    constructor() public {
-    }
+    constructor() public {}
 
     function addDVMPools(
         address[] memory _basetokens,
@@ -69,8 +68,10 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         for (uint256 i = 0; i < _dvmpools.length; i++) {
             for (uint256 j = 0; j < dvmpools.length; j++) {
                 if (dvmpools[j].dvmpool == _dvmpools[i]) {
-                    dvmpools[j].basetoken = dvmpools[dvmpools.length - 1].basetoken;
-                    dvmpools[j].quotetoken = dvmpools[dvmpools.length - 1].quotetoken;
+                    dvmpools[j].basetoken = dvmpools[dvmpools.length - 1]
+                        .basetoken;
+                    dvmpools[j].quotetoken = dvmpools[dvmpools.length - 1]
+                        .quotetoken;
                     dvmpools[j].dvmpool = dvmpools[dvmpools.length - 1].dvmpool;
                     dvmpools.pop();
                 }
@@ -106,7 +107,10 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         uint256 amount = 1e18;
         uint256 count = 0;
         for (uint256 i = 0; i < dvmpools.length; i++) {
-            if (dvmpools[i].basetoken == _token || dvmpools[i].quotetoken == _token) {
+            if (
+                dvmpools[i].basetoken == _token ||
+                dvmpools[i].quotetoken == _token
+            ) {
                 uint256 balance = IERC20(_token).balanceOf(dvmpools[i].dvmpool);
                 if (balance >= _amount.add(1)) {
                     count++;
@@ -125,11 +129,17 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
             uint256 validCount = 0;
 
             for (uint256 i = 0; i < dvmpools.length; i++) {
-                if (dvmpools[i].basetoken == _token || dvmpools[i].quotetoken == _token) {
-                    uint256 balance = IERC20(_token).balanceOf(dvmpools[i].dvmpool);
+                if (
+                    dvmpools[i].basetoken == _token ||
+                    dvmpools[i].quotetoken == _token
+                ) {
+                    uint256 balance = IERC20(_token).balanceOf(
+                        dvmpools[i].dvmpool
+                    );
                     if (balance >= _amount.add(1)) {
                         uint256 fee = 0;
-                        validDVMPoolInfos[validCount].dvmpool = dvmpools[i].dvmpool;
+                        validDVMPoolInfos[validCount].dvmpool = dvmpools[i]
+                            .dvmpool;
                         validDVMPoolInfos[validCount].maxloan = balance.sub(1);
                         validDVMPoolInfos[validCount].fee = fee;
                         validCount = validCount.add(1);
@@ -146,7 +156,9 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
                 // sort by fee
                 for (uint256 i = 1; i < validDVMPoolInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (validDVMPoolInfos[i].fee < validDVMPoolInfos[j].fee) {
+                        if (
+                            validDVMPoolInfos[i].fee < validDVMPoolInfos[j].fee
+                        ) {
                             DVMPoolInfo memory x = validDVMPoolInfos[i];
                             validDVMPoolInfos[i] = validDVMPoolInfos[j];
                             validDVMPoolInfos[j] = x;
@@ -156,8 +168,13 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
                 // sort by maxloan
                 for (uint256 i = 1; i < validDVMPoolInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (validDVMPoolInfos[i].fee == validDVMPoolInfos[j].fee) {
-                            if(validDVMPoolInfos[i].maxloan > validDVMPoolInfos[j].maxloan){
+                        if (
+                            validDVMPoolInfos[i].fee == validDVMPoolInfos[j].fee
+                        ) {
+                            if (
+                                validDVMPoolInfos[i].maxloan >
+                                validDVMPoolInfos[j].maxloan
+                            ) {
                                 DVMPoolInfo memory x = validDVMPoolInfos[i];
                                 validDVMPoolInfos[i] = validDVMPoolInfos[j];
                                 validDVMPoolInfos[j] = x;
@@ -177,7 +194,10 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         override
         returns (uint256)
     {
-        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(_token, _amount);
+        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(
+            _token,
+            _amount
+        );
 
         return validDVMPoolInfos[0].maxloan;
     }
@@ -226,19 +246,28 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         uint256 _amount,
         bytes memory _userData
     ) external override returns (bool) {
-        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(_token, _amount);
+        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(
+            _token,
+            _amount
+        );
 
         require(
             validDVMPoolInfos[0].dvmpool != address(0),
             "CroDefiSwapFlashLender: Unsupported currency"
         );
 
-        _flashloan(_receiver, validDVMPoolInfos[0].dvmpool, _token, _amount, _userData);
+        _flashloan(
+            _receiver,
+            validDVMPoolInfos[0].dvmpool,
+            _token,
+            _amount,
+            _userData
+        );
 
         return true;
     }
 
-   function flashLoanWithManyPairs_OR_ManyPools(
+    function flashLoanWithManyPairs_OR_ManyPools(
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
@@ -322,7 +351,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         bytes calldata _data
     ) external override {
         require(_sender == address(this), "only this contract may initiate");
-        
+
         (
             address dvmpool,
             address origin,
