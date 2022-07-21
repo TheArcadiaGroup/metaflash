@@ -2,21 +2,15 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import "@openzeppelin/contracts/math/SafeMath.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-// import "./interfaces/AaveFlashBorrowerLike.sol";
-import "./interfaces/IFLoan.sol";
-// import "./interfaces/LendingPoolAddressesProviderLike.sol";
-// import "./libraries/AaveDataTypes.sol";
-// import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "./interfaces/IEulerFlashLender.sol";
+import "./interfaces/IFLoan.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import {Ownable} from "./libraries/Ownable.sol";
 
-contract EulerERC3156 is IERC3156FlashLender, IERC3156FlashBorrower, Ownable {
+contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
@@ -31,13 +25,37 @@ contract EulerERC3156 is IERC3156FlashLender, IERC3156FlashBorrower, Ownable {
         flashloan = IFLoan(_flashloan);
     }
 
-    function maxFlashLoan(address _token)
+    receive() external payable {}
+
+    function maxFlashLoan(address _token, uint256 _amount)
         external
         view
         override
         returns (uint256)
     {
-        return flashloan.maxFlashLoan(_token);
+        return _maxFlashLoan(_token, _amount);
+    }
+
+    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _maxFlashLoan(_token, 1);
+    }
+
+    function _maxFlashLoan(address _token, uint256 _amount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 maxloan = flashloan.maxFlashLoan(_token);
+        if (maxloan >= _amount) {
+            return maxloan;
+        } else {
+            return 0;
+        }
     }
 
     function flashFee(address _token, uint256 _amount)
@@ -46,7 +64,26 @@ contract EulerERC3156 is IERC3156FlashLender, IERC3156FlashBorrower, Ownable {
         override
         returns (uint256)
     {
-        return flashloan.flashFee(_token, _amount);
+        uint256 maxloan = flashloan.maxFlashLoan(_token);
+        if (maxloan >= _amount) {
+            return flashloan.flashFee(_token, _amount);
+        } else {
+            return 0;
+        }
+    }
+
+    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        uint256 maxloan = flashloan.maxFlashLoan(_token);
+        if (maxloan > 0) {
+            return flashloan.flashFee(_token, _amount);
+        } else {
+            return 0;
+        }
     }
 
     function flashLoan(
@@ -55,9 +92,28 @@ contract EulerERC3156 is IERC3156FlashLender, IERC3156FlashBorrower, Ownable {
         uint256 _amount,
         bytes calldata _userData
     ) external override returns (bool) {
-        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
-        flashloan.flashLoan(this, _token, _amount, data);
+        _flashLoan(_receiver, _token, _amount, _userData);
         return true;
+    }
+
+    function flashLoanWithManyPairs_OR_ManyPools(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _userData
+    ) external override returns (bool) {
+        _flashLoan(_receiver, _token, _amount, _userData);
+        return true;
+    }
+
+    function _flashLoan(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _data
+    ) internal {
+        bytes memory data = abi.encode(msg.sender, _receiver, _data);
+        flashloan.flashLoan(this, _token, _amount, data);
     }
 
     function onFlashLoan(
@@ -71,6 +127,7 @@ contract EulerERC3156 is IERC3156FlashLender, IERC3156FlashBorrower, Ownable {
             msg.sender == address(flashloan),
             "EulerERC3156: Callbacks only allowed from Lending Pool"
         );
+
         require(
             _sender == address(this),
             "EulerERC3156: Callbacks only initiated from this contract"
@@ -84,11 +141,13 @@ contract EulerERC3156 is IERC3156FlashLender, IERC3156FlashBorrower, Ownable {
 
         // Send the tokens to the original receiver using the ERC-3156 interface
         IERC20(_token).transfer(origin, _amount);
+        
         require(
             receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
                 CALLBACK_SUCCESS,
             "EulerERC3156:Callback failed"
         );
+ 
         IERC20(_token).transferFrom(
             origin,
             address(this),

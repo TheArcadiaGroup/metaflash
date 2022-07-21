@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "./BaseLogic.sol";
-import "../interfaces/IRiskManager.sol";
+import "./IRiskManager.sol";
 import "./PToken.sol";
 import "hardhat/console.sol";
 

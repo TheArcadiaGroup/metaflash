@@ -65,19 +65,15 @@ describe('CreamFinance', () => {
     let usdtBal = await usdt.balanceOf(crUsdt);
     expect(await lender.maxFlashLoan(eth.address, 1)).to.equal(ethBal);
     expect(await lender.maxFlashLoan(usdt.address, 1)).to.equal(usdtBal);
-    // expect(await lender.maxFlashLoan(lender.address, 1)).to.equal(0);
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(eth.address)).to.equal(ethBal);
     expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdt.address)).to.equal(usdtBal);
-    // expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(lender.address)).to.equal(0);
   });
 
   it('flash fee', async function () {
-    expect(await lender.flashFee(eth.address, bal)).to.equal(30);
-    expect(await lender.flashFee(usdt.address, bal)).to.equal(30);
-    // expect(await lender.flashFee(lender.address,  bal)).to.equal(0);
-    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(eth.address, bal)).to.equal(30);
-    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(usdt.address, bal)).to.equal(30);
-    // expect(await lender.flashFeeWithManyPairs_OR_ManyPools(lender.address, bal)).to.equal(0);
+    expect(await lender.flashFee(eth.address, bal)).to.equal(bal.mul(3).div(10000));
+    expect(await lender.flashFee(usdt.address, bal)).to.equal(bal.mul(3).div(10000));
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(eth.address, bal)).to.equal(bal.mul(3).div(10000));
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(usdt.address, bal)).to.equal(bal.mul(3).div(10000));
   });
 
   it('flashLoan', async () => {

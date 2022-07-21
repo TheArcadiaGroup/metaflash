@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "./Exec.sol";
 import "./Markets.sol";
 import "./DToken.sol";
-import "../interfaces/Interfaces.sol";
+import "./Interfaces.sol";
 import "./Utils.sol";
 
 contract FlashLoan is IERC3156FlashLender, IDeferredLiquidityCheck {

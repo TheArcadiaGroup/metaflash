@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 
 import "./BaseModule.sol";
 import "./BaseIRM.sol";
-import "../interfaces/Interfaces.sol";
+import "./Interfaces.sol";
 import "./Utils.sol";
 import "./RPow.sol";
-import "../interfaces/IRiskManager.sol";
+import "./IRiskManager.sol";
 
 
 abstract contract BaseLogic is BaseModule {

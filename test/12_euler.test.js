@@ -3,103 +3,88 @@ const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
 describe('Euler', () => {
-  let user;
-  let weth, dai, aWeth, aDai, lendingPool, lendingPoolAddressProvider, lender, premium, additionalFee;
-  let borrower;
+  let user, lender, borrower, wethuser;
+  let weth, usdt, usdc, wethAddress;
   const bal = BigNumber.from(100000);
-  const gitCommit = "0x000000000000000000000000c9126e6d1b3fc9a50a2e324bccb8ee3be06ac3ab"
+  const ERC20_ABI = require('../contracts/providers/euler/abi/IERC20.json');
 
   beforeEach(async () => {
-    [_, user, admin, module] = await ethers.getSigners();
-    // const AToken = await ethers.getContractFactory('ATokenMock');
-    const TestERC20 = await ethers.getContractFactory('TestERC20');
+    [owner, user] = await ethers.getSigners();
+    await network.provider.request({
+        method: "hardhat_reset",
+        params: [
+          {
+            forking: {
+              jsonRpcUrl: "https://mainnet.infura.io/v3/51b37822bf064fdb8f0004abcabcfbba"
+            },
+          },
+        ],
+      });
 
+    await hre.network.provider.request({
+        method: 'hardhat_impersonateAccount',
+        params: ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"]
+      })
 
-    // const AaveERC3156 = await ethers.getContractFactory('AaveV2ERC3156');
-    const FlashBorrower = await ethers.getContractFactory('ERC3156FlashBorrower');
+    wethuser = await hre.ethers.provider.getSigner("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
 
-    weth = await TestERC20.deploy('WETH', 'WETH', 18, false);
-    dai = await TestERC20.deploy('DAI', 'DAI', 18, false);
-    // aWeth = await AToken.deploy(weth.address, 'AToken1', 'ATST1');
-    // aDai = await AToken.deploy(dai.address, 'Atoken2', 'ATST2');
-    // lendingPool = await LendingPool.deploy();
+    const EulerFlashLender = await ethers.getContractFactory('EulerFlashLender');
+    const EulerFlashBorrower = await ethers.getContractFactory('EulerFlashBorrower');
 
-    const Markets = await ethers.getContractFactory('Markets');
-    markets = await Markets.deploy(gitCommit);
+    wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    weth = await ethers.getContractAt(ERC20_ABI, "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+    usdt = await ethers.getContractAt(ERC20_ABI, "0xdAC17F958D2ee523a2206206994597C13D831ec7");
+    usdc = await ethers.getContractAt(ERC20_ABI, "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
 
-    const Exec = await ethers.getContractFactory('Exec');
-    exec = await Exec.deploy(gitCommit);
+    eulerAddress = "0x27182842E098f60e3D576794A5bFFb0777E025d3";
+    flashLoanAddress = "0x07df2ad9878F8797B4055230bbAE5C808b8259b3";
 
-    const Euler = await ethers.getContractFactory('Euler');
-    euler = await Euler.deploy(admin.address, module.address);
+    lender = await EulerFlashLender.deploy(flashLoanAddress);
+    borrower = await EulerFlashBorrower.deploy();
 
-    const FlashLoan = await ethers.getContractFactory('FlashLoan');
-    flashloan = await FlashLoan.deploy(euler.address, exec.address, markets.address);
-    
-    const EulerERC3156 = await ethers.getContractFactory('EulerERC3156');
-    lender = await EulerERC3156.deploy(flashloan.address);
+    await user.sendTransaction({
+      to: lender.address,
+      value: ethers.utils.parseEther("1.0"), 
+    });
 
-    borrower = await FlashBorrower.deploy();
+    await user.sendTransaction({
+      to: borrower.address,
+      value: ethers.utils.parseEther("1.0"), 
+    });
 
-    await weth.mint(euler.address, bal);
-    await dai.mint(euler.address, bal);
-    // await markets.activateMarket(weth.address);
-    // await markets.activateMarket(dai.address);
   });
 
   it('flash supply', async function () {
-    expect(await lender.maxFlashLoan(weth.address)).to.equal(bal);
-    expect(await lender.maxFlashLoan(dai.address)).to.equal(bal);
-    expect(await lender.maxFlashLoan(lender.address)).to.equal('0');
+    let wethBal = await weth.balanceOf(eulerAddress);
+    let usdtBal = await usdt.balanceOf(eulerAddress);
+    expect(await lender.maxFlashLoan(wethAddress, 1)).to.equal(wethBal);
+    expect(await lender.maxFlashLoan(usdt.address, 1)).to.equal(usdtBal);
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(weth.address)).to.equal(wethBal);
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdt.address)).to.equal(usdtBal);
   });
 
   it('flash fee', async function () {
-    expect(await lender.flashFee(weth.address, bal)).to.equal(bal.mul(5).div(1000));
-    expect(await lender.flashFee(dai.address, bal)).to.equal(bal.mul(5).div(1000));
-    // await expect(lender.flashFee(lender.address, bal)).to.revertedWith('Unsupported currency');
+    expect(await lender.flashFee(weth.address, bal)).to.equal(0);
+    expect(await lender.flashFee(usdt.address, bal)).to.equal(0);
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, bal)).to.equal(0);
+    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(usdt.address, bal)).to.equal(0);
   });
 
-  it('weth flash loan', async () => {
-    const fee = await lender.flashFee(weth.address, bal);
-
-    await weth.connect(user).mint(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, weth.address, bal);
-
-    const balanceAfter = await weth.balanceOf(user.address);
-    expect(balanceAfter).to.equal(BigNumber.from('0'));
-    const flashBalance = await borrower.flashBalance();
-    expect(flashBalance).to.equal(bal.add(fee));
-    const flashToken = await borrower.flashToken();
-    expect(flashToken).to.equal(weth.address);
-    const flashAmount = await borrower.flashAmount();
-    expect(flashAmount).to.equal(bal);
-    const flashFee = await borrower.flashFee();
-    expect(flashFee).to.equal(fee);
-    const flashSender = await borrower.flashSender();
-    expect(flashSender).to.equal(borrower.address);
-
-    const balanceAfterFeeTo = await weth.balanceOf(feeTo.address);
-    expect(balanceAfterFeeTo.sub(balanceBeforeFeeTo)).to.equal(bal.mul(5).div(1000));
-
+  it('flashLoan', async () => {
+    const maxloan = await lender.maxFlashLoan(weth.address, 1);
+    const fee = await lender.flashFee(weth.address, maxloan);
+    await weth.connect(wethuser).transfer(borrower.address, fee);
+    await borrower.connect(user).flashBorrow(lender.address, weth.address, maxloan, {gasLimit: 30000000});
+    const totalFlashBalance = await borrower.totalFlashBalance();
+    expect(totalFlashBalance).to.equal(maxloan.add(fee));
   });
 
-  it('dai flash loan', async () => {
-    const fee = await lender.flashFee(dai.address, bal);
-
-    await dai.connect(user).mint(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, dai.address, bal);
-
-    const balanceAfter = await dai.balanceOf(user.address);
-    expect(balanceAfter).to.equal(BigNumber.from('0'));
-    const flashBalance = await borrower.flashBalance();
-    expect(flashBalance).to.equal(bal.add(fee));
-    const flashToken = await borrower.flashToken();
-    expect(flashToken).to.equal(dai.address);
-    const flashAmount = await borrower.flashAmount();
-    expect(flashAmount).to.equal(bal);
-    const flashFee = await borrower.flashFee();
-    expect(flashFee).to.equal(fee);
-    const flashSender = await borrower.flashSender();
-    expect(flashSender).to.equal(borrower.address);
+  it('flashLoanWithManyPairs_OR_ManyPools', async () => {
+    const maxloan = await lender.maxFlashLoanWithManyPairs_OR_ManyPools(weth.address);
+    const fee = await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, maxloan);
+    await weth.connect(wethuser).transfer(borrower.address, fee);
+    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, weth.address, maxloan, {gasLimit: 30000000});
+    const totalFlashBalance = await borrower.totalFlashBalance();
+    expect(totalFlashBalance).to.equal(maxloan.add(fee));
   });
 });

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../interfaces/Interfaces.sol";
+import "./Interfaces.sol";
 
 library Utils {
     function safeTransferFrom(address token, address from, address to, uint value) internal {
