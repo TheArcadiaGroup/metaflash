@@ -42,12 +42,12 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     }
 
     function setFactory(address _factory) external {
-        require(msg.sender == factory, 'FlashLender: Not factory');
+        require(msg.sender == factory, "FlashLender: Not factory");
         factory = _factory;
     }
 
     function setFeeTo(address _feeTo) public {
-        require(msg.sender == factory, 'FlashLender: Not factory');
+        require(msg.sender == factory, "FlashLender: Not factory");
         require(
             address(_feeTo) != address(0),
             "FlashLender: feeTo address is zero address!"
@@ -56,7 +56,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     }
 
     function addProviders(address[] memory _providers) public returns (bool) {
-        require(msg.sender == factory, 'FlashLender: Not factory');
+        require(msg.sender == factory, "FlashLender: Not factory");
         for (uint256 i = 0; i < _providers.length; i++) {
             require(
                 _providers[i] != address(0),
@@ -71,7 +71,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         public
         returns (bool)
     {
-        require(msg.sender == factory, 'FlashLender: Not factory');
+        require(msg.sender == factory, "FlashLender: Not factory");
         for (uint256 i = 0; i < _providers.length; i++) {
             for (uint256 j = 0; j < providers.length; j++) {
                 if (providers[j] == _providers[i]) {
@@ -92,9 +92,10 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 providerCount = 0;
         for (uint256 i = 0; i < providers.length; i++) {
             uint256 maxloan = IERC3156FlashLender(providers[i]).maxFlashLoan(
-                _token, _amount
+                _token,
+                _amount
             );
-            
+
             if (maxloan >= _amount) {
                 providerCount++;
             }
@@ -107,7 +108,8 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
 
         for (uint256 i = 0; i < providers.length; i++) {
             uint256 maxloan = IERC3156FlashLender(providers[i]).maxFlashLoan(
-                _token, _amount
+                _token,
+                _amount
             );
             if (maxloan >= _amount) {
                 uint256 fee = IERC3156FlashLender(providers[i]).flashFee(
@@ -140,16 +142,14 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     }
 
     // sort providers that their maxFlashLoan are more than or equal to _amount by fee
-    function _sortProvidersWithManyPairs_OR_ManyPoolsByFee(address _token, uint256 _amount)
-        internal
-        view
-        returns (ProviderInfo[] memory)
-    {
+    function _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
+        address _token,
+        uint256 _amount
+    ) internal view returns (ProviderInfo[] memory) {
         uint256 providerCount = 0;
         for (uint256 i = 0; i < providers.length; i++) {
-            uint256 maxloan = IERC3156FlashLender(providers[i]).maxFlashLoanWithManyPairs_OR_ManyPools(
-                _token
-            );
+            uint256 maxloan = IERC3156FlashLender(providers[i])
+                .maxFlashLoanWithManyPairs_OR_ManyPools(_token);
             if (maxloan > 0) {
                 providerCount++;
             }
@@ -161,14 +161,11 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 count = 0;
 
         for (uint256 i = 0; i < providers.length; i++) {
-            uint256 maxloan = IERC3156FlashLender(providers[i]).maxFlashLoanWithManyPairs_OR_ManyPools(
-                _token
-            );
+            uint256 maxloan = IERC3156FlashLender(providers[i])
+                .maxFlashLoanWithManyPairs_OR_ManyPools(_token);
             if (maxloan > 0) {
-                uint256 fee = IERC3156FlashLender(providers[i]).flashFeeWithManyPairs_OR_ManyPools(
-                    _token,
-                    _amount
-                );
+                uint256 fee = IERC3156FlashLender(providers[i])
+                    .flashFeeWithManyPairs_OR_ManyPools(_token, _amount);
                 providerInfos[count].provider = providers[i];
                 providerInfos[count].maxloan = maxloan;
                 providerInfos[count].fee = fee;
@@ -207,7 +204,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             _token,
             _amount
         );
-        
+
         require(
             sortedTempProvider.length > 0,
             "FlashLender: Found no providers"
@@ -221,14 +218,13 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         returns (uint256)
     {
         uint256 maxloan = 0;
-        ProviderInfo[] memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
-            _token,
-            1e18
-        );
-        for (uint256 i = 0; i < sortedTempProvider.length; i++) {
-            maxloan = maxloan.add(
-                sortedTempProvider[i].maxloan
+        ProviderInfo[]
+            memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
+                _token,
+                1e18
             );
+        for (uint256 i = 0; i < sortedTempProvider.length; i++) {
+            maxloan = maxloan.add(sortedTempProvider[i].maxloan);
         }
         return maxloan;
     }
@@ -259,28 +255,33 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 totalAmount = _amount;
         uint256 amount = 0;
 
-        ProviderInfo[] memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
-            _token,
-            1e18
-        );
+        ProviderInfo[]
+            memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
+                _token,
+                1e18
+            );
 
         for (uint256 i = 0; i < sortedTempProvider.length; i++) {
             if (amount.add(sortedTempProvider[i].maxloan) <= totalAmount) {
-                fee =
-                    fee.add(IERC3156FlashLender(providers[i]).flashFeeWithManyPairs_OR_ManyPools(
-                        _token,
-                        sortedTempProvider[i].maxloan
-                    ));
+                fee = fee.add(
+                    IERC3156FlashLender(providers[i])
+                        .flashFeeWithManyPairs_OR_ManyPools(
+                            _token,
+                            sortedTempProvider[i].maxloan
+                        )
+                );
                 amount = amount.add(sortedTempProvider[i].maxloan);
-                if(amount == totalAmount){
+                if (amount == totalAmount) {
                     break;
                 }
             } else {
-                fee =
-                    fee.add(IERC3156FlashLender(providers[i]).flashFeeWithManyPairs_OR_ManyPools(
-                        _token,
-                        totalAmount.sub(amount)
-                    ));
+                fee = fee.add(
+                    IERC3156FlashLender(providers[i])
+                        .flashFeeWithManyPairs_OR_ManyPools(
+                            _token,
+                            totalAmount.sub(amount)
+                        )
+                );
                 amount = totalAmount;
                 break;
             }
@@ -293,7 +294,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
 
         uint256 additionalFee = _additionalFee(amount);
         uint256 totalFee = fee.add(additionalFee);
-        
+
         return totalFee;
     }
 
@@ -341,30 +342,33 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 amount = 0;
         bytes memory data = abi.encode(msg.sender, _receiver, _userData);
 
-        ProviderInfo[] memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
-            _token,
-            1e18
-        );
+        ProviderInfo[]
+            memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
+                _token,
+                1e18
+            );
 
         for (uint256 i = 0; i < sortedTempProvider.length; i++) {
             if (amount.add(sortedTempProvider[i].maxloan) <= totalAmount) {
-                IERC3156FlashLender(sortedTempProvider[i].provider).flashLoanWithManyPairs_OR_ManyPools(
-                    this,
-                    _token,
-                    sortedTempProvider[i].maxloan,
-                    data
-                );
+                IERC3156FlashLender(sortedTempProvider[i].provider)
+                    .flashLoanWithManyPairs_OR_ManyPools(
+                        this,
+                        _token,
+                        sortedTempProvider[i].maxloan,
+                        data
+                    );
                 amount = amount.add(sortedTempProvider[i].maxloan);
-                if(amount == totalAmount){
+                if (amount == totalAmount) {
                     break;
                 }
             } else {
-                IERC3156FlashLender(sortedTempProvider[i].provider).flashLoanWithManyPairs_OR_ManyPools(
-                    this,
-                    _token,
-                    totalAmount.sub(amount),
-                    data
-                );
+                IERC3156FlashLender(sortedTempProvider[i].provider)
+                    .flashLoanWithManyPairs_OR_ManyPools(
+                        this,
+                        _token,
+                        totalAmount.sub(amount),
+                        data
+                    );
                 amount = totalAmount;
                 break;
             }

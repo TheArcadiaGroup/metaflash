@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/IEulerFlashLender.sol";
 import "./interfaces/IFLoan.sol";
@@ -20,7 +19,7 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
     constructor(address _flashloan) {
         require(
             address(_flashloan) != address(0),
-            "EulerERC3156: lendingPool address is zero address!"
+            "EulerFlashLender: _flashloan address is zero address!"
         );
         flashloan = IFLoan(_flashloan);
     }
@@ -125,12 +124,12 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
     ) external override returns (bytes32) {
         require(
             msg.sender == address(flashloan),
-            "EulerERC3156: Callbacks only allowed from Lending Pool"
+            "EulerFlashLender: Callbacks only allowed from flashloan"
         );
 
         require(
             _sender == address(this),
-            "EulerERC3156: Callbacks only initiated from this contract"
+            "EulerFlashLender: Callbacks only initiated from this contract"
         );
 
         (
@@ -141,18 +140,14 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
 
         // Send the tokens to the original receiver using the ERC-3156 interface
         IERC20(_token).transfer(origin, _amount);
-        
+
         require(
             receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
                 CALLBACK_SUCCESS,
-            "EulerERC3156:Callback failed"
+            "EulerFlashLender: Callback failed"
         );
- 
-        IERC20(_token).transferFrom(
-            origin,
-            address(this),
-            _amount.add(_fee)
-        );
+
+        IERC20(_token).transferFrom(origin, address(this), _amount.add(_fee));
 
         // Approve the LendingPool contract allowance to *pull* the owed amount
         IERC20(_token).approve(address(flashloan), _amount.add(_fee));

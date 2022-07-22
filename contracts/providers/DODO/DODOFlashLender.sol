@@ -43,12 +43,21 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         require(
             (_basetokens.length == _quotetokens.length) &&
                 (_quotetokens.length == _dvmpools.length),
-            "mismatch length of basetoken, quotetoken, dvmpool"
+            "DODOFlashLender: mismatch length of basetoken, quotetoken, dvmpool"
         );
         for (uint256 i = 0; i < _dvmpools.length; i++) {
-            require(_basetokens[i] != address(0), "Unsupported currency");
-            require(_quotetokens[i] != address(0), "Unsupported currency");
-            require(_dvmpools[i] != address(0), "Unsupported currency");
+            require(
+                _basetokens[i] != address(0),
+                "DODOFlashLender: Unsupported currency"
+            );
+            require(
+                _quotetokens[i] != address(0),
+                "DODOFlashLender: Unsupported currency"
+            );
+            require(
+                _dvmpools[i] != address(0),
+                "DODOFlashLender: Unsupported currency"
+            );
             dvmpools.push(
                 DVMPool({
                     basetoken: _basetokens[i],
@@ -253,7 +262,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
 
         require(
             validDVMPoolInfos[0].dvmpool != address(0),
-            "CroDefiSwapFlashLender: Unsupported currency"
+            "DODOFlashLender: Unsupported currency"
         );
 
         _flashloan(
@@ -280,7 +289,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
 
         require(
             validDVMPoolInfos[0].dvmpool != address(0),
-            "CroDefiSwapFlashLender: Unsupported currency"
+            "DODOFlashLender: Unsupported currency"
         );
 
         for (uint256 i = 0; i < validDVMPoolInfos.length; i++) {
@@ -289,7 +298,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
 
         require(
             totalMaxLoan >= totalAmount,
-            "CroDefiSwapFlashLender: Amount is more than maxFlashLoan"
+            "DODOFlashLender: Amount is more than maxFlashLoan"
         );
 
         uint256 amount = 0;
@@ -350,7 +359,10 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         uint256 _quoteAmount,
         bytes calldata _data
     ) external override {
-        require(_sender == address(this), "only this contract may initiate");
+        require(
+            _sender == address(this),
+            "DODOFlashLender: only this contract may initiate"
+        );
 
         (
             address dvmpool,
@@ -365,7 +377,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
 
         require(
             msg.sender == dvmpool,
-            "CroDefiSwapFlashLender: only permissioned pairs can call"
+            "DODOFlashLender: only permissioned pool can call"
         );
 
         uint256 amount = _baseAmount > 0 ? _baseAmount : _quoteAmount;
@@ -376,7 +388,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         require(
             receiver.onFlashLoan(origin, token, amount, fee, userData) ==
                 CALLBACK_SUCCESS,
-            "Callback failed"
+            "DODOFlashLender: Callback failed"
         );
 
         IERC20(token).transferFrom(

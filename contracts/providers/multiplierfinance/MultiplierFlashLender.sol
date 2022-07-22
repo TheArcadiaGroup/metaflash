@@ -1,45 +1,40 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Derived from https://docs.aave.com/developers/guides/flash-loans
-pragma solidity 0.6.4;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IERC20.sol";
-import "./libraries/SafeMath.sol";
-import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-import "./interfaces/IFortubeFlashLender.sol";
-import "./interfaces/IFortubeFlashBorrower.sol";
-// import "./interfaces/IFlashLoanReceiver.sol";
-import "./interfaces/IFortubeBank.sol";
-import "./interfaces/IFortubeBankController.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract FortubeFlashLender is
-    IFortubeFlashLender,
-    IFortubeFlashBorrower,
+import "./interfaces/IMultiplierFlashLender.sol";
+import "./interfaces/IMultiplierFlashBorrower.sol";
+import "./interfaces/ILendingPool.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
+import {SafeMath} from "./libraries/SafeMath.sol";
+import {Ownable} from "./libraries/Ownable.sol";
+
+contract MultiplierFlashLender is
+    IMultiplierFlashLender,
+    IMultiplierFlashBorrower,
     Ownable
 {
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
-    IFortubeBank public bank;
-    IFortubeBankController public bankcontroller;
+    ILendingPool public lendingpool;
+    address public core;
+    uint256 public protocolFeeRate;
 
-    constructor(address _bank, address _bankcontroller) public {
-        bank = IFortubeBank(_bank);
-        bankcontroller = IFortubeBankController(_bankcontroller);
-
+    constructor(address _lendingpool) {
         require(
-            address(bank) != address(0),
-            "FortubeFlashLender: bank address is zero address!"
+            address(_lendingpool) != address(0),
+            "MultiplierFlashLender: lendingPool address is zero address!"
         );
-
-        require(
-            address(bankcontroller) != address(0),
-            "FortubeFlashLender: bankcontroller address is zero address!"
-        );
+        lendingpool = ILendingPool(_lendingpool);
+        core = lendingpool.core();
+        protocolFeeRate = IFeeProvider(lendingpool.feeProvider())
+            .getFlashLoanFee();
     }
+
+    receive() external payable {}
 
     function maxFlashLoan(address _token, uint256 _amount)
         external
@@ -64,7 +59,7 @@ contract FortubeFlashLender is
         view
         returns (uint256)
     {
-        uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
+        uint256 maxloan = IERC20(_token).balanceOf(core);
         if (maxloan >= _amount) {
             return maxloan;
         } else {
@@ -78,9 +73,9 @@ contract FortubeFlashLender is
         override
         returns (uint256)
     {
-        uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
+        uint256 maxloan = IERC20(_token).balanceOf(core);
         if (maxloan >= _amount) {
-            return _amount.mul(bankcontroller.flashloanFeeBips()).div(10000);
+            return _amount.mul(protocolFeeRate).div(1e18);
         } else {
             return 0;
         }
@@ -92,9 +87,9 @@ contract FortubeFlashLender is
         override
         returns (uint256)
     {
-        uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
+        uint256 maxloan = IERC20(_token).balanceOf(core);
         if (maxloan > 0) {
-            return _amount.mul(bankcontroller.flashloanFeeBips()).div(10000);
+            return _amount.mul(protocolFeeRate).div(1e18);
         } else {
             return 0;
         }
@@ -124,10 +119,15 @@ contract FortubeFlashLender is
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes memory _userData
+        bytes calldata _data
     ) internal {
-        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
-        bank.flashloan(address(this), _token, _amount, data);
+        bytes memory data = abi.encode(
+            address(this),
+            msg.sender,
+            _receiver,
+            _data
+        );
+        lendingpool.flashLoan(address(this), _token, _amount, data);
     }
 
     function executeOperation(
@@ -137,26 +137,32 @@ contract FortubeFlashLender is
         bytes calldata _data
     ) external override {
         require(
-            msg.sender == address(bank),
-            "FortubeFlashLender: Callbacks only allowed from permissioned bank"
+            msg.sender == address(lendingpool),
+            "MultiplierFlashLender: Callbacks only allowed from Lending Pool"
         );
 
         (
+            address sender,
             address origin,
             IERC3156FlashBorrower receiver,
             bytes memory userData
-        ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
+        ) = abi.decode(_data, (address, address, IERC3156FlashBorrower, bytes));
 
-        // Send the tokens to the original receiver using the ERC-3156 interface
+        require(
+            sender == address(this),
+            "MultiplierFlashLender: Callbacks only initiated from this contract"
+        );
+
         IERC20(_token).transfer(origin, _amount);
+
         require(
             receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
                 CALLBACK_SUCCESS,
-            "FortubeFlashLender: Callback failed"
+            "MultiplierFlashLender: Callback failed"
         );
 
         IERC20(_token).transferFrom(origin, address(this), _amount.add(_fee));
 
-        IERC20(_token).transfer(address(bankcontroller), _amount.add(_fee));
+        IERC20(_token).transfer(core, _amount.add(_fee));
     }
 }

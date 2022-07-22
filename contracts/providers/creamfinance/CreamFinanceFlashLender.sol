@@ -3,7 +3,6 @@
 
 pragma solidity ^0.5.16;
 
-
 import {IERC20} from "./interfaces/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import "./interfaces/ICreamFinanceFlashLender.sol";
@@ -30,7 +29,6 @@ contract CreamFinanceFlashLender is
     struct PairInfo {
         address ctoken;
         uint256 maxloan;
-        // uint256 fee;
     }
 
     CToken[] public ctokens;
@@ -38,7 +36,7 @@ contract CreamFinanceFlashLender is
     constructor(address _factory) public {
         require(
             address(_factory) != address(0),
-            "CreamFinanceERC3156: factory address is zero address!"
+            "CreamFinanceFlashLender: factory address is zero address!"
         );
         factory = _factory;
     }
@@ -46,7 +44,7 @@ contract CreamFinanceFlashLender is
     function() external payable {}
 
     function setFactory(address _factory) external {
-        require(msg.sender == factory, "CreamFinanceERC3156: Not factory");
+        require(msg.sender == factory, "CreamFinanceFlashLender: Not factory");
         factory = _factory;
     }
 
@@ -54,19 +52,19 @@ contract CreamFinanceFlashLender is
         address[] memory _ctokens,
         address[] memory _underlyings
     ) public returns (bool) {
-        require(msg.sender == factory, "CreamFinanceERC3156: Not factory");
+        require(msg.sender == factory, "CreamFinanceFlashLender: Not factory");
         require(
             (_ctokens.length == _underlyings.length),
-            "CreamFinanceERC3156: mismatch length of _ctoken, _underlying"
+            "CreamFinanceFlashLender: mismatch length of _ctoken, _underlying"
         );
         for (uint256 i = 0; i < _ctokens.length; i++) {
             require(
                 _ctokens[i] != address(0),
-                "CreamFinanceERC3156: _ctoken address is zero address"
+                "CreamFinanceFlashLender: _ctoken address is zero address"
             );
             require(
                 _underlyings[i] != address(0),
-                "CreamFinanceERC3156: _underlying address is zero address"
+                "CreamFinanceFlashLender: _underlying address is zero address"
             );
             ctokens.push(
                 CToken({ctoken: _ctokens[i], underlying: _underlyings[i]})
@@ -211,7 +209,7 @@ contract CreamFinanceFlashLender is
     ) external returns (bytes32) {
         require(
             _sender == address(this),
-            "CreamFinanceERC3156: FlashLoan only from this contract"
+            "CreamFinanceFlashLender: FlashLoan only from this contract"
         );
 
         (
@@ -223,18 +221,18 @@ contract CreamFinanceFlashLender is
 
         require(
             msg.sender == ctoken,
-            "CreamFinanceERC3156: Callback only from permissioned ctoken"
+            "CreamFinanceFlashLender: Callback only from permissioned ctoken"
         );
 
         // Transfer to `receiver`
         require(
             IERC20(_token).transfer(address(receiver), _amount),
-            "CreamFinanceERC3156: Transfer failed"
+            "CreamFinanceFlashLender: Transfer failed"
         );
         require(
             receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
                 CALLBACK_SUCCESS,
-            "CreamFinanceERC3156: Callback failed"
+            "CreamFinanceFlashLender: Callback failed"
         );
 
         IERC20(_token).transferFrom(

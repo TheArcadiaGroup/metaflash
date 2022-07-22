@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.5.16;
+pragma solidity ^0.8.0;
 
 import {IERC20} from "./interfaces/IERC20.sol";
-import "./interfaces/IERC3156FlashBorrower.sol";
-import "./interfaces/ICreamFinanceFlashLender.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "./interfaces/IMultiplierFlashLender.sol";
 
-contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
+contract MultiplierFlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
         STEAL,
@@ -13,7 +13,7 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
     }
 
     bytes32 public constant CALLBACK_SUCCESS =
-        keccak256("ERC3156FlashBorrowerInterface.onFlashLoan");
+        keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     uint256 public flashBalance;
     address public flashSender;
@@ -21,9 +21,8 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
     uint256 public flashAmount;
     uint256 public flashFee;
     uint256 public totalFlashBalance;
-    uint256 public beforeflashBalance;
 
-    function() external payable {}
+    receive() external payable {}
 
     /// @dev ERC-3156 Flash loan callback
     function onFlashLoan(
@@ -32,10 +31,10 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
         uint256 amount,
         uint256 fee,
         bytes calldata data
-    ) external returns (bytes32) {
+    ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "CreamFinanceFlashBorrower: External loan initiator"
+            "MultiplierFlashBorrower: External loan initiator"
         );
         Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
         flashSender = sender;
@@ -54,7 +53,7 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
-        ICreamFinanceFlashLender lender,
+        IMultiplierFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -63,17 +62,15 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
             address(lender)
         );
         uint256 _fee = lender.flashFee(token, amount);
-        uint256 _repayment = amount + _fee;
-
-        beforeflashBalance = IERC20(token).balanceOf(address(this));
+        uint256 _repayment = amount + _fee + 1;
         IERC20(token).approve(address(lender), _allowance + _repayment);
-        // // Use this to pack arbitrary data to `onFlashLoan`
+        // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);
         lender.flashLoan(this, token, amount, data);
     }
 
     function flashBorrowWithManyPairs_OR_ManyPools(
-        ICreamFinanceFlashLender lender,
+        IMultiplierFlashLender lender,
         address token,
         uint256 amount
     ) public {
@@ -82,10 +79,11 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
             address(lender)
         );
         uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
-        uint256 _repayment = amount + _fee;
+        uint256 _repayment = amount + _fee + 1;
         IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);
+
         lender.flashLoanWithManyPairs_OR_ManyPools(this, token, amount, data);
     }
 }

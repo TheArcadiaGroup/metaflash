@@ -17,8 +17,6 @@
 pragma solidity >=0.6.12;
 
 import "./interfaces/IBentoBox.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/ISushiSwapFlashLender.sol";
 import "./interfaces/IFlashLoan.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
@@ -41,7 +39,7 @@ contract SushiSwapFlashLender is
     constructor(address _bentobox) public {
         require(
             address(_bentobox) != address(0),
-            "SushiSwapERC3156: bentobox address is zero address!"
+            "SushiSwapFlashLender: bentobox address is zero address!"
         );
         bentobox = IBentoBox(_bentobox);
     }
@@ -150,11 +148,11 @@ contract SushiSwapFlashLender is
     ) external override {
         require(
             msg.sender == address(bentobox),
-            "SushiSwapERC3156: Callback only from swapflashloan"
+            "SushiSwapFlashLender: Callback only from bentobox"
         );
         require(
             _sender == address(this),
-            "SushiSwapERC3156: FlashLoan only from this contract"
+            "SushiSwapFlashLender: FlashLoan only from this contract"
         );
 
         (
@@ -182,7 +180,6 @@ contract SushiSwapFlashLender is
             _amount.add(_fee)
         );
 
-        // uint256 sushiFee = _sushiFee(address(token), amount);
         _token.safeTransfer(address(bentobox), _amount.add(_fee));
     }
 }

@@ -50,7 +50,7 @@ contract SaddleFinanceFlashLender is
         for (uint256 i = 0; i < _pool.length; i++) {
             require(
                 _pool[i] != address(0),
-                "SaddleFinanceFlashLender: Unsupported currency"
+                "SaddleFinanceFlashLender: _pool address is zero address!"
             );
             pools.push(_pool[i]);
         }
@@ -153,12 +153,14 @@ contract SaddleFinanceFlashLender is
                 for (uint256 i = 1; i < validPoolInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
                         if (validPoolInfos[i].fee == validPoolInfos[j].fee) {
-                            if(validPoolInfos[i].maxloan > validPoolInfos[j].maxloan){
+                            if (
+                                validPoolInfos[i].maxloan >
+                                validPoolInfos[j].maxloan
+                            ) {
                                 PoolInfo memory x = validPoolInfos[i];
                                 validPoolInfos[i] = validPoolInfos[j];
                                 validPoolInfos[j] = x;
                             }
-
                         }
                     }
                 }

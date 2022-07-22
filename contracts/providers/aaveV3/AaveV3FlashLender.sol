@@ -6,10 +6,6 @@ pragma experimental ABIEncoderV2;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import {Ownable} from "./libraries/Ownable.sol";
-// import {SafeMath} from "./dependencies/openzeppelin/contracts/SafeMath.sol";
-// import {Ownable} from "./dependencies/openzeppelin/contracts/Ownable.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/IAaveV3FlashBorrower.sol";
 import "./interfaces/IAaveV3FlashLender.sol";
 import "./interfaces/IAaveV3Pool.sol";
@@ -31,7 +27,7 @@ contract AaveV3FlashLender is
         pool = IAaveV3Pool(_provider.getPool());
         require(
             address(pool) != address(0),
-            "AaveV3ERC3156: pool address is zero address!"
+            "AaveV3FlashLender: pool address is zero address!"
         );
     }
 
@@ -147,11 +143,11 @@ contract AaveV3FlashLender is
     ) external returns (bool) {
         require(
             msg.sender == address(pool),
-            "AaveV3ERC3156: Callbacks only allowed from Lending Pool"
+            "AaveV3FlashLender: Callbacks only allowed from Lending Pool"
         );
         require(
             _sender == address(this),
-            "AaveV3ERC3156: Callbacks only initiated from this contract"
+            "AaveV3FlashLender: Callbacks only initiated from this contract"
         );
 
         (
@@ -164,7 +160,7 @@ contract AaveV3FlashLender is
         require(
             receiver.onFlashLoan(origin, _token, _amount, _premium, userData) ==
                 CALLBACK_SUCCESS,
-            "AaveV3ERC3156: Callback failed"
+            "AaveV3FlashLender: Callback failed"
         );
         IERC20(_token).transferFrom(
             origin,

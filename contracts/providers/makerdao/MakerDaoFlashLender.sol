@@ -38,7 +38,7 @@ contract MakerDaoFlashLender is
     constructor(address _dssflash) public {
         require(
             address(_dssflash) != address(0),
-            "DssFlashERC3156: factory address is zero address!"
+            "MakerDaoFlashLender: _dssflash address is zero address!"
         );
         dssflash = IMakerDaoDssFlash(_dssflash);
     }
@@ -142,11 +142,11 @@ contract MakerDaoFlashLender is
     ) external override returns (bytes32) {
         require(
             msg.sender == address(dssflash),
-            "DssFlashERC3156: Callback only from dssflash"
+            "MakerDaoFlashLender: Callback only from dssflash"
         );
         require(
             _sender == address(this),
-            "DssFlashERC3156: FlashLoan only from this contract"
+            "MakerDaoFlashLender: FlashLoan only from this contract"
         );
 
         (
@@ -158,12 +158,12 @@ contract MakerDaoFlashLender is
         // Transfer to `receiver`
         require(
             IERC20(_token).transfer(address(receiver), _amount),
-            "DssFlashERC3156: Transfer failed"
+            "MakerDaoFlashLender: Transfer failed"
         );
         require(
             receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
                 CALLBACK_SUCCESS,
-            "DssFlashERC3156: Callback failed"
+            "MakerDaoFlashLender: Callback failed"
         );
         require(
             IERC20(_token).transferFrom(
@@ -171,7 +171,7 @@ contract MakerDaoFlashLender is
                 address(this),
                 _amount.add(_fee)
             ),
-            "DssFlashERC3156: Transfer failed"
+            "MakerDaoFlashLender: Transfer failed"
         );
 
         IERC20(_token).approve(address(dssflash), _amount.add(_fee));

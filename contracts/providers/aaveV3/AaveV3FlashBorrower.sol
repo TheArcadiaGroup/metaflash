@@ -3,7 +3,6 @@ pragma solidity 0.8.10;
 
 import {IERC20} from "./interfaces/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/IAaveV3FlashLender.sol";
 
 contract AaveV3FlashBorrower is IERC3156FlashBorrower {
@@ -33,7 +32,7 @@ contract AaveV3FlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "FlashBorrower: External loan initiator"
+            "AaveV3FlashBorrower: External loan initiator"
         );
         Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
         flashSender = sender;

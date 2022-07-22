@@ -184,7 +184,7 @@ contract AaveV2FlashLender is
         require(
             receiver.onFlashLoan(origin, token, amount, fee, userData) ==
                 CALLBACK_SUCCESS,
-            "AaveV2FlashLender:Callback failed"
+            "AaveV2FlashLender: Callback failed"
         );
         IERC20(token).transferFrom(origin, address(this), amount.add(fee));
 

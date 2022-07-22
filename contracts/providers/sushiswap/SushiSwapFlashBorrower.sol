@@ -36,7 +36,7 @@ contract SushiSwapFlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "FlashBorrower: External loan initiator"
+            "SushiSwapFlashBorrower: External loan initiator"
         );
         Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
         flashSender = sender;

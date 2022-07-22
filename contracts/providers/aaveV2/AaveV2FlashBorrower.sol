@@ -3,7 +3,6 @@ pragma solidity ^0.7.5;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/IAaveV2FlashLender.sol";
 
 contract AaveV2FlashBorrower is IERC3156FlashBorrower {
@@ -33,7 +32,7 @@ contract AaveV2FlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "FlashBorrower: External loan initiator"
+            "AaveV2FlashBorrower: External loan initiator"
         );
         Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
         flashSender = sender;

@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/IDYDXFlashLender.sol";
 import "./interfaces/ISoloMargin.sol";
 import "./interfaces/IDYDXFlashBorrower.sol";
@@ -160,11 +159,11 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
     ) public override {
         require(
             msg.sender == address(soloMargin),
-            "DYDXERC3156: Callback only from SoloMargin"
+            "DYDXFlashLender: Callback only from SoloMargin"
         );
         require(
             _sender == address(this),
-            "DYDXERC3156: FlashLoan only from this contract"
+            "DYDXFlashLender: FlashLoan only from this contract"
         );
 
         (
@@ -183,12 +182,12 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         // Transfer to `receiver`
         require(
             IERC20(token).transfer(address(receiver), amount),
-            "DYDXERC3156: Transfer failed"
+            "DYDXFlashLender: Transfer failed"
         );
         require(
             receiver.onFlashLoan(origin, token, amount, fee, userData) ==
                 CALLBACK_SUCCESS,
-            "DYDXERC3156: Callback failed"
+            "DYDXFlashLender: Callback failed"
         );
         require(
             IERC20(token).transferFrom(
@@ -196,7 +195,7 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
                 address(this),
                 amount.add(fee)
             ),
-            "DYDXERC3156: Transfer failed"
+            "DYDXFlashLender: Transfer failed"
         );
 
         // Approve the SoloMargin contract allowance to *pull* the owed amount
