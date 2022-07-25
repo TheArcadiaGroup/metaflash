@@ -1,41 +1,252 @@
 {
     "1": {
-        "1": {
-            "token0": "",
-            "token1": "",
-            "pair": ""
-        },
-        "2": {
-            "token0": "",
-            "token1": "",
-            "pair": ""
-        },
-        "3": {
-            "token0": "",
-            "token1": "",
-            "pair": ""
-        },
-        "4": {
-            "token0": "",
-            "token1": "",
-            "pair": ""
-        },
-        "5": {
-            "token0": "",
-            "token1": "",
-            "pair": ""
-        }
+        "token0": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "pair": "0x5777d92f208679db4b9778590fa3cab3ac9e2168"
+    },
+    "2": {
+        "token0": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "pair": "0x6c6Bc977E13Df9b0de53b251522280BB72383700"
+    },
+    "3": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
+    },
+    "4": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+    },
+    "5": {
+        "token0": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"
+    },
+    "6": {
+        "token0": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x3416cf6c708da44db2624d63ea0aaef7113527c6"
+    },
+    "7": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pair": "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36"
+    },
+    "8": {
+        "token0": "0x853d955acef822db058eb8505911ed77f175b99e",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0xc63b0708e2f7e69cb8a1df0e1389a98c35a76d52"
+    },
+    "9": {
+        "token0": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0xbbaec992fc2d637151daf40451f160bf85f3c8c1",
+        "pair": "0x8ee3cc8e29e72e03c4ab430d7b7e08549f0c71cc"
+    },
+    "10": {
+        "token0": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x4585fe77225b41b697c938b018e2ac67ac5a20c0"
+    },
+    "11": {
+        "token0": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35"
+    },
+    "12": {
+        "token0": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xc2e9f25be6257c210d7adf0d4cd6e3e881ba25f8"
+    },
+    "13": {
+        "token0": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0xefa6903aa49cd539c079ac4b0a090db432615822",
+        "pair": "0x025b887e7f62d8b5f1564ba204187452cf27f634"
+    },
+    "14": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xfe2e637202056d30016725477c5da089ab0a043a",
+        "pair": "0x7379e81228514a1d2a6cf7559203998e20598346"
+    },
+    "15": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"
+    },
+    "16": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5",
+        "pair": "0x5c128d25a21f681e678cb050e551a895c9309945"
+    },
+    "17": {
+        "token0": "0x853d955acef822db058eb8505911ed77f175b99e",
+        "token1": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "pair": "0x97e7d56a0408570ba1a7852de36350f7713906ec"
+    },
+    "18": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pair": "0x11b815efb8f581194ae79006d24e0d814b7697f6"
+    },
+    "19": {
+        "token0": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pair": "0x7858e59e0c01ea06df3af3d20ac7b0003275d4bf"
+    },
+    "20": {
+        "token0": "0x4fabb145d64652a948d72533023f6e7a623c7c53",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x00cef0386ed94d738c8f8a74e8bfd0376926d24c"
+    },
+    "21": {
+        "token0": "0xc669928185dbce49d2230cc9b0979be6dc797957",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x64a078926ad9f9e88016c199017aea196e3899e1"
+    },
+    "22": {
+        "token0": "0x4d224452801aced8b2f0aebe155379bb5d594381",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xac4b3dacb91461209ae9d41ec517c2b9cb1b7daf"
+    },
+    "23": {
+        "token0": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x6ab3bba2f41e7eaa262fa5a1a9b3932fa161526f"
+    },
+    "24": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0x8e870d67f660d95d5be530380d0ec0bd388289e1",
+        "pair": "0xd83d78108dd0d1dffff11ea3f99871671a52488b"
+    },
+    "25": {
+        "token0": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801"
+    },
+    "26": {
+        "token0": "0x68749665ff8d2d112fa859aa293f07a622782f38",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x16439c7007b9267cf1557f50f37497fcaa69a0dc"
+    },
+    "27": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xf80FC1ce16cBCBD18421E9Cd055CA1Bb58A9E097",
+        "pair": "0x40e629a26d96baa6d81fae5f97205c2ab2c1ff29"
+    },
+    "28": {
+        "token0": "0xf4d2888d29d722226fafa5d9b24f9164c092421e",
+        "token1": "xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x4b5ab61593a2401b1075b90c04cbcdd3f87ce011"
+    },
+    "29": {
+        "token0": "0x1a7e4e63778b4f12a199c062f3efdd288afcbce8",
+        "token1": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pair": "0x735a26a57a0a0069dfabd41595a970faf5e1ee8b"
+    },
+    "30": {
+        "token0": "xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0x2b591e99afe9f32eaa6214f7b7629768c40eeb39",
+        "pair": "0x69d91b94f0aaf8e8a2586909fa77a5c2c89818d5"
+    },
+    "31": {
+        "token0": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0xf1ca9cb74685755965c7458528a36934df52a3ef",
+        "pair": "0x04a2004b2032fef2ba93f40b0e34d26ab7b00120"
+    },
+    "32": {
+        "token0": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x290a6a7460b308ee3f19023d2d00de604bcf5b42"
+    },
+    "33": {
+        "token0": "0x514910771af9ca656af840dff83e8264ecf986ca",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xa6cc3c2531fdaa6ae1a3ca84c2855806728693e8"
+    },
+    "34": {
+        "token0": "0xcfcecfe2bd2fed07a9145222e8a7ad9cf1ccd22a",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xb9044f46dcdea7ecebbd918a9659ba8239bd9f37"
+    },
+    "35": {
+        "token0": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
+        "token1": "xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xe8c6c9227491c0a8156a0106a0204d881bb7e531"
+    },
+    "36": {
+        "token0": "0xf5581dfefd8fb0e4aec526be659cfab1f8c781da",
+        "token1": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "pair": "0x87986ae1e99f99da1f955d16930dc8914ffbed56"
+    },
+    "37": {
+        "token0": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x60594a405d53811d3bc4766596efd80fd545a270"
+    },
+    "38": {
+        "token0": "0x0C10bF8FcB7Bf5412187A595ab97a3609160b5c6",
+        "token1": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pair": "0x2bc477c7c00511ec8a2ea667dd8210af9ff15e1d"
+    },
+    "39": {
+        "token0": "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0x2f62f2b4c5fcd7570a709dec05d68ea19c82a9ec"
+    },
+    "40": {
+        "token0": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "token1": "0x0000000000085d4780B73119b644AE5ecd22b376",
+        "pair": "0x39529e96c28807655b5856b3d342c6225111770e"
+    },
+    "41": {
+        "token0": "0xFe2e637202056d30016725477c5da089Ab0A043A",
+        "token1": "0x20bc832ca081b91433ff6c17f85701b6e92486c5",
+        "pair": "0xa9ffb27d36901f87f1d0f20773f7072e38c5bfba"
     },
     "42": {
-        "1": {
-            "token0": "",
-            "token1": "",
-            "pair": ""
-        },
-        "2": {
-            "token0": "",
-            "token1": "",
-            "pair": ""
-        }
+        "token0": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "token1": "0xf1ca9cb74685755965c7458528a36934df52a3ef",
+        "pair": "0x2eb8f5708f238b0a2588f044ade8dea7221639ab"
+    },
+    "43": {
+        "token0": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "token1": "0xf1ca9cb74685755965c7458528a36934df52a3ef",
+        "pair": "0xf482fce04ef6f29ad56e46fef2de038c42126e2e"
+    },
+    "44": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0x35a532d376ffd9a705d0bb319532837337a398e7",
+        "pair": "0x68082ecc5bbad8fe77c2cb9d0e3403d9a00ccbc2"
+    },
+    "45": {
+        "token0": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "token1": "0xb4efd85c19999d84251304bda99e90b92300bd93",
+        "pair": "0x632e675672f2657f227da8d9bb3fe9177838e726"
+    },
+    "46": {
+        "token0": "0x6810e776880c02933d47db1b9fc05908e5386b96",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xf56d08221b5942c428acc5de8f78489a97fc5599"
+    },
+    "47": {
+        "token0": "0x853d955acef822db058eb8505911ed77f175b99e",
+        "token1": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pair": "0xc2a856c3aff2110c1171b8f942256d40e980c726"
+    },
+    "48": {
+        "token0": "0x111111111117dc0aa78b770fa6a738034120c302",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xd35efae4097d005720608eaf37e42a5936c94b44"
+    },
+    "49": {
+        "token0": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "token1": "0xeb4c2781e4eba804ce9a9803c67d0893436bb27d",
+        "pair": "0x3730ecd0aa7eb9b35a4e89b032bef80a1a41aa7f"
+    },
+    "50": {
+        "token0": "0x4d224452801aced8b2f0aebe155379bb5d594381",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pair": "0xf79fc43494ce8a4613cb0b2a67a1b1207fd05d27"
     }
 }

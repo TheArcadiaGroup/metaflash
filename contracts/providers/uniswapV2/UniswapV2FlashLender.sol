@@ -10,7 +10,7 @@ import "./interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IUniswapV2FlashLender.sol";
 import "./interfaces/IUniswapV2FlashBorrower.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
+import "hardhat/console.sol";
 contract UniswapV2FlashLender is
     IUniswapV2FlashLender,
     IUniswapV2FlashBorrower,
@@ -36,6 +36,8 @@ contract UniswapV2FlashLender is
     Pair[] public pairs;
 
     constructor() {}
+
+    receive() external payable {}
 
     function addPairs(
         address[] memory _tokens0,
@@ -220,14 +222,15 @@ contract UniswapV2FlashLender is
         public
         view
         override
-        returns (uint256)
+        returns (uint256 fee, uint256 validPairCount)
     {
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
 
         if (validPairInfos[0].maxloan > 0) {
-            return _flashFee(_token, _amount);
+            uint256 fee = _flashFee(_token, _amount).add(validPairInfos.length);
+            return (fee, validPairInfos.length);
         } else {
-            return 0;
+            return (0, 0);
         }
     }
 
@@ -281,7 +284,7 @@ contract UniswapV2FlashLender is
             totalMaxLoan >= totalAmount,
             "UniswapV2FlashLender: Amount is more than maxFlashLoan"
         );
-
+        
         uint256 amount = 0;
         for (uint256 i = 0; i < validPairInfos.length; i++) {
             if (amount.add(validPairInfos[i].maxloan) <= totalAmount) {

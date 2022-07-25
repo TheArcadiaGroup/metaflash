@@ -46,10 +46,14 @@ module.exports = {
   networks: {
     hardhat: {
         forking: {
-          url: `https://bsc-dataseed4.binance.org`,
-          // url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
+          // url: `https://bsc-dataseed4.binance.org`,
+          url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
+          timeout: 3000000
         },
       allowUnlimitedContractSize: true
+    },
+    localhost: {
+      timeout: 3000000
     },
     kovan: {
       url: `https://kovan.infura.io/v3/${process.env.INFURA_APIKEY}`,
@@ -171,7 +175,7 @@ module.exports = {
     deployments: './deployments'
   },
   mocha: {
-    timeout: 200000
+    timeout: 3000000
   },
   gasReporter: {
         currency: 'USD',

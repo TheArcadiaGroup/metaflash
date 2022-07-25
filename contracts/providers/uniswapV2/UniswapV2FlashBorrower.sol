@@ -21,7 +21,10 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
     uint256 public flashAmount;
     uint256 public flashFee;
     uint256 public totalFlashBalance;
+    uint256 public callbackCount;
 
+    receive() external payable {}
+    
     /// @dev ERC-3156 Flash loan callback
     function onFlashLoan(
         address sender,
@@ -42,6 +45,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
         if (action == Action.NORMAL) {
             flashBalance = IERC20(token).balanceOf(address(this));
             totalFlashBalance = totalFlashBalance + amount + fee;
+            callbackCount++;
         } else if (action == Action.STEAL) {
             // do nothing
         } else if (action == Action.REENTER) {
@@ -76,7 +80,7 @@ contract UniswapV2FlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
+        (uint256 _fee, uint256 pairCount) = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
         uint256 _repayment = amount + _fee;
         IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`
