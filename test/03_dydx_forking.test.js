@@ -1,17 +1,13 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
-const fs = require('fs')
-const rawPairsInfo = fs.readFileSync('./config/uniswapv2pair.json');
-const pairsInfo =  JSON.parse(rawPairsInfo);
-const pairsInfoLength = Object.keys(pairsInfo).length;
-const ERC20_ABI = require('../contracts/providers/uniswapV2/abi/IERC20.json');
+const ERC20_ABI = require('../contracts/providers/dydx/abi/IERC20.json');
+// const SoloMargin_ABI = require('../contracts/providers/dydx/abi/SoloMargin.json');
 
-describe('UniswapV2', () => {
+describe('dydx', () => {
   let owner, user;
-  let weth, wethAddress;
+  let dai, daiAddress, daiMaxLoan;
   let borrower;
-  let maxEthBal = BigNumber.from(0), totalEthBal = BigNumber.from(0);
 
   beforeEach(async () => {
     [owner, user] = await ethers.getSigners();
@@ -27,61 +23,43 @@ describe('UniswapV2', () => {
       ],
     });
 
-    wethHolderAddress = "0x06920C9fC643De77B99cB7670A944AD31eaAA260";
-    wethAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-    weth = await ethers.getContractAt(ERC20_ABI, wethAddress);
+    daiHolderAddress = "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8";
+    daiAddress = "0x6b175474e89094c44da98b954eedeac495271d0f";
+    soloMarginAddress = "0x1e0447b19bb6ecfdae1e4ae1694b0c3659614e4e";
+
+    dai = await ethers.getContractAt(ERC20_ABI, daiAddress);
 
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
-      params: [wethHolderAddress]
+      params: [daiHolderAddress]
     })
 
-    wethuser = await hre.ethers.provider.getSigner(wethHolderAddress)
+    daiuser = await hre.ethers.provider.getSigner(daiHolderAddress)
 
-    const UniswapV2FlashLender = await ethers.getContractFactory('UniswapV2FlashLender');
-    const UniswapV2FlashBorrower = await ethers.getContractFactory('UniswapV2FlashBorrower');
+    const DYDXFlashLender = await ethers.getContractFactory('DYDXFlashLender');
+    const DYDXFlashBorrower = await ethers.getContractFactory('DYDXFlashBorrower');
 
-    lender = await UniswapV2FlashLender.deploy();
-    borrower = await UniswapV2FlashBorrower.deploy();
+    lender = await DYDXFlashLender.deploy(soloMarginAddress);
+    borrower = await DYDXFlashBorrower.deploy();
 
-    let tokens0 = []
-    let tokens1 = []
-    let pairs = []
+    daiMaxLoan = await dai.balanceOf(soloMarginAddress);
 
-    for (let i = 1; i <= pairsInfoLength; i++) {
-      tokens0.push(pairsInfo[i].tokens0);
-      tokens1.push(pairsInfo[i].tokens1);
-      pairs.push(pairsInfo[i].pairs);
-    }
-
-    await lender.addPairs(tokens0, tokens1, pairs);
-    for (let i = 1; i <= pairsInfoLength; i++) {
-      if(wethAddress == pairsInfo[i].tokens0 || wethAddress == pairsInfo[i].tokens1){
-        let tempBal = await weth.balanceOf(pairsInfo[i].pairs)
-        if(tempBal.gt(BigNumber.from(1))) {
-          totalEthBal = totalEthBal.add(tempBal).sub(1);
-          if(maxEthBal.lt(tempBal.sub(1))){
-            maxEthBal = tempBal.sub(1);        
-          }
-        }
-      }
-    }
   });
 
   it('flash supply', async function () {
     beforeETH = await ethers.provider.getBalance(user.address);
     console.log("beforeETH", beforeETH.toString());
-    expect(await lender.maxFlashLoan(wethAddress, maxEthBal)).to.equal(maxEthBal);
+    expect(await lender.maxFlashLoan(daiAddress, daiMaxLoan)).to.equal(daiMaxLoan);
     afterETH = await ethers.provider.getBalance(user.address);
     console.log("afterETH", afterETH.toString());
     let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
     console.log("feeETH", feeETH.toString());
 
-    expect(await lender.maxFlashLoan(wethAddress, maxEthBal.add(1))).to.equal(0);
+    expect(await lender.maxFlashLoan(daiAddress, daiMaxLoan.add(1))).to.equal(0);
 
     beforeETH2 = await ethers.provider.getBalance(user.address);
     console.log("beforeETH2", beforeETH2.toString());
-    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(wethAddress)).to.equal(totalEthBal);
+    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(daiAddress)).to.equal(daiMaxLoan);
     afterETH2 = await ethers.provider.getBalance(user.address);
     console.log("afterETH2", afterETH2.toString());
     let feeETH2 = ethers.BigNumber.from(beforeETH2).sub(afterETH2);
@@ -91,18 +69,18 @@ describe('UniswapV2', () => {
   it('flash fee', async function () {
     beforeETH = await ethers.provider.getBalance(user.address);
     console.log("beforeETH", beforeETH.toString());
-    expect(await lender.flashFee(weth.address, maxEthBal)).to.equal((maxEthBal.mul(3).div(997).add(1)));
+    expect(await lender.flashFee(dai.address, daiMaxLoan)).to.equal(2);
     afterETH = await ethers.provider.getBalance(user.address);
     console.log("afterETH", afterETH.toString());
     let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
     console.log("feeETH", feeETH.toString());
 
-    expect(await lender.flashFee(weth.address, maxEthBal.add(1))).to.equal(0);
+    expect(await lender.flashFee(dai.address, daiMaxLoan.add(1))).to.equal(0);
 
     beforeETH2 = await ethers.provider.getBalance(user.address);
     console.log("beforeETH2", beforeETH2.toString());
-    [fee, pairCount] = await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, totalEthBal);
-    expect(fee).to.equal((totalEthBal.mul(3).div(997).add(1).add(pairCount)));
+    [fee, pairCount] = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, daiMaxLoan);
+    expect(fee).to.equal(2);
     afterETH2 = await ethers.provider.getBalance(user.address);
     console.log("afterETH2", afterETH2.toString());
     let feeETH2 = ethers.BigNumber.from(beforeETH2).sub(afterETH2);
@@ -112,10 +90,10 @@ describe('UniswapV2', () => {
   it('flashLoan', async () => {
     beforeETH = await ethers.provider.getBalance(user.address);
     console.log("beforeETH", beforeETH.toString());
-    const maxloan = BigNumber.from(await lender.connect(wethuser).maxFlashLoan(weth.address, 1));
-    const fee = BigNumber.from(await lender.connect(wethuser).flashFee(weth.address, maxloan));
-    await weth.connect(wethuser).transfer(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, weth.address, maxloan);
+    const maxloan = BigNumber.from(await lender.maxFlashLoan(dai.address, 1));
+    const fee = BigNumber.from(await lender.flashFee(dai.address, maxloan));
+    await dai.connect(daiuser).transfer(borrower.address, fee);
+    await borrower.connect(user).flashBorrow(lender.address, dai.address, maxloan);
     const totalFlashBalance = await borrower.totalFlashBalance();
     expect(totalFlashBalance).to.equal(maxloan.add(fee));
     afterETH = await ethers.provider.getBalance(user.address);
@@ -127,12 +105,12 @@ describe('UniswapV2', () => {
   it('flashLoanWithManyPairs_OR_ManyPools', async () => {
     beforeETH = await ethers.provider.getBalance(user.address);
     console.log("beforeETH", beforeETH.toString());
-    const maxloan = BigNumber.from(await lender.connect(wethuser).maxFlashLoanWithManyPairs_OR_ManyPools(weth.address, {gasLimit: 30000000}));
-    [fee, pairCount] = await lender.connect(wethuser).flashFeeWithManyPairs_OR_ManyPools(weth.address, maxloan, {gasLimit: 30000000});
+    const maxloan = BigNumber.from(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address, {gasLimit: 30000000}));
+    [fee, pairCount] = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, maxloan, {gasLimit: 30000000});
     console.log("fee", fee.toString());
     console.log("pairCount", pairCount.toString());
-    await weth.connect(wethuser).transfer(borrower.address, fee, {gasLimit: 30000000});
-    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, weth.address, maxloan, {gasLimit: 30000000});
+    await dai.connect(daiuser).transfer(borrower.address, fee, {gasLimit: 30000000});
+    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, dai.address, maxloan, {gasLimit: 30000000});
     const totalFlashBalance = await borrower.totalFlashBalance();
     expect(totalFlashBalance).to.lte(maxloan.add(fee));
     expect(totalFlashBalance).to.gte(maxloan.add(fee).sub(pairCount));

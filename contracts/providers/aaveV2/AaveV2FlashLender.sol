@@ -88,7 +88,7 @@ contract AaveV2FlashLender is
         public
         view
         override
-        returns (uint256)
+        returns (uint256, uint256)
     {
         AaveDataTypes.ReserveData memory reserveData = lendingPool
             .getReserveData(_token);
@@ -96,9 +96,9 @@ contract AaveV2FlashLender is
 
         if (reserveData.aTokenAddress != address(0) && maxloan > 0) {
             return
-                _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
+                (_amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000), 1);
         } else {
-            return 0;
+            return (0, 0);
         }
     }
 

@@ -78,7 +78,7 @@ contract DYDXFlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
+        (uint256 _fee, uint256 _pair) = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
         uint256 _repayment = amount + _fee;
         IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`

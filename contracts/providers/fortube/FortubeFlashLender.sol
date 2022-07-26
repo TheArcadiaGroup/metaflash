@@ -90,13 +90,13 @@ contract FortubeFlashLender is
         public
         view
         override
-        returns (uint256)
+        returns (uint256, uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
         if (maxloan > 0) {
-            return _amount.mul(bankcontroller.flashloanFeeBips()).div(10000);
+            return (_amount.mul(bankcontroller.flashloanFeeBips()).div(10000), 1);
         } else {
-            return 0;
+            return (0, 0);
         }
     }
 

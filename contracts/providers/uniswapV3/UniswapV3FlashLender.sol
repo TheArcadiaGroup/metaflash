@@ -6,6 +6,7 @@ pragma solidity ^0.7.5;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
+import "./libraries/FullMath.sol";
 import "./interfaces/IUniswapV3Pair.sol";
 import "./interfaces/IUniswapV3FlashLender.sol";
 import "./interfaces/IUniswapV3FlashBorrower.sol";
@@ -31,6 +32,7 @@ contract UniswapV3FlashLender is
     struct PairInfo {
         address pair;
         uint256 maxloan;
+        uint256 fee;
     }
 
     Pair[] public pairs;
@@ -115,11 +117,13 @@ contract UniswapV3FlashLender is
         view
         returns (PairInfo[] memory)
     {
+        uint256 amount = 1e18;
         uint256 count = 0;
         for (uint256 i = 0; i < pairs.length; i++) {
             if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
                 uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
-                if (balance >= _amount.add(1)) {
+                uint128 liquidity = IUniswapV3Pair(pairs[i].pair).liquidity();
+                if (balance >= _amount.add(1) && liquidity > 0) {
                     count++;
                 }
             }
@@ -128,6 +132,7 @@ contract UniswapV3FlashLender is
             PairInfo[] memory validPairInfos = new PairInfo[](1);
             validPairInfos[0].pair = address(0);
             validPairInfos[0].maxloan = uint256(0);
+            validPairInfos[0].fee = uint256(0);
 
             return validPairInfos;
         } else {
@@ -137,9 +142,12 @@ contract UniswapV3FlashLender is
             for (uint256 i = 0; i < pairs.length; i++) {
                 if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
                     uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
-                    if (balance >= _amount.add(1)) {
+                    uint128 liquidity = IUniswapV3Pair(pairs[i].pair).liquidity();
+                    if (balance >= _amount.add(1) && liquidity > 0) {
+                        uint256 fee = _flashFee(pairs[i].pair, _token, amount);
                         validPairInfos[validCount].pair = pairs[i].pair;
                         validPairInfos[validCount].maxloan = balance.sub(1);
+                        validPairInfos[validCount].fee = fee;
                         validCount = validCount.add(1);
                         if (validCount == count) {
                             break;
@@ -151,15 +159,40 @@ contract UniswapV3FlashLender is
             if (validPairInfos.length == 1) {
                 return validPairInfos;
             } else {
+                // for (uint256 i = 1; i < validPairInfos.length; i++) {
+                //     for (uint256 j = 0; j < i; j++) {
+                //         if (
+                //             validPairInfos[i].maxloan >
+                //             validPairInfos[j].maxloan
+                //         ) {
+                //             PairInfo memory x = validPairInfos[i];
+                //             validPairInfos[i] = validPairInfos[j];
+                //             validPairInfos[j] = x;
+                //         }
+                //     }
+                // }
+                // sort by fee
                 for (uint256 i = 1; i < validPairInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (
-                            validPairInfos[i].maxloan >
-                            validPairInfos[j].maxloan
-                        ) {
+                        if (validPairInfos[i].fee < validPairInfos[j].fee) {
                             PairInfo memory x = validPairInfos[i];
                             validPairInfos[i] = validPairInfos[j];
                             validPairInfos[j] = x;
+                        }
+                    }
+                }
+                // sort by maxloan
+                for (uint256 i = 1; i < validPairInfos.length; i++) {
+                    for (uint256 j = 0; j < i; j++) {
+                        if (validPairInfos[i].fee == validPairInfos[j].fee) {
+                            if (
+                                validPairInfos[i].maxloan >
+                                validPairInfos[j].maxloan
+                            ) {
+                                PairInfo memory x = validPairInfos[i];
+                                validPairInfos[i] = validPairInfos[j];
+                                validPairInfos[j] = x;
+                            }
                         }
                     }
                 }
@@ -208,7 +241,7 @@ contract UniswapV3FlashLender is
     {
         PairInfo[] memory validPairInfos = _getValidPairs(_token, _amount);
         if (validPairInfos[0].maxloan > 0) {
-            return _flashFee(_token, _amount);
+            return _flashFee(validPairInfos[0].pair, _token, _amount);
         } else {
             return 0;
         }
@@ -218,23 +251,60 @@ contract UniswapV3FlashLender is
         public
         view
         override
-        returns (uint256)
+        returns (uint256 fee, uint256 validPairCount)
     {
+        // PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
+
+        // if (validPairInfos[0].maxloan > 0) {
+        //     // return _flashFee(_token, _amount);
+        // } else {
+        //     return 0;
+        // }
+        uint256 fee = 0;
+        uint256 totalAmount = _amount;
+        uint256 amount = 0;
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
 
         if (validPairInfos[0].maxloan > 0) {
-            return _flashFee(_token, _amount);
+            for (uint256 i = 0; i < validPairInfos.length; i++) {
+                if (amount.add(validPairInfos[i].maxloan) <= totalAmount) {
+                    fee = fee.add(
+                        _flashFee(
+                            validPairInfos[i].pair,
+                            _token,
+                            validPairInfos[i].maxloan
+                        )
+                    );
+                    amount = amount.add(validPairInfos[i].maxloan);
+                    if (amount == totalAmount) {
+                        break;
+                    }
+                } else {
+                    fee = fee.add(
+                        _flashFee(
+                            validPairInfos[i].pair,
+                            _token,
+                            totalAmount.sub(amount)
+                        )
+                    );
+                    amount = totalAmount;
+                    break;
+                }
+            }
+            return (fee, validPairInfos.length);
         } else {
-            return 0;
+            return (0, 0);
         }
     }
 
-    function _flashFee(address _token, uint256 _amount)
+    function _flashFee(address _pair, address _token, uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        return ((_amount * 3) / 997) + 1;
+        uint24 fee = IUniswapV3Pair(_pair).fee();
+        return FullMath.mulDivRoundingUp(_amount, fee, 1e6);
+        // return ((_amount * 3) / 997) + 1;
     }
 
     function flashLoan(
@@ -265,7 +335,6 @@ contract UniswapV3FlashLender is
         uint256 totalAmount = _amount;
 
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
-
         require(
             validPairInfos[0].pair != address(0),
             "UniswapV3FlashLender: Unsupported currency"
@@ -329,6 +398,7 @@ contract UniswapV3FlashLender is
             _amount,
             _userData
         );
+
         pair.flash(address(this), amount0Out, amount1Out, data);
     }
 
@@ -362,7 +432,8 @@ contract UniswapV3FlashLender is
             "UniswapV3FlashLender: only permissioned pair can call"
         );
 
-        uint256 fee = _flashFee(token, amount);
+        // uint256 fee = _flashFee(token, amount);
+        uint256 fee = _fee0 == 0 ? _fee1 : _fee0;
 
         IERC20(token).transfer(address(receiver), amount);
 

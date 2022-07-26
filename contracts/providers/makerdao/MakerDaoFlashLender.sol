@@ -92,13 +92,13 @@ contract MakerDaoFlashLender is
         public
         view
         override
-        returns (uint256)
+        returns (uint256, uint256)
     {
         uint256 maxloan = dssflash.maxFlashLoan(_token);
         if (maxloan > 0) {
-            return dssflash.flashFee(_token, _amount);
+            return (dssflash.flashFee(_token, _amount), 1);
         } else {
-            return 0;
+            return (0, 0);
         }
     }
 

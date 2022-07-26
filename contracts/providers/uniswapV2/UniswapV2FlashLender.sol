@@ -10,7 +10,7 @@ import "./interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IUniswapV2FlashLender.sol";
 import "./interfaces/IUniswapV2FlashBorrower.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
+
 contract UniswapV2FlashLender is
     IUniswapV2FlashLender,
     IUniswapV2FlashBorrower,
@@ -168,7 +168,7 @@ contract UniswapV2FlashLender is
                     }
                 }
             }
-
+            
             return validPairInfos;
         }
     }

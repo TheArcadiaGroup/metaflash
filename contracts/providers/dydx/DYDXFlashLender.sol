@@ -99,15 +99,15 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         public
         view
         override
-        returns (uint256)
+        returns (uint256, uint256)
     {
         uint256 maxloan = tokensRegistered[_token] == true
             ? IERC20(_token).balanceOf(address(soloMargin))
             : 0;
         if (maxloan > 0) {
-            return 2;
+            return (2, 1);
         } else {
-            return 0;
+            return (0, 0);
         }
     }
 
