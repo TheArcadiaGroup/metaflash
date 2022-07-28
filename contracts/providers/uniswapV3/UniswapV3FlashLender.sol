@@ -264,6 +264,7 @@ contract UniswapV3FlashLender is
         uint256 totalAmount = _amount;
         uint256 amount = 0;
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
+        uint256 pairCount = 0;
 
         if (validPairInfos[0].maxloan > 0) {
             for (uint256 i = 0; i < validPairInfos.length; i++) {
@@ -276,6 +277,7 @@ contract UniswapV3FlashLender is
                         )
                     );
                     amount = amount.add(validPairInfos[i].maxloan);
+                    pairCount++;
                     if (amount == totalAmount) {
                         break;
                     }
@@ -288,10 +290,11 @@ contract UniswapV3FlashLender is
                         )
                     );
                     amount = totalAmount;
+                    pairCount++;
                     break;
                 }
             }
-            return (fee, validPairInfos.length);
+            return (fee.add(pairCount), pairCount);
         } else {
             return (0, 0);
         }

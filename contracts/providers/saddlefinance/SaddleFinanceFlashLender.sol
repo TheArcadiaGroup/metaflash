@@ -91,7 +91,7 @@ contract SaddleFinanceFlashLender is
     //     return (biggestPool, biggestMaxLoan);
     // }
 
-    function _sortPoolsByFee(address _token, uint256 _amount)
+    function _getValidPools(address _token, uint256 _amount)
         internal
         view
         returns (PoolInfo[] memory)
@@ -176,7 +176,7 @@ contract SaddleFinanceFlashLender is
         override
         returns (uint256)
     {
-        PoolInfo[] memory validPoolInfos = _sortPoolsByFee(_token, _amount);
+        PoolInfo[] memory validPoolInfos = _getValidPools(_token, _amount);
 
         return validPoolInfos[0].maxloan;
     }
@@ -189,7 +189,7 @@ contract SaddleFinanceFlashLender is
     {
         uint256 totalMaxLoan;
 
-        PoolInfo[] memory validPoolInfos = _sortPoolsByFee(_token, 1);
+        PoolInfo[] memory validPoolInfos = _getValidPools(_token, 1);
 
         if (validPoolInfos[0].maxloan > 0) {
             for (uint256 i = 0; i < validPoolInfos.length; i++) {
@@ -207,7 +207,7 @@ contract SaddleFinanceFlashLender is
         override
         returns (uint256)
     {
-        PoolInfo[] memory validPoolInfos = _sortPoolsByFee(_token, _amount);
+        PoolInfo[] memory validPoolInfos = _getValidPools(_token, _amount);
 
         if (validPoolInfos[0].maxloan > 0) {
             return _flashFee(validPoolInfos[0].pool, _token, _amount);
@@ -220,12 +220,13 @@ contract SaddleFinanceFlashLender is
         public
         view
         override
-        returns (uint256)
+        returns (uint256, uint256)
     {
         uint256 fee = 0;
         uint256 totalAmount = _amount;
         uint256 amount = 0;
-        PoolInfo[] memory validPoolInfos = _sortPoolsByFee(_token, 1);
+        PoolInfo[] memory validPoolInfos = _getValidPools(_token, 1);
+        uint256 poolCount = 0;
 
         if (validPoolInfos[0].maxloan > 0) {
             for (uint256 i = 0; i < validPoolInfos.length; i++) {
@@ -238,6 +239,7 @@ contract SaddleFinanceFlashLender is
                         )
                     );
                     amount = amount.add(validPoolInfos[i].maxloan);
+                    poolCount++;
                     if (amount == totalAmount) {
                         break;
                     }
@@ -250,12 +252,13 @@ contract SaddleFinanceFlashLender is
                         )
                     );
                     amount = totalAmount;
+                    poolCount++;
                     break;
                 }
             }
-            return fee;
+            return (fee, poolCount);
         } else {
-            return 0;
+            return (0, 0);
         }
     }
 
@@ -276,7 +279,7 @@ contract SaddleFinanceFlashLender is
         uint256 _amount,
         bytes calldata _data
     ) external override returns (bool) {
-        PoolInfo[] memory validPoolInfos = _sortPoolsByFee(_token, _amount);
+        PoolInfo[] memory validPoolInfos = _getValidPools(_token, _amount);
 
         require(
             validPoolInfos[0].pool != address(0),
@@ -296,7 +299,7 @@ contract SaddleFinanceFlashLender is
     ) external override returns (bool) {
         uint256 totalMaxLoan;
         uint256 totalAmount = _amount;
-        PoolInfo[] memory validPoolInfos = _sortPoolsByFee(_token, 1);
+        PoolInfo[] memory validPoolInfos = _getValidPools(_token, 1);
 
         require(
             validPoolInfos[0].pool != address(0),

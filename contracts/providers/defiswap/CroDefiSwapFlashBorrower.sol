@@ -3,7 +3,7 @@ pragma solidity >=0.6.12;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/ICroDefiSwapFlashLender.sol";
-
+import "hardhat/console.sol";
 contract CroDefiSwapFlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
@@ -75,12 +75,13 @@ contract CroDefiSwapFlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
+        (uint256 _fee, uint256 _pair) = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
         uint256 _repayment = amount + _fee + 1;
 
         IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);
+        console.log("aaaaaaaa");
         lender.flashLoanWithManyPairs_OR_ManyPools(this, token, amount, data);
     }
 }

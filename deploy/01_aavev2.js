@@ -1,18 +1,20 @@
 const {
   chainNameById,
   chainIdByName,
+  saveDeploymentData,
+  getContractAbi,
   log
 } = require("../js-helpers/deploy");
 require('dotenv').config()
 const config = require('../config/config.json')
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const deployData = {};
 
 module.exports = async (hre) => {
   const { ethers } = hre;
   const network = await hre.network;
   const signers = await ethers.getSigners()
   const chainId = chainIdByName(network.name);
-  const feeTo = "0x6f6Be3C5d4D0f738F8AEe07757e81eD21D973164"
 
   log('Contract Deployment');
   log('Network name:', chainNameById(chainId));
@@ -24,10 +26,21 @@ module.exports = async (hre) => {
     console.log('Error: LendingPoolAddressProvider = ', ZERO_ADDRESS)
     return
   } else {
-    const AaveV2ERC3156 = await ethers.getContractFactory("AaveV2ERC3156")
-    const AaveV2ERC3156Instance = await AaveV2ERC3156.deploy(config[chainId].aavev2.LendingPoolAddressProvider, feeTo);
-    let lender = await AaveV2ERC3156Instance.deployed();
+    const AaveV2FlashLender = await ethers.getContractFactory("AaveV2FlashLender")
+    const AaveV2FlashLenderInstance = await AaveV2FlashLender.deploy(config[chainId].aavev2.LendingPoolAddressProvider);
+    let lender = await AaveV2FlashLenderInstance.deployed();
     log('Deployed to: ', lender.address);
+
+    deployData['AaveV2FlashLender'] = {
+      abi: getContractAbi('AaveV2FlashLender'),
+      address: lender.address,
+      deployTransaction: lender.deployTransaction,
+    }
+  
+    saveDeploymentData(chainId, deployData);
+    log('\n  Contract Deployment Data saved to "deployments" directory.');
+  
+    log('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
   }
 };
 

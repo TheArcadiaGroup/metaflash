@@ -1,4 +1,11 @@
 {
+    "1337": {
+        "aavev2": {
+            "Borrower": "",
+            "Lender": "",
+            "LendingPoolAddressProvider": "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5"
+        }
+    },
     "42": {
         "aavev2": {
             "Borrower": "",

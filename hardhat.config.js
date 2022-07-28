@@ -33,7 +33,7 @@ task(
   "Runs the coverage report",
   async (args, hre, runSuper) => {
     await hre.run('compile');
-    // await hre.deployments.fixture();
+    await hre.deployments.fixture();
     return runSuper({...args, noCompile: true});
   }
 );
@@ -188,35 +188,6 @@ module.exports = {
     flat: true,
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://bscscan.com/
     apiKey: process.env.ETHERSCAN_APIKEY
-  },
-  namedAccounts: {
-        deployer: {
-          default: 0,
-        },
-        protocolOwner: {
-          default: 1,
-        },
-        initialMinter: {
-          default: 2,
-        },
-        user1: {
-          default: 3,
-        },
-        user2: {
-          default: 4,
-        },
-        user3: {
-          default: 5,
-        },
-        trustedForwarder: {
-          default: 7, // Account 8
-          1: '0x1337c0d31337c0D31337C0d31337c0d31337C0d3', // mainnet
-          3: '0x1337c0d31337c0D31337C0d31337c0d31337C0d3', // ropsten
-          4: '0x1337c0d31337c0D31337C0d31337c0d31337C0d3', // rinkeby
-          42: '0x1337c0d31337c0D31337C0d31337c0d31337C0d3', // kovan
-        }
-    }
+  }
 };

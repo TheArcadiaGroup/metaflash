@@ -34,6 +34,7 @@ const chainIdByName = (chainName) => {
     case 'mumbaitestnet': return 80001;
     case 'fujitestnet': return 43113;
     case 'tomotestnet': return 89;
+    case 'localhost': return 1337;
     default: return 1337;
   }
 };
@@ -50,6 +51,7 @@ const chainNameById = (chainId) => {
     case 3: return 'Ropsten';
     case 4: return 'Rinkeby';
     case 42: return 'Kovan';
+    case 1337: return 'localhost';
     case 31337: return 'Hardhat';
     case 56: return 'BSC';
     case 97: return 'BSCTestnet';

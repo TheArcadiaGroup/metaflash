@@ -225,10 +225,26 @@ contract UniswapV2FlashLender is
         returns (uint256 fee, uint256 validPairCount)
     {
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
+        uint256 totalAmount = _amount;
+        uint256 amount = 0;
+        uint256 pairCount = 0;
 
         if (validPairInfos[0].maxloan > 0) {
-            uint256 fee = _flashFee(_token, _amount).add(validPairInfos.length);
-            return (fee, validPairInfos.length);
+            for (uint256 i = 0; i < validPairInfos.length; i++) {
+                if (amount.add(validPairInfos[i].maxloan) <= totalAmount) {
+                    amount = amount.add(validPairInfos[i].maxloan);
+                    pairCount++;
+                    if (amount == totalAmount) {
+                        break;
+                    }
+                } else {
+                    amount = totalAmount;
+                    pairCount++;
+                    break;
+                }
+            }
+            uint256 fee = _flashFee(_token, amount);
+            return (fee.add(pairCount), pairCount);
         } else {
             return (0, 0);
         }
