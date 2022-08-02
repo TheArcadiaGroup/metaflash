@@ -52,15 +52,15 @@ contract UniswapV2FlashLender is
         for (uint256 i = 0; i < _pairs.length; i++) {
             require(
                 _tokens0[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "UniswapV2FlashLender: _tokens0 is address(0)"
             );
             require(
                 _tokens1[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "UniswapV2FlashLender: _tokens1 is address(0)"
             );
             require(
                 _pairs[i] != address(0),
-                "UniswapV2FlashLender: Unsupported currency"
+                "UniswapV2FlashLender: _pairs is address(0)"
             );
             pairs.push(
                 Pair({
@@ -92,27 +92,6 @@ contract UniswapV2FlashLender is
 
         return true;
     }
-
-    // function _getBiggestPair(address _token)
-    //     internal
-    //     view
-    //     returns (address, uint256)
-    // {
-    //     uint256 biggestMaxLoan;
-    //     address biggestPair;
-
-    //     for (uint256 i = 0; i < pairs.length; i++) {
-    //         if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
-    //             uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
-    //             if (balance > biggestMaxLoan.add(1)) {
-    //                 biggestMaxLoan = balance.sub(1);
-    //                 biggestPair = pairs[i].pair;
-    //             }
-    //         }
-    //     }
-
-    //     return (biggestPair, biggestMaxLoan);
-    // }
 
     function _getValidPairs(address _token, uint256 _amount)
         internal
@@ -222,7 +201,7 @@ contract UniswapV2FlashLender is
         public
         view
         override
-        returns (uint256 fee, uint256 validPairCount)
+        returns (uint256 fee)
     {
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
         uint256 totalAmount = _amount;
@@ -244,9 +223,9 @@ contract UniswapV2FlashLender is
                 }
             }
             uint256 fee = _flashFee(_token, amount);
-            return (fee.add(pairCount), pairCount);
+            return fee.add(pairCount);
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -268,7 +247,7 @@ contract UniswapV2FlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported currency"
+            "UniswapV2FlashLender: Unsupported token"
         );
 
         _swap(_receiver, validPairInfos[0].pair, _token, _amount, _userData);
@@ -289,7 +268,7 @@ contract UniswapV2FlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported currency"
+            "UniswapV2FlashLender: Unsupported token"
         );
 
         for (uint256 i = 0; i < validPairInfos.length; i++) {
@@ -361,7 +340,7 @@ contract UniswapV2FlashLender is
     ) external override {
         require(
             _sender == address(this),
-            "UniswapV2FlashLender: only this contract may initiate"
+            "UniswapV2FlashLender: _sender must be this contract"
         );
 
         (
@@ -377,7 +356,7 @@ contract UniswapV2FlashLender is
 
         require(
             msg.sender == pair,
-            "UniswapV2FlashLender: only permissioned UniswapV2 pair can call"
+            "UniswapV2FlashLender: msg.sender must be the permissioned pair"
         );
 
         uint256 amount = _amount0 > 0 ? _amount0 : _amount1;

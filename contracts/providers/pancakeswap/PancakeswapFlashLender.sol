@@ -3,8 +3,6 @@
 
 pragma solidity >=0.6.12;
 
-// import "@openzeppelin/contracts/math/SafeMath.sol";
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
@@ -52,15 +50,15 @@ contract PancakeswapFlashLender is
         for (uint256 i = 0; i < _pairs.length; i++) {
             require(
                 _tokens0[i] != address(0),
-                "PancakeswapFlashLender: Unsupported currency"
+                "PancakeswapFlashLender: _tokens0 is address(0)"
             );
             require(
                 _tokens1[i] != address(0),
-                "PancakeswapFlashLender: Unsupported currency"
+                "PancakeswapFlashLender: _tokens1 is address(0)"
             );
             require(
                 _pairs[i] != address(0),
-                "PancakeswapFlashLender: Unsupported currency"
+                "PancakeswapFlashLender: _pairs is address(0)"
             );
             pairs.push(
                 Pair({
@@ -92,27 +90,6 @@ contract PancakeswapFlashLender is
 
         return true;
     }
-
-    // function _getBiggestPair(address _token)
-    //     internal
-    //     view
-    //     returns (address, uint256)
-    // {
-    //     uint256 biggestMaxLoan;
-    //     address biggestPair;
-
-    //     for (uint256 i = 0; i < pairs.length; i++) {
-    //         if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
-    //             uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
-    //             if (balance > biggestMaxLoan) {
-    //                 biggestMaxLoan = balance;
-    //                 biggestPair = pairs[i].pair;
-    //             }
-    //         }
-    //     }
-
-    //     return (biggestPair, biggestMaxLoan);
-    // }
 
     function _getValidPairs(address _token, uint256 _amount)
         internal
@@ -223,7 +200,7 @@ contract PancakeswapFlashLender is
         public
         view
         override
-        returns (uint256, uint256)
+        returns (uint256)
     {
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
         uint256 totalAmount = _amount;
@@ -245,9 +222,9 @@ contract PancakeswapFlashLender is
                 }
             }
             uint256 fee = _flashFee(_token, _amount);
-            return (fee.add(pairCount), pairCount);
+            return fee.add(pairCount);
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -269,7 +246,7 @@ contract PancakeswapFlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "PancakeswapFlashLender: Unsupported currency"
+            "PancakeswapFlashLender: Unsupported token"
         );
 
         _flashLoan(
@@ -295,7 +272,7 @@ contract PancakeswapFlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "PancakeswapFlashLender: Unsupported currency"
+            "PancakeswapFlashLender: Unsupported token"
         );
 
         for (uint256 i = 0; i < validPairInfos.length; i++) {
@@ -369,7 +346,7 @@ contract PancakeswapFlashLender is
     ) external override {
         require(
             _sender == address(this),
-            "PancakeswapFlashLender: only this contract may initiate"
+            "PancakeswapFlashLender: _sender must be this contract"
         );
 
         (
@@ -385,7 +362,7 @@ contract PancakeswapFlashLender is
 
         require(
             msg.sender == pair,
-            "PancakeswapFlashLender: only permissioned pair can call"
+            "PancakeswapFlashLender: msg.sender must be the permissioned pair"
         );
 
         uint256 amount = _amount0 > 0 ? _amount0 : _amount1;

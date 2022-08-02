@@ -73,24 +73,6 @@ contract SaddleFinanceFlashLender is
         return true;
     }
 
-    // function _getBiggestPool(address _token)
-    //     internal
-    //     view
-    //     returns (address, uint256)
-    // {
-    //     uint256 biggestMaxLoan;
-    //     address biggestPool;
-
-    //     for (uint256 i = 0; i < pools.length; i++) {
-    //         uint256 balance = IERC20(_token).balanceOf(pools[i]);
-    //         if (balance > biggestMaxLoan) {
-    //             biggestMaxLoan = balance;
-    //             biggestPool = pools[i];
-    //         }
-    //     }
-    //     return (biggestPool, biggestMaxLoan);
-    // }
-
     function _getValidPools(address _token, uint256 _amount)
         internal
         view
@@ -220,7 +202,7 @@ contract SaddleFinanceFlashLender is
         public
         view
         override
-        returns (uint256, uint256)
+        returns (uint256)
     {
         uint256 fee = 0;
         uint256 totalAmount = _amount;
@@ -256,9 +238,9 @@ contract SaddleFinanceFlashLender is
                     break;
                 }
             }
-            return (fee, poolCount);
+            return fee.add(poolCount);
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -283,7 +265,7 @@ contract SaddleFinanceFlashLender is
 
         require(
             validPoolInfos[0].pool != address(0),
-            "SaddleFinanceFlashLender: Unsupported currency"
+            "SaddleFinanceFlashLender: Unsupported token"
         );
 
         _flashLoan(_receiver, validPoolInfos[0].pool, _token, _amount, _data);
@@ -303,7 +285,7 @@ contract SaddleFinanceFlashLender is
 
         require(
             validPoolInfos[0].pool != address(0),
-            "SaddleFinanceFlashLender: Unsupported currency"
+            "SaddleFinanceFlashLender: Unsupported token"
         );
 
         for (uint256 i = 0; i < validPoolInfos.length; i++) {
@@ -371,7 +353,7 @@ contract SaddleFinanceFlashLender is
     ) external override {
         require(
             msg.sender == _pool,
-            "SaddleFinanceFlashLender: only permissioned pool can call"
+            "SaddleFinanceFlashLender: msg.sender must be permissioned pool"
         );
 
         (
@@ -386,7 +368,7 @@ contract SaddleFinanceFlashLender is
 
         require(
             sender == address(this),
-            "SaddleFinanceFlashLender:  only initiate from this contract"
+            "SaddleFinanceFlashLender:  sender must be this contract"
         );
 
         // Transfer to `receiver`

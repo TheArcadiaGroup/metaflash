@@ -88,7 +88,7 @@ contract AaveV2FlashLender is
         public
         view
         override
-        returns (uint256, uint256)
+        returns (uint256)
     {
         AaveDataTypes.ReserveData memory reserveData = lendingPool
             .getReserveData(_token);
@@ -96,9 +96,9 @@ contract AaveV2FlashLender is
 
         if (reserveData.aTokenAddress != address(0) && maxloan > 0) {
             return
-                (_amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000), 1);
+                _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -162,11 +162,11 @@ contract AaveV2FlashLender is
     ) external override returns (bool) {
         require(
             msg.sender == address(lendingPool),
-            "AaveV2FlashLender: Callbacks only allowed from Lending Pool"
+            "AaveV2FlashLender: msg.sender must be Lending Pool"
         );
         require(
             _sender == address(this),
-            "AaveV2FlashLender: Callbacks only initiated from this contract"
+            "AaveV2FlashLender: _sender must be this contract"
         );
 
         (
@@ -179,7 +179,6 @@ contract AaveV2FlashLender is
         uint256 amount = _amounts[0];
         uint256 fee = _fees[0];
 
-        // Send the tokens to the original receiver using the ERC-3156 interface
         IERC20(token).transfer(origin, amount);
         require(
             receiver.onFlashLoan(origin, token, amount, fee, userData) ==
@@ -188,7 +187,6 @@ contract AaveV2FlashLender is
         );
         IERC20(token).transferFrom(origin, address(this), amount.add(fee));
 
-        // Approve the LendingPool contract allowance to *pull* the owed amount
         IERC20(token).approve(address(lendingPool), amount.add(fee));
 
         return true;

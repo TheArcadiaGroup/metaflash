@@ -143,11 +143,11 @@ contract AaveV3FlashLender is
     ) external returns (bool) {
         require(
             msg.sender == address(pool),
-            "AaveV3FlashLender: Callbacks only allowed from Lending Pool"
+            "AaveV3FlashLender: msg.sender must be Lending Pool"
         );
         require(
             _sender == address(this),
-            "AaveV3FlashLender: Callbacks only initiated from this contract"
+            "AaveV3FlashLender: _sender must be this contract"
         );
 
         (

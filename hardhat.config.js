@@ -184,6 +184,7 @@ module.exports = {
   },
   abiExporter: {
     path: './abi',
+    runOnCompile: true,
     clear: true,
     flat: true,
   },

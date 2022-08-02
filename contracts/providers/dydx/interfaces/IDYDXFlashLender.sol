@@ -29,7 +29,7 @@ interface IDYDXFlashLender {
     function flashFeeWithManyPairs_OR_ManyPools(
         address token,
         uint256 amount
-    ) external view returns (uint256, uint256);
+    ) external view returns (uint256);
 
     function flashLoanWithManyPairs_OR_ManyPools(
         IERC3156FlashBorrower receiver,

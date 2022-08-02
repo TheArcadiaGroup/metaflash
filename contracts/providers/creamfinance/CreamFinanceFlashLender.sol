@@ -60,11 +60,11 @@ contract CreamFinanceFlashLender is
         for (uint256 i = 0; i < _ctokens.length; i++) {
             require(
                 _ctokens[i] != address(0),
-                "CreamFinanceFlashLender: _ctoken address is zero address"
+                "CreamFinanceFlashLender: _ctokens address is zero address"
             );
             require(
                 _underlyings[i] != address(0),
-                "CreamFinanceFlashLender: _underlying address is zero address"
+                "CreamFinanceFlashLender: _underlyings address is zero address"
             );
             ctokens.push(
                 CToken({ctoken: _ctokens[i], underlying: _underlyings[i]})
@@ -209,7 +209,7 @@ contract CreamFinanceFlashLender is
     ) external returns (bytes32) {
         require(
             _sender == address(this),
-            "CreamFinanceFlashLender: FlashLoan only from this contract"
+            "CreamFinanceFlashLender: _sender must be this contract"
         );
 
         (
@@ -221,7 +221,7 @@ contract CreamFinanceFlashLender is
 
         require(
             msg.sender == ctoken,
-            "CreamFinanceFlashLender: Callback only from permissioned ctoken"
+            "CreamFinanceFlashLender: msg.sender must be the permissioned ctoken"
         );
 
         // Transfer to `receiver`

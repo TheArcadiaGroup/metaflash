@@ -99,15 +99,15 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         public
         view
         override
-        returns (uint256, uint256)
+        returns (uint256)
     {
         uint256 maxloan = tokensRegistered[_token] == true
             ? IERC20(_token).balanceOf(address(soloMargin))
             : 0;
         if (maxloan > 0) {
-            return (2, 1);
+            return 2;
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -159,11 +159,11 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
     ) public override {
         require(
             msg.sender == address(soloMargin),
-            "DYDXFlashLender: Callback only from SoloMargin"
+            "DYDXFlashLender: msg.sender must be SoloMargin"
         );
         require(
             _sender == address(this),
-            "DYDXFlashLender: FlashLoan only from this contract"
+            "DYDXFlashLender: _sender must be this contract"
         );
 
         (
@@ -179,7 +179,6 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
 
         uint256 fee = 2;
 
-        // Transfer to `receiver`
         require(
             IERC20(token).transfer(address(receiver), amount),
             "DYDXFlashLender: Transfer failed"
@@ -198,7 +197,6 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
             "DYDXFlashLender: Transfer failed"
         );
 
-        // Approve the SoloMargin contract allowance to *pull* the owed amount
         IERC20(token).approve(address(soloMargin), amount.add(fee));
     }
 

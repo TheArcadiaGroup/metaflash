@@ -1,73 +1,20 @@
 {
     "1337": {
         "aavev2": {
-            "Borrower": "",
-            "Lender": "",
             "LendingPoolAddressProvider": "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5"
-        }
-    },
-    "42": {
-        "aavev2": {
-            "Borrower": "",
-            "Lender": "0xC39060fbb0eD26680105e7e5aFc136C94fD420c3",
-            "LendingPoolAddressProvider": "0x88757f2f99175387aB4C6a4b3067c77A695b0349"
-        },
-        "aavev3": {
-            "Borrower": "",
-            "Lender": "",
-            "LendingPoolAddressProvider": ""
-        }
-    },
-    "1": {
-        "aavev2": {
-            "Borrower": "",
-            "Lender": "",
-            "LendingPoolAddressProvider": "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5"
-        },
-        "aavev3": {
-            "Borrower": "",
-            "Lender": "",
-            "LendingPoolAddressProvider": ""
-        },
-        "sushiswap": {
-            "Borrower": "",
-            "Lender": "",
-            "BenToBox": "0xF5BCE5077908a1b7370B9ae04AdC565EBd643966"
         },
         "dydx": {
-            "Borrower": "",
-            "Lender": "",
             "SoloMargin": "0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e"
         },
         "makerdao": {
-            "Borrower": "",
-            "Lender": "",
             "DssFlash": "0x1EB4CF3A948E7D72A198fe073cCb8C7a948cD853"
         },
-        "saddlefinance": {
-            "Borrower": "",
-            "Lender": "",
-            "vETH2Pool": "0xdec2157831D6ABC3Ec328291119cc91B337272b5",
-            "alETHPool ": "0xa6018520EAACC06C30fF2e1B3ee2c7c22e64196a",
-            "D4Pool": "0xC69DDcd4DFeF25D8a793241834d4cc4b3668EAD6"
-        },
-        "uniswapv2": {
-            "Borrower": "",
-            "Lender": ""
-        },
-        "uniswapv3": {
-            "Borrower": "",
-            "Lender": ""
-        },
         "defiswap": {
-            "Borrower": "",
-            "Lender": "",
-            "Factory": ""
+            "Factory": "0x9deb29c9a4c7a88a3c0257393b7f3335338d9a9d"
         },
-        "dodo": {
-            "Borrower": "",
-            "Lender": "",
-            "Factory": ""
+        "fortube_eth": {
+            "Bank": "0xde7b3b2fe0e7b4925107615a5b199a4eb40d9ca9",
+            "BankController": "0x936e6490ed786fd0e0f0c1b1e4e1540b9d41f9ef"
         }
     }
 }

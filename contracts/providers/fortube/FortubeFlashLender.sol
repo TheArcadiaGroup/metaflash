@@ -6,10 +6,8 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IERC20.sol";
 import "./libraries/SafeMath.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/IFortubeFlashLender.sol";
 import "./interfaces/IFortubeFlashBorrower.sol";
-// import "./interfaces/IFlashLoanReceiver.sol";
 import "./interfaces/IFortubeBank.sol";
 import "./interfaces/IFortubeBankController.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -90,13 +88,13 @@ contract FortubeFlashLender is
         public
         view
         override
-        returns (uint256, uint256)
+        returns (uint256)
     {
         uint256 maxloan = IERC20(_token).balanceOf(address(bankcontroller));
         if (maxloan > 0) {
-            return (_amount.mul(bankcontroller.flashloanFeeBips()).div(10000), 1);
+            return _amount.mul(bankcontroller.flashloanFeeBips()).div(10000);
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -126,7 +124,7 @@ contract FortubeFlashLender is
         uint256 _amount,
         bytes memory _userData
     ) internal {
-        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
+        bytes memory data = abi.encode(address(this), msg.sender, _receiver, _userData);
         bank.flashloan(address(this), _token, _amount, data);
     }
 
@@ -138,14 +136,20 @@ contract FortubeFlashLender is
     ) external override {
         require(
             msg.sender == address(bank),
-            "FortubeFlashLender: Callbacks only allowed from permissioned bank"
+            "FortubeFlashLender: msg.sender must be bank"
         );
 
         (
+            address sender,
             address origin,
             IERC3156FlashBorrower receiver,
             bytes memory userData
-        ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
+        ) = abi.decode(_data, (address, address, IERC3156FlashBorrower, bytes));
+
+        require(
+            sender == address(this),
+            "FortubeFlashLender:_sender must be this contract"
+        );
 
         // Send the tokens to the original receiver using the ERC-3156 interface
         IERC20(_token).transfer(origin, _amount);

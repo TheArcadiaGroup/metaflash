@@ -19,6 +19,7 @@ contract MultiplierFlashLender is
 
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
+
     ILendingPool public lendingpool;
     address public core;
     uint256 public protocolFeeRate;
@@ -138,7 +139,7 @@ contract MultiplierFlashLender is
     ) external override {
         require(
             msg.sender == address(lendingpool),
-            "MultiplierFlashLender: Callbacks only allowed from Lending Pool"
+            "MultiplierFlashLender: msg.sender must be Lending Pool"
         );
 
         (
@@ -150,7 +151,7 @@ contract MultiplierFlashLender is
 
         require(
             sender == address(this),
-            "MultiplierFlashLender: Callbacks only initiated from this contract"
+            "MultiplierFlashLender: _sender must be this contract"
         );
 
         IERC20(_token).transfer(origin, _amount);

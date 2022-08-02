@@ -8,7 +8,6 @@ import "./interfaces/IPancakeswapFlashLender.sol";
 contract PancakeswapFlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
-        STEAL,
         REENTER
     }
 
@@ -32,9 +31,9 @@ contract PancakeswapFlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "PancakeswapFlashBorrower: External loan initiator"
+            "PancakeswapFlashBorrower: sender must be this contract"
         );
-        Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
+        Action action = abi.decode(data, (Action));
         flashSender = sender;
         flashToken = token;
         flashAmount = amount;
@@ -42,10 +41,8 @@ contract PancakeswapFlashBorrower is IERC3156FlashBorrower {
         if (action == Action.NORMAL) {
             flashBalance = IERC20(token).balanceOf(address(this));
             totalFlashBalance = totalFlashBalance + amount + fee;
-        } else if (action == Action.STEAL) {
-            // do nothing
         } else if (action == Action.REENTER) {
-            // flashBorrow(IERC3156FlashLender(msg.sender), token, amount * 2);
+            // do nothing
         }
         return CALLBACK_SUCCESS;
     }
@@ -62,7 +59,6 @@ contract PancakeswapFlashBorrower is IERC3156FlashBorrower {
         uint256 _fee = lender.flashFee(token, amount);
         uint256 _repayment = amount + _fee;
         IERC20(token).approve(address(lender), _allowance + _repayment);
-        // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);
         lender.flashLoan(this, token, amount, data);
     }
@@ -76,10 +72,9 @@ contract PancakeswapFlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        (uint256 _fee, uint256 _pair) = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
+        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
         uint256 _repayment = amount + _fee + 1;
         IERC20(token).approve(address(lender), _allowance + _repayment);
-        // Use this to pack arbitrary data to `onFlashLoan`
         bytes memory data = abi.encode(Action.NORMAL);
         lender.flashLoanWithManyPairs_OR_ManyPools(this, token, amount, data);
     }

@@ -148,11 +148,11 @@ contract SushiSwapFlashLender is
     ) external override {
         require(
             msg.sender == address(bentobox),
-            "SushiSwapFlashLender: Callback only from bentobox"
+            "SushiSwapFlashLender: msg.sender must be bentobox"
         );
         require(
             _sender == address(this),
-            "SushiSwapFlashLender: FlashLoan only from this contract"
+            "SushiSwapFlashLender: _sender must be this contract"
         );
 
         (

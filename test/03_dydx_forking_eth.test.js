@@ -79,7 +79,7 @@ describe('dydx', () => {
 
     beforeETH2 = await ethers.provider.getBalance(user.address);
     console.log("beforeETH2", beforeETH2.toString());
-    [fee, pairCount] = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, daiMaxLoan);
+    fee = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, daiMaxLoan);
     expect(fee).to.equal(2);
     afterETH2 = await ethers.provider.getBalance(user.address);
     console.log("afterETH2", afterETH2.toString());
@@ -106,14 +106,13 @@ describe('dydx', () => {
     beforeETH = await ethers.provider.getBalance(user.address);
     console.log("beforeETH", beforeETH.toString());
     const maxloan = BigNumber.from(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address, {gasLimit: 30000000}));
-    [fee, pairCount] = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, maxloan, {gasLimit: 30000000});
+    fee = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, maxloan, {gasLimit: 30000000});
     console.log("fee", fee.toString());
-    console.log("pairCount", pairCount.toString());
     await dai.connect(daiuser).transfer(borrower.address, fee, {gasLimit: 30000000});
     await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, dai.address, maxloan, {gasLimit: 30000000});
     const totalFlashBalance = await borrower.totalFlashBalance();
     expect(totalFlashBalance).to.lte(maxloan.add(fee));
-    expect(totalFlashBalance).to.gte(maxloan.add(fee).sub(pairCount));
+    // expect(totalFlashBalance).to.gte(maxloan.add(fee).sub(pairCount));
     afterETH = await ethers.provider.getBalance(user.address);
     console.log("afterETH", afterETH.toString());
     let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);

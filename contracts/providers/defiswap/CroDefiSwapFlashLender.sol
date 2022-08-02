@@ -72,15 +72,15 @@ contract CroDefiSwapFlashLender is
         for (uint256 i = 0; i < _pairs.length; i++) {
             require(
                 _tokens0[i] != address(0),
-                "CroDefiSwapFlashLender: Unsupported currency"
+                "CroDefiSwapFlashLender: _tokens0 is address(0)"
             );
             require(
                 _tokens1[i] != address(0),
-                "CroDefiSwapFlashLender:Unsupported currency"
+                "CroDefiSwapFlashLender: _tokens1 is address(0)"
             );
             require(
                 _pairs[i] != address(0),
-                "CroDefiSwapFlashLender: Unsupported currency"
+                "CroDefiSwapFlashLender: _pairs is address(0)"
             );
             pairs.push(
                 Pair({
@@ -243,7 +243,7 @@ contract CroDefiSwapFlashLender is
         public
         view
         override
-        returns (uint256, uint256)
+        returns (uint256)
     {
         PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
         uint256 totalAmount = _amount;
@@ -265,9 +265,9 @@ contract CroDefiSwapFlashLender is
                 }
             }
             uint256 fee = _flashFee(_token, _amount);
-            return (fee.add(pairCount), pairCount);
+            return fee.add(pairCount);
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -296,7 +296,7 @@ contract CroDefiSwapFlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "CroDefiSwapFlashLender: Unsupported currency"
+            "CroDefiSwapFlashLender: Unsupported token"
         );
 
         _swap(_receiver, validPairInfos[0].pair, _token, _amount, _userData);
@@ -317,7 +317,7 @@ contract CroDefiSwapFlashLender is
 
         require(
             validPairInfos[0].pair != address(0),
-            "CroDefiSwapFlashLender: Unsupported currency"
+            "CroDefiSwapFlashLender: Unsupported token"
         );
 
         for (uint256 i = 0; i < validPairInfos.length; i++) {
@@ -406,7 +406,7 @@ contract CroDefiSwapFlashLender is
 
         require(
             msg.sender == pair,
-            "CroDefiSwapFlashLender: only permissioned pairs can call"
+            "CroDefiSwapFlashLender: msg.sender must be the permissioned pair"
         );
 
         uint256 amount = _amount0 > 0 ? _amount0 : _amount1;

@@ -6,8 +6,6 @@ pragma experimental ABIEncoderV2;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import {Ownable} from "./libraries/Ownable.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
-// import "erc3156/contracts/interfaces/IERC3156FlashLender.sol";
 import "./interfaces/IDODOFlashLender.sol";
 import "./interfaces/IDODOFlashBorrower.sol";
 import "./interfaces/IDVM.sol";
@@ -48,15 +46,15 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         for (uint256 i = 0; i < _dvmpools.length; i++) {
             require(
                 _basetokens[i] != address(0),
-                "DODOFlashLender: Unsupported currency"
+                "DODOFlashLender: _basetokens is address(0)"
             );
             require(
                 _quotetokens[i] != address(0),
-                "DODOFlashLender: Unsupported currency"
+                "DODOFlashLender: _quotetokens is address(0)"
             );
             require(
                 _dvmpools[i] != address(0),
-                "DODOFlashLender: Unsupported currency"
+                "DODOFlashLender: _dvmpools is address(0)"
             );
             dvmpools.push(
                 DVMPool({
@@ -88,25 +86,6 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         }
         return true;
     }
-
-    // function _biggestDVMPool(address token)
-    //     private
-    //     view
-    //     returns (address, uint256)
-    // {
-    //     uint256 maxloan;
-    //     address dvmpool;
-    //     for (uint256 i = 0; i < dvmpools.length; i++) {
-    //         if (dvmpools[i].basetoken == token || dvmpools[i].quotetoken == token) {
-    //             uint256 balance = IERC20(token).balanceOf(dvmpools[i].dvmpool);
-    //             if (balance > maxloan) {
-    //                 maxloan = balance;
-    //                 dvmpool = dvmpools[i].dvmpool;
-    //             }
-    //         }
-    //     }
-    //     return (dvmpool, maxloan);
-    // }
 
     function _getValidDVMPools(address _token, uint256 _amount)
         internal
@@ -262,7 +241,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
 
         require(
             validDVMPoolInfos[0].dvmpool != address(0),
-            "DODOFlashLender: Unsupported currency"
+            "DODOFlashLender: Unsupported token"
         );
 
         _flashloan(
@@ -289,7 +268,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
 
         require(
             validDVMPoolInfos[0].dvmpool != address(0),
-            "DODOFlashLender: Unsupported currency"
+            "DODOFlashLender: Unsupported token"
         );
 
         for (uint256 i = 0; i < validDVMPoolInfos.length; i++) {
@@ -361,7 +340,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
     ) external override {
         require(
             _sender == address(this),
-            "DODOFlashLender: only this contract may initiate"
+            "DODOFlashLender: _sender must be this contract"
         );
 
         (
@@ -377,7 +356,7 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
 
         require(
             msg.sender == dvmpool,
-            "DODOFlashLender: only permissioned pool can call"
+            "DODOFlashLender: msg.sender must be the permissioned pool"
         );
 
         uint256 amount = _baseAmount > 0 ? _baseAmount : _quoteAmount;

@@ -15,7 +15,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
-    address permissionedPairAddress;
     address public factory;
     address public FEETO;
 
@@ -95,7 +94,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
                 _token,
                 _amount
             );
-
+            
             if (maxloan >= _amount) {
                 providerCount++;
             }
@@ -189,27 +188,43 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
                     }
                 }
             }
+
+            // sort by maxloan
+            for (uint256 i = 1; i < providerInfos.length; i++) {
+                for (uint256 j = 0; j < i; j++) {
+                    if (providerInfos[i].fee == providerInfos[j].fee) {
+                        if (
+                            providerInfos[i].maxloan >
+                            providerInfos[j].maxloan
+                        ) {
+                            ProviderInfo memory x = providerInfos[i];
+                            providerInfos[i] = providerInfos[j];
+                            providerInfos[j] = x;
+                        }
+                    }
+                }
+            }
         }
 
         return providerInfos;
     }
 
-    // get maxFlashLoan >= _amount of the cheapest provider
+    // get the cheapest provider with maxFlashLoan >= _amount
     function maxFlashLoanWithCheapestProvider(address _token, uint256 _amount)
         public
         view
         returns (uint256)
     {
-        ProviderInfo[] memory sortedTempProvider = _sortProvidersByFee(
+        ProviderInfo[] memory sortedTempProviders = _sortProvidersByFee(
             _token,
             _amount
         );
 
         require(
-            sortedTempProvider.length > 0,
+            sortedTempProviders.length > 0,
             "FlashLender: Found no providers"
         );
-        return sortedTempProvider[0].maxloan;
+        return sortedTempProviders[0].maxloan;
     }
 
     function maxFlashLoanWithManyProviders(address _token)
@@ -219,13 +234,15 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     {
         uint256 maxloan = 0;
         ProviderInfo[]
-            memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
+            memory sortedTempProviders = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
                 _token,
                 1e18
             );
-        for (uint256 i = 0; i < sortedTempProvider.length; i++) {
-            maxloan = maxloan.add(sortedTempProvider[i].maxloan);
+        
+        for (uint256 i = 0; i < sortedTempProviders.length; i++) {
+            maxloan = maxloan.add(sortedTempProviders[i].maxloan);
         }
+
         return maxloan;
     }
 
@@ -234,12 +251,12 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         view
         returns (uint256)
     {
-        ProviderInfo[] memory sortedTempProvider = _sortProvidersByFee(
+        ProviderInfo[] memory sortedTempProviders = _sortProvidersByFee(
             _token,
             _amount
         );
 
-        uint256 providerFee = sortedTempProvider[0].fee;
+        uint256 providerFee = sortedTempProviders[0].fee;
         uint256 additionalFee = _additionalFee(_amount);
         uint256 totalFee = providerFee.add(additionalFee);
 
@@ -254,34 +271,36 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 fee = 0;
         uint256 totalAmount = _amount;
         uint256 amount = 0;
+        uint256 providerCount = 0;
 
         ProviderInfo[]
-            memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
+            memory sortedTempProviders = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
                 _token,
                 1e18
             );
 
-        for (uint256 i = 0; i < sortedTempProvider.length; i++) {
-            if (amount.add(sortedTempProvider[i].maxloan) <= totalAmount) {
-                fee = fee.add(
-                    IERC3156FlashLender(providers[i])
+        for (uint256 i = 0; i < sortedTempProviders.length; i++) {
+            if (amount.add(sortedTempProviders[i].maxloan) <= totalAmount) {
+                uint256 tempFee = IERC3156FlashLender(sortedTempProviders[i].provider)
                         .flashFeeWithManyPairs_OR_ManyPools(
                             _token,
-                            sortedTempProvider[i].maxloan
-                        )
-                );
-                amount = amount.add(sortedTempProvider[i].maxloan);
+                            sortedTempProviders[i].maxloan
+                        );
+                fee = fee.add(tempFee);
+                amount = amount.add(sortedTempProviders[i].maxloan);
+                providerCount++;
                 if (amount == totalAmount) {
                     break;
                 }
             } else {
                 fee = fee.add(
-                    IERC3156FlashLender(providers[i])
+                    IERC3156FlashLender(sortedTempProviders[i].provider)
                         .flashFeeWithManyPairs_OR_ManyPools(
                             _token,
                             totalAmount.sub(amount)
                         )
                 );
+                providerCount++;
                 amount = totalAmount;
                 break;
             }
@@ -293,7 +312,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         );
 
         uint256 additionalFee = _additionalFee(amount);
-        uint256 totalFee = fee.add(additionalFee);
+        uint256 totalFee = fee.add(additionalFee).add(providerCount);
 
         return totalFee;
     }
@@ -310,7 +329,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     ) external returns (bool) {
         uint256 totalAmount = _amount;
         uint256 amount = 0;
-        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
 
         ProviderInfo[] memory sortedTempProviders = _sortProvidersByFee(
             _token,
@@ -319,8 +337,10 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
 
         require(
             sortedTempProviders[0].provider != address(0),
-            "FlashLender: Unsupported currency"
+            "FlashLender: Unsupported token"
         );
+
+        bytes memory data = abi.encode(sortedTempProviders[0].provider, msg.sender, _receiver, _userData);
 
         IERC3156FlashLender(sortedTempProviders[0].provider).flashLoan(
             this,
@@ -340,29 +360,30 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     ) external returns (bool) {
         uint256 totalAmount = _amount;
         uint256 amount = 0;
-        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
 
         ProviderInfo[]
-            memory sortedTempProvider = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
+            memory sortedTempProviders = _sortProvidersWithManyPairs_OR_ManyPoolsByFee(
                 _token,
                 1e18
             );
 
-        for (uint256 i = 0; i < sortedTempProvider.length; i++) {
-            if (amount.add(sortedTempProvider[i].maxloan) <= totalAmount) {
-                IERC3156FlashLender(sortedTempProvider[i].provider)
+        for (uint256 i = 0; i < sortedTempProviders.length; i++) {
+            if (amount.add(sortedTempProviders[i].maxloan) <= totalAmount) {
+                bytes memory data = abi.encode(sortedTempProviders[i].provider, msg.sender, _receiver, _userData);
+                IERC3156FlashLender(sortedTempProviders[i].provider)
                     .flashLoanWithManyPairs_OR_ManyPools(
                         this,
                         _token,
-                        sortedTempProvider[i].maxloan,
+                        sortedTempProviders[i].maxloan,
                         data
                     );
-                amount = amount.add(sortedTempProvider[i].maxloan);
+                amount = amount.add(sortedTempProviders[i].maxloan);
                 if (amount == totalAmount) {
                     break;
                 }
             } else {
-                IERC3156FlashLender(sortedTempProvider[i].provider)
+                bytes memory data = abi.encode(sortedTempProviders[i].provider, msg.sender, _receiver, _userData);
+                IERC3156FlashLender(sortedTempProviders[i].provider)
                     .flashLoanWithManyPairs_OR_ManyPools(
                         this,
                         _token,
@@ -385,16 +406,27 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         bytes calldata _data
     ) external returns (bytes32) {
         (
+            address provider,
             address origin,
             IERC3156FlashBorrower receiver,
             bytes memory userData
-        ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
+        ) = abi.decode(_data, (address, address, IERC3156FlashBorrower, bytes));
+
+        require(
+            _sender == address(this),
+            "FlashLender: _sender must be this contract"
+        );
+
+        require(
+            provider == msg.sender,
+            "FlashLender: msg.sender must be the permissioned provider"
+        );
 
         require(
             IERC20(_token).transfer(address(receiver), _amount),
             "FlashLender: Transfer failed"
         );
-
+        
         uint256 additionalFee = _additionalFee(_amount);
         uint256 totalFee = _fee.add(additionalFee);
 
@@ -403,19 +435,19 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
                 CALLBACK_SUCCESS,
             "FlashLender: Callback failed"
         );
-
+        uint256 payment = _amount.add(totalFee).add(1);
         require(
             IERC20(_token).transferFrom(
                 address(receiver),
                 address(this),
-                _amount.add(totalFee)
+                payment
             ),
             "FlashLender: Transfer failed"
         );
 
         IERC20(_token).transfer(FEETO, additionalFee);
 
-        IERC20(_token).approve(msg.sender, _amount.add(_fee));
+        IERC20(_token).approve(msg.sender, payment);
 
         return CALLBACK_SUCCESS;
     }

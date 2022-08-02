@@ -1,19 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2021 Dai Foundation
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 pragma solidity >=0.6.12;
 
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
@@ -92,13 +76,13 @@ contract MakerDaoFlashLender is
         public
         view
         override
-        returns (uint256, uint256)
+        returns (uint256)
     {
         uint256 maxloan = dssflash.maxFlashLoan(_token);
         if (maxloan > 0) {
-            return (dssflash.flashFee(_token, _amount), 1);
+            return dssflash.flashFee(_token, _amount);
         } else {
-            return (0, 0);
+            return 0;
         }
     }
 
@@ -142,11 +126,11 @@ contract MakerDaoFlashLender is
     ) external override returns (bytes32) {
         require(
             msg.sender == address(dssflash),
-            "MakerDaoFlashLender: Callback only from dssflash"
+            "MakerDaoFlashLender: msg.sender must be dssflash"
         );
         require(
             _sender == address(this),
-            "MakerDaoFlashLender: FlashLoan only from this contract"
+            "MakerDaoFlashLender:_sender must be this contract"
         );
 
         (

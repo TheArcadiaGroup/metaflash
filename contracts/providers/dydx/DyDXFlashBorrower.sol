@@ -10,7 +10,6 @@ import "./interfaces/IDYDXFlashLender.sol";
 contract DYDXFlashBorrower is IERC3156FlashBorrower {
     enum Action {
         NORMAL,
-        STEAL,
         REENTER
     }
 
@@ -34,7 +33,7 @@ contract DYDXFlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "DYDXFlashBorrower: External loan initiator"
+            "DYDXFlashBorrower: sender must be this contract"
         );
         Action action = abi.decode(data, (Action)); // Use this to unpack arbitrary data
         flashSender = sender;
@@ -44,10 +43,8 @@ contract DYDXFlashBorrower is IERC3156FlashBorrower {
         if (action == Action.NORMAL) {
             flashBalance = IERC20(token).balanceOf(address(this));
             totalFlashBalance = totalFlashBalance + amount + fee;
-        } else if (action == Action.STEAL) {
-            // do nothing
         } else if (action == Action.REENTER) {
-            // flashBorrow(IERC3156FlashLender(msg.sender), token, amount * 2);
+            // do nothing
         }
         return CALLBACK_SUCCESS;
     }
@@ -78,7 +75,7 @@ contract DYDXFlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        (uint256 _fee, uint256 _pair) = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
+        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
         uint256 _repayment = amount + _fee;
         IERC20(token).approve(address(lender), _allowance + _repayment);
         // Use this to pack arbitrary data to `onFlashLoan`

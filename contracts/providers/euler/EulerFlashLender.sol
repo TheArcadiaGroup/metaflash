@@ -124,12 +124,12 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
     ) external override returns (bytes32) {
         require(
             msg.sender == address(flashloan),
-            "EulerFlashLender: Callbacks only allowed from flashloan"
+            "EulerFlashLender: msg.sender must be flashloan"
         );
 
         require(
             _sender == address(this),
-            "EulerFlashLender: Callbacks only initiated from this contract"
+            "EulerFlashLender: _sender must be this contract"
         );
 
         (
@@ -138,7 +138,6 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
             bytes memory userData
         ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
 
-        // Send the tokens to the original receiver using the ERC-3156 interface
         IERC20(_token).transfer(origin, _amount);
 
         require(
@@ -149,7 +148,6 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
 
         IERC20(_token).transferFrom(origin, address(this), _amount.add(_fee));
 
-        // Approve the LendingPool contract allowance to *pull* the owed amount
         IERC20(_token).approve(address(flashloan), _amount.add(_fee));
 
         return CALLBACK_SUCCESS;
