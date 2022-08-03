@@ -15,6 +15,17 @@
         "fortube_eth": {
             "Bank": "0xde7b3b2fe0e7b4925107615a5b199a4eb40d9ca9",
             "BankController": "0x936e6490ed786fd0e0f0c1b1e4e1540b9d41f9ef"
+        },
+        "euler": {
+            "Euler": "0x27182842E098f60e3D576794A5bFFb0777E025d3",
+            "FlashLoan": "0x07df2ad9878F8797B4055230bbAE5C808b8259b3"
+        },
+        "fortube_bsc": {
+            "Bank": "0x0cea0832e9cdbb5d476040d58ea07ecfbebb7672",
+            "BankController": "0xc78248d676debb4597e88071d3d889eca70e5469"
+        },
+        "multiplier": {
+            "LendingPool": "0xBEc588F8A4859065b45fcFcB1c8805F5584A2219"
         }
     }
 }

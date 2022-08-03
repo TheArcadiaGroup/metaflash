@@ -32,93 +32,58 @@ contract AaveV2FlashLender is
         );
     }
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+        external
+        view
+        override
+        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+    {
+        address[] memory pools = new address[](1);
+        uint256[] memory maxloans = new uint256[](1);
+        uint256[] memory fees = new uint256[](1);
+
+        AaveDataTypes.ReserveData memory reserveData = lendingPool
+            .getReserveData(_token);
+        uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
+
+        if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
+            pools[0] = address(0);
+            maxloans[0] = maxloan;
+            fees[0] = _flashFee(_token, 1e18);
+            return (pools, maxloans, fees);
+        } else {
+            pools[0] = address(0);
+            maxloans[0] = uint256(0);
+            fees[0] = uint256(0);
+            return (pools, maxloans, fees);
+        }
+    }
+
+    function flashFee(address _pair, address _token, uint256 _amount)
         external
         view
         override
         returns (uint256)
     {
-        return _maxFlashLoan(_token, _amount);
+        return _flashFee(_token, _amount);
     }
 
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return _maxFlashLoan(_token, 1);
-    }
-
-    function _maxFlashLoan(address _token, uint256 _amount)
+   function _flashFee(address _token, uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        AaveDataTypes.ReserveData memory reserveData = lendingPool
-            .getReserveData(_token);
-        uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
-
-        if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
-            return maxloan;
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFee(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        AaveDataTypes.ReserveData memory reserveData = lendingPool
-            .getReserveData(_token);
-        uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
-
-        if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
-            return
-                _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        AaveDataTypes.ReserveData memory reserveData = lendingPool
-            .getReserveData(_token);
-        uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
-
-        if (reserveData.aTokenAddress != address(0) && maxloan > 0) {
-            return
-                _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
-        } else {
-            return 0;
-        }
+        return _amount.mul(lendingPool.FLASHLOAN_PREMIUM_TOTAL()).div(10000);
     }
 
     function flashLoan(
+        address _pair,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes calldata _userData
+        bytes calldata _data
     ) external override returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
-        return true;
-    }
-
-    function flashLoanWithManyPairs_OR_ManyPools(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes calldata _userData
-    ) external override returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
+        _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }
 
@@ -126,7 +91,7 @@ contract AaveV2FlashLender is
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes calldata _userData
+        bytes calldata _data
     ) internal {
         address[] memory tokens = new address[](1);
         tokens[0] = address(_token);
@@ -139,7 +104,7 @@ contract AaveV2FlashLender is
         modes[0] = 0;
 
         address onBehalfOf = address(this);
-        bytes memory data = abi.encode(msg.sender, _receiver, _userData);
+        bytes memory data = abi.encode(msg.sender, _receiver, _data);
         uint16 referralCode = 0;
 
         lendingPool.flashLoan(

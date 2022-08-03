@@ -26,84 +26,119 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
 
     receive() external payable {}
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
         external
         view
         override
-        returns (uint256)
+        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
     {
-        return _maxFlashLoan(_token, _amount);
-    }
+        address[] memory pools = new address[](1);
+        uint256[] memory maxloans = new uint256[](1);
+        uint256[] memory fees = new uint256[](1);
 
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return _maxFlashLoan(_token, 1);
-    }
-
-    function _maxFlashLoan(address _token, uint256 _amount)
-        internal
-        view
-        returns (uint256)
-    {
         uint256 maxloan = flashloan.maxFlashLoan(_token);
+
         if (maxloan >= _amount) {
-            return maxloan;
+            pools[0] = address(0);
+            maxloans[0] = maxloan;
+            fees[0] = flashloan.flashFee(_token, 1e18);
+            return (pools, maxloans, fees);
         } else {
-            return 0;
+            pools[0] = address(0);
+            maxloans[0] = uint256(0);
+            fees[0] = uint256(0);
+            return (pools, maxloans, fees);
         }
     }
 
-    function flashFee(address _token, uint256 _amount)
+    function flashFee(address _pair, address _token, uint256 _amount)
         public
         view
         override
         returns (uint256)
     {
-        uint256 maxloan = flashloan.maxFlashLoan(_token);
-        if (maxloan >= _amount) {
-            return flashloan.flashFee(_token, _amount);
-        } else {
-            return 0;
-        }
+        return flashloan.flashFee(_token, _amount);
     }
 
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        uint256 maxloan = flashloan.maxFlashLoan(_token);
-        if (maxloan > 0) {
-            return flashloan.flashFee(_token, _amount);
-        } else {
-            return 0;
-        }
-    }
+    // function maxFlashLoan(address _token, uint256 _amount)
+    //     external
+    //     view
+    //     override
+    //     returns (uint256)
+    // {
+    //     return _maxFlashLoan(_token, _amount);
+    // }
+
+    // function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
+    //     external
+    //     view
+    //     override
+    //     returns (uint256)
+    // {
+    //     return _maxFlashLoan(_token, 1);
+    // }
+
+    // function _maxFlashLoan(address _token, uint256 _amount)
+    //     internal
+    //     view
+    //     returns (uint256)
+    // {
+    //     uint256 maxloan = flashloan.maxFlashLoan(_token);
+    //     if (maxloan >= _amount) {
+    //         return maxloan;
+    //     } else {
+    //         return 0;
+    //     }
+    // }
+
+    // function flashFee(address _token, uint256 _amount)
+    //     public
+    //     view
+    //     override
+    //     returns (uint256)
+    // {
+    //     uint256 maxloan = flashloan.maxFlashLoan(_token);
+    //     if (maxloan >= _amount) {
+    //         return flashloan.flashFee(_token, _amount);
+    //     } else {
+    //         return 0;
+    //     }
+    // }
+
+    // function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
+    //     public
+    //     view
+    //     override
+    //     returns (uint256)
+    // {
+    //     uint256 maxloan = flashloan.maxFlashLoan(_token);
+    //     if (maxloan > 0) {
+    //         return flashloan.flashFee(_token, _amount);
+    //     } else {
+    //         return 0;
+    //     }
+    // }
 
     function flashLoan(
+        address _pair,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes calldata _userData
+        bytes calldata _data
     ) external override returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
+        _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }
 
-    function flashLoanWithManyPairs_OR_ManyPools(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes calldata _userData
-    ) external override returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
-        return true;
-    }
+    // function flashLoanWithManyPairs_OR_ManyPools(
+    //     IERC3156FlashBorrower _receiver,
+    //     address _token,
+    //     uint256 _amount,
+    //     bytes calldata _userData
+    // ) external override returns (bool) {
+    //     _flashLoan(_receiver, _token, _amount, _userData);
+    //     return true;
+    // }
 
     function _flashLoan(
         IERC3156FlashBorrower _receiver,

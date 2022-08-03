@@ -27,76 +27,42 @@ contract MakerDaoFlashLender is
         dssflash = IMakerDaoDssFlash(_dssflash);
     }
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
         external
         view
         override
-        returns (uint256)
+        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
     {
-        return _maxFlashLoan(_token, _amount);
-    }
+        address[] memory pools = new address[](1);
+        uint256[] memory maxloans = new uint256[](1);
+        uint256[] memory fees = new uint256[](1);
 
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return _maxFlashLoan(_token, 1);
-    }
-
-    function _maxFlashLoan(address _token, uint256 _amount)
-        internal
-        view
-        returns (uint256)
-    {
         uint256 maxloan = dssflash.maxFlashLoan(_token);
+
         if (maxloan >= _amount) {
-            return maxloan;
+            pools[0] = address(0);
+            maxloans[0] = maxloan;
+            fees[0] = dssflash.flashFee(_token, 1e18);
+            return (pools, maxloans, fees);
         } else {
-            return 0;
+            pools[0] = address(0);
+            maxloans[0] = uint256(0);
+            fees[0] = uint256(0);
+            return (pools, maxloans, fees);
         }
     }
 
-    function flashFee(address _token, uint256 _amount)
+    function flashFee(address _pair, address _token, uint256 _amount)
         public
         view
         override
         returns (uint256)
     {
-        uint256 maxloan = dssflash.maxFlashLoan(_token);
-        if (maxloan >= _amount) {
-            return dssflash.flashFee(_token, _amount);
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        uint256 maxloan = dssflash.maxFlashLoan(_token);
-        if (maxloan > 0) {
-            return dssflash.flashFee(_token, _amount);
-        } else {
-            return 0;
-        }
+        return dssflash.flashFee(_token, _amount);
     }
 
     function flashLoan(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes calldata _userData
-    ) external override returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
-        return true;
-    }
-
-    function flashLoanWithManyPairs_OR_ManyPools(
+        address _pair,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
@@ -116,7 +82,6 @@ contract MakerDaoFlashLender is
         dssflash.flashLoan(this, _token, _amount, ndata);
     }
 
-    /// @dev flash loan callback. It sends the amount borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
     function onFlashLoan(
         address _sender,
         address _token,

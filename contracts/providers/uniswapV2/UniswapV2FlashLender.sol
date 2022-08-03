@@ -2,7 +2,7 @@
 // Derived from https://github.com/Austin-Williams/uniswap-flash-swapper
 
 pragma solidity ^0.7.5;
-
+pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
@@ -28,9 +28,10 @@ contract UniswapV2FlashLender is
         address pair;
     }
 
-    struct PairInfo {
-        address pair;
+    struct FlashLoanInfo {
+        address pool;
         uint256 maxloan;
+        uint256 fee;
     }
 
     Pair[] public pairs;
@@ -96,9 +97,11 @@ contract UniswapV2FlashLender is
     function _getValidPairs(address _token, uint256 _amount)
         internal
         view
-        returns (PairInfo[] memory)
+        returns (FlashLoanInfo[] memory)
     {
+        uint256 amount = 1e18;
         uint256 count = 0;
+
         for (uint256 i = 0; i < pairs.length; i++) {
             if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
                 uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
@@ -107,22 +110,26 @@ contract UniswapV2FlashLender is
                 }
             }
         }
-        if (count == 0) {
-            PairInfo[] memory validPairInfos = new PairInfo[](1);
-            validPairInfos[0].pair = address(0);
-            validPairInfos[0].maxloan = uint256(0);
 
-            return validPairInfos;
+        if (count == 0) {
+            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](1);
+            validFlashLoanInfos[0].pool = address(0);
+            validFlashLoanInfos[0].maxloan = uint256(0);
+            validFlashLoanInfos[0].fee = uint256(0);
+
+            return validFlashLoanInfos;
         } else {
-            PairInfo[] memory validPairInfos = new PairInfo[](count);
+            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](count);
             uint256 validCount = 0;
 
             for (uint256 i = 0; i < pairs.length; i++) {
                 if (pairs[i].token0 == _token || pairs[i].token1 == _token) {
                     uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
                     if (balance >= _amount.add(1)) {
-                        validPairInfos[validCount].pair = pairs[i].pair;
-                        validPairInfos[validCount].maxloan = balance.sub(1);
+                        uint256 fee = _flashFee(_token, amount);
+                        validFlashLoanInfos[validCount].pool = pairs[i].pair;
+                        validFlashLoanInfos[validCount].maxloan = balance.sub(1);
+                        validFlashLoanInfos[validCount].fee = fee;
                         validCount = validCount.add(1);
                         if (validCount == count) {
                             break;
@@ -131,102 +138,54 @@ contract UniswapV2FlashLender is
                 }
             }
 
-            if (validPairInfos.length == 1) {
-                return validPairInfos;
+            if (validFlashLoanInfos.length == 1) {
+                return validFlashLoanInfos;
             } else {
-                for (uint256 i = 1; i < validPairInfos.length; i++) {
+                // sort by maxloan
+                for (uint256 i = 1; i < validFlashLoanInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
                         if (
-                            validPairInfos[i].maxloan >
-                            validPairInfos[j].maxloan
+                            validFlashLoanInfos[i].maxloan >
+                            validFlashLoanInfos[j].maxloan
                         ) {
-                            PairInfo memory x = validPairInfos[i];
-                            validPairInfos[i] = validPairInfos[j];
-                            validPairInfos[j] = x;
+                            FlashLoanInfo memory x = validFlashLoanInfos[i];
+                            validFlashLoanInfos[i] = validFlashLoanInfos[j];
+                            validFlashLoanInfos[j] = x;
                         }
                     }
                 }
             }
             
-            return validPairInfos;
+            return validFlashLoanInfos;
         }
     }
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
         external
         view
         override
-        returns (uint256)
+        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
     {
-        PairInfo[] memory validPairInfos = _getValidPairs(_token, _amount);
-
-        return validPairInfos[0].maxloan;
-    }
-
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        uint256 totalMaxLoan;
-
-        PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
-
-        if (validPairInfos[0].maxloan > 0) {
-            for (uint256 i = 0; i < validPairInfos.length; i++) {
-                totalMaxLoan = totalMaxLoan.add(validPairInfos[i].maxloan);
-            }
-            return totalMaxLoan;
-        } else {
-            return 0;
+        FlashLoanInfo[] memory flashLoanInfos = _getValidPairs(_token, _amount);
+        address[] memory pools = new address[](flashLoanInfos.length);
+        uint256[] memory maxloans = new uint256[](flashLoanInfos.length);
+        uint256[] memory fees = new uint256[](flashLoanInfos.length);
+        for(uint256 i = 0; i < flashLoanInfos.length; i++){
+            pools[i] = flashLoanInfos[i].pool;
+            maxloans[i] = flashLoanInfos[i].maxloan;
+            fees[i] = flashLoanInfos[i].fee;
         }
+
+        return (pools, maxloans, fees);
     }
 
-    function flashFee(address _token, uint256 _amount)
+    function flashFee(address _pair, address _token, uint256 _amount)
         public
         view
         override
         returns (uint256)
     {
-        PairInfo[] memory validPairInfos = _getValidPairs(_token, _amount);
-        if (validPairInfos[0].maxloan > 0) {
-            return _flashFee(_token, _amount);
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256 fee)
-    {
-        PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
-        uint256 totalAmount = _amount;
-        uint256 amount = 0;
-        uint256 pairCount = 0;
-
-        if (validPairInfos[0].maxloan > 0) {
-            for (uint256 i = 0; i < validPairInfos.length; i++) {
-                if (amount.add(validPairInfos[i].maxloan) <= totalAmount) {
-                    amount = amount.add(validPairInfos[i].maxloan);
-                    pairCount++;
-                    if (amount == totalAmount) {
-                        break;
-                    }
-                } else {
-                    amount = totalAmount;
-                    pairCount++;
-                    break;
-                }
-            }
-            uint256 fee = _flashFee(_token, amount);
-            return fee.add(pairCount);
-        } else {
-            return 0;
-        }
+        return _flashFee(_token, _amount);
     }
 
     function _flashFee(address _token, uint256 _amount)
@@ -238,80 +197,19 @@ contract UniswapV2FlashLender is
     }
 
     function flashLoan(
+        address _pair,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
         bytes memory _userData
     ) external override returns (bool) {
-        PairInfo[] memory validPairInfos = _getValidPairs(_token, _amount);
-
-        require(
-            validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported token"
-        );
-
-        _swap(_receiver, validPairInfos[0].pair, _token, _amount, _userData);
-
-        return true;
-    }
-
-    function flashLoanWithManyPairs_OR_ManyPools(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes memory _userData
-    ) external override returns (bool) {
-        uint256 totalMaxLoan;
-        uint256 totalAmount = _amount;
-
-        PairInfo[] memory validPairInfos = _getValidPairs(_token, 1);
-
-        require(
-            validPairInfos[0].pair != address(0),
-            "UniswapV2FlashLender: Unsupported token"
-        );
-
-        for (uint256 i = 0; i < validPairInfos.length; i++) {
-            totalMaxLoan = totalMaxLoan.add(validPairInfos[i].maxloan);
-        }
-
-        require(
-            totalMaxLoan >= totalAmount,
-            "UniswapV2FlashLender: Amount is more than maxFlashLoan"
-        );
-        
-        uint256 amount = 0;
-        for (uint256 i = 0; i < validPairInfos.length; i++) {
-            if (amount.add(validPairInfos[i].maxloan) <= totalAmount) {
-                _swap(
-                    _receiver,
-                    validPairInfos[i].pair,
-                    _token,
-                    validPairInfos[i].maxloan,
-                    _userData
-                );
-                amount = amount.add(validPairInfos[i].maxloan);
-                if (amount == totalAmount) {
-                    break;
-                }
-            } else {
-                _swap(
-                    _receiver,
-                    validPairInfos[i].pair,
-                    _token,
-                    totalAmount.sub(amount),
-                    _userData
-                );
-                amount = totalAmount;
-                break;
-            }
-        }
+        _swap(_pair, _receiver, _token, _amount, _userData);
         return true;
     }
 
     function _swap(
-        IERC3156FlashBorrower _receiver,
         address _pair,
+        IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
         bytes memory _userData

@@ -1,16 +1,16 @@
-pragma solidity >=0.5.0;
+pragma solidity ^0.8.0;
 
 import "./IERC3156FlashBorrower.sol";
 
 interface IFlashLender {
     function maxFlashLoanWithCheapestProvider(
         address token,
-        uint256 amount
+        uint256 minAmount
     ) external view returns (uint256);
 
     function flashFeeWithCheapestProvider(
         address token,
-        uint256 amount
+        uint256 minAmount
     ) external view returns (uint256);
 
     function flashLoanWithCheapestProvider(
@@ -21,18 +21,21 @@ interface IFlashLender {
     ) external returns (bool);
 
     function maxFlashLoanWithManyProviders(
-        address token
+        address token,
+        uint256 minAmount
     ) external view returns (uint256);
 
     function flashFeeWithManyProviders(
         address token,
-        uint256 amount
+        uint256 amount,
+        uint256 minAmount
     ) external view returns (uint256);
 
     function flashLoanWithManyProviders(
         IERC3156FlashBorrower receiver,
         address token,
         uint256 amount,
-        bytes calldata data
+        bytes calldata data,
+        uint256 minAmount
     ) external returns (bool);
 }

@@ -1,19 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2021 Dai Foundation
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 pragma solidity >=0.6.12;
 
 import "./interfaces/ISaddleFinanceSwapFlashLoan.sol";
@@ -30,14 +14,13 @@ contract SaddleFinanceFlashLender is
     Ownable
 {
     using SafeMath for uint256;
-    // ISwapFlashLoan swapflashloan;
+
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
-    address public FEETO;
-    address[] public pools;
-    address permissionedPoolAddress;
 
-    struct PoolInfo {
+    address[] public pools;
+
+    struct FlashLoanInfo {
         address pool;
         uint256 maxloan;
         uint256 fee;
@@ -76,7 +59,7 @@ contract SaddleFinanceFlashLender is
     function _getValidPools(address _token, uint256 _amount)
         internal
         view
-        returns (PoolInfo[] memory)
+        returns (FlashLoanInfo[] memory)
     {
         uint256 amount = 1e18;
         uint256 count = 0;
@@ -88,29 +71,24 @@ contract SaddleFinanceFlashLender is
         }
 
         if (count == 0) {
-            PoolInfo[] memory validPoolInfos = new PoolInfo[](1);
-            validPoolInfos[0].pool = address(0);
-            validPoolInfos[0].maxloan = uint256(0);
-            validPoolInfos[0].fee = uint256(0);
+            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](1);
+            validFlashLoanInfos[0].pool = address(0);
+            validFlashLoanInfos[0].maxloan = uint256(0);
+            validFlashLoanInfos[0].fee = uint256(0);
 
-            return validPoolInfos;
+            return validFlashLoanInfos;
         } else {
-            PoolInfo[] memory validPoolInfos = new PoolInfo[](count);
+            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](count);
 
             uint256 validCount = 0;
 
             for (uint256 i = 0; i < pools.length; i++) {
                 uint256 balance = IERC20(_token).balanceOf(pools[i]);
                 if (balance >= _amount) {
-                    uint256 fee = amount
-                        .mul(
-                            ISaddleFinanceSwapFlashLoan(pools[i])
-                                .flashLoanFeeBPS()
-                        )
-                        .div(10000);
-                    validPoolInfos[validCount].pool = pools[i];
-                    validPoolInfos[validCount].maxloan = balance;
-                    validPoolInfos[validCount].fee = fee;
+                    uint256 fee = _flashFee(pools[i], _token, amount);
+                    validFlashLoanInfos[validCount].pool = pools[i];
+                    validFlashLoanInfos[validCount].maxloan = balance;
+                    validFlashLoanInfos[validCount].fee = fee;
                     validCount = validCount.add(1);
                     if (validCount == count) {
                         break;
@@ -118,130 +96,66 @@ contract SaddleFinanceFlashLender is
                 }
             }
 
-            if (validPoolInfos.length == 1) {
-                return validPoolInfos;
+            if (validFlashLoanInfos.length == 1) {
+                return validFlashLoanInfos;
             } else {
                 // sort by fee
-                for (uint256 i = 1; i < validPoolInfos.length; i++) {
+                for (uint256 i = 1; i < validFlashLoanInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (validPoolInfos[i].fee < validPoolInfos[j].fee) {
-                            PoolInfo memory x = validPoolInfos[i];
-                            validPoolInfos[i] = validPoolInfos[j];
-                            validPoolInfos[j] = x;
+                        if (validFlashLoanInfos[i].fee < validFlashLoanInfos[j].fee) {
+                            FlashLoanInfo memory x = validFlashLoanInfos[i];
+                            validFlashLoanInfos[i] = validFlashLoanInfos[j];
+                            validFlashLoanInfos[j] = x;
                         }
                     }
                 }
                 // sort by maxloan
-                for (uint256 i = 1; i < validPoolInfos.length; i++) {
+                for (uint256 i = 1; i < validFlashLoanInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (validPoolInfos[i].fee == validPoolInfos[j].fee) {
+                        if (validFlashLoanInfos[i].fee == validFlashLoanInfos[j].fee) {
                             if (
-                                validPoolInfos[i].maxloan >
-                                validPoolInfos[j].maxloan
+                                validFlashLoanInfos[i].maxloan >
+                                validFlashLoanInfos[j].maxloan
                             ) {
-                                PoolInfo memory x = validPoolInfos[i];
-                                validPoolInfos[i] = validPoolInfos[j];
-                                validPoolInfos[j] = x;
+                                FlashLoanInfo memory x = validFlashLoanInfos[i];
+                                validFlashLoanInfos[i] = validFlashLoanInfos[j];
+                                validFlashLoanInfos[j] = x;
                             }
                         }
                     }
                 }
             }
 
-            return validPoolInfos;
+            return validFlashLoanInfos;
         }
     }
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
         external
         view
         override
-        returns (uint256)
+        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
     {
-        PoolInfo[] memory validPoolInfos = _getValidPools(_token, _amount);
-
-        return validPoolInfos[0].maxloan;
-    }
-
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        uint256 totalMaxLoan;
-
-        PoolInfo[] memory validPoolInfos = _getValidPools(_token, 1);
-
-        if (validPoolInfos[0].maxloan > 0) {
-            for (uint256 i = 0; i < validPoolInfos.length; i++) {
-                totalMaxLoan = totalMaxLoan.add(validPoolInfos[i].maxloan);
-            }
-            return totalMaxLoan;
-        } else {
-            return 0;
+        FlashLoanInfo[] memory flashLoanInfos = _getValidPools(_token, _amount);
+        address[] memory pools = new address[](flashLoanInfos.length);
+        uint256[] memory maxloans = new uint256[](flashLoanInfos.length);
+        uint256[] memory fees = new uint256[](flashLoanInfos.length);
+        for(uint256 i = 0; i < flashLoanInfos.length; i++){
+            pools[i] = flashLoanInfos[i].pool;
+            maxloans[i] = flashLoanInfos[i].maxloan;
+            fees[i] = flashLoanInfos[i].fee;
         }
+
+        return (pools, maxloans, fees);
     }
 
-    function flashFee(address _token, uint256 _amount)
+    function flashFee(address _pool, address _token, uint256 _amount)
         public
         view
         override
         returns (uint256)
     {
-        PoolInfo[] memory validPoolInfos = _getValidPools(_token, _amount);
-
-        if (validPoolInfos[0].maxloan > 0) {
-            return _flashFee(validPoolInfos[0].pool, _token, _amount);
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        uint256 fee = 0;
-        uint256 totalAmount = _amount;
-        uint256 amount = 0;
-        PoolInfo[] memory validPoolInfos = _getValidPools(_token, 1);
-        uint256 poolCount = 0;
-
-        if (validPoolInfos[0].maxloan > 0) {
-            for (uint256 i = 0; i < validPoolInfos.length; i++) {
-                if (amount.add(validPoolInfos[i].maxloan) <= totalAmount) {
-                    fee = fee.add(
-                        _flashFee(
-                            validPoolInfos[i].pool,
-                            _token,
-                            validPoolInfos[i].maxloan
-                        )
-                    );
-                    amount = amount.add(validPoolInfos[i].maxloan);
-                    poolCount++;
-                    if (amount == totalAmount) {
-                        break;
-                    }
-                } else {
-                    fee = fee.add(
-                        _flashFee(
-                            validPoolInfos[i].pool,
-                            _token,
-                            totalAmount.sub(amount)
-                        )
-                    );
-                    amount = totalAmount;
-                    poolCount++;
-                    break;
-                }
-            }
-            return fee.add(poolCount);
-        } else {
-            return 0;
-        }
+        return _flashFee(_pool, _token, _amount);
     }
 
     function _flashFee(
@@ -256,79 +170,19 @@ contract SaddleFinanceFlashLender is
     }
 
     function flashLoan(
+        address _pool,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
         bytes calldata _data
     ) external override returns (bool) {
-        PoolInfo[] memory validPoolInfos = _getValidPools(_token, _amount);
-
-        require(
-            validPoolInfos[0].pool != address(0),
-            "SaddleFinanceFlashLender: Unsupported token"
-        );
-
-        _flashLoan(_receiver, validPoolInfos[0].pool, _token, _amount, _data);
-
-        return true;
-    }
-
-    function flashLoanWithManyPairs_OR_ManyPools(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes calldata _data
-    ) external override returns (bool) {
-        uint256 totalMaxLoan;
-        uint256 totalAmount = _amount;
-        PoolInfo[] memory validPoolInfos = _getValidPools(_token, 1);
-
-        require(
-            validPoolInfos[0].pool != address(0),
-            "SaddleFinanceFlashLender: Unsupported token"
-        );
-
-        for (uint256 i = 0; i < validPoolInfos.length; i++) {
-            totalMaxLoan = totalMaxLoan.add(validPoolInfos[i].maxloan);
-        }
-
-        require(
-            totalMaxLoan >= totalAmount,
-            "SaddleFinanceFlashLender: Amount is more than maxFlashLoan"
-        );
-
-        uint256 amount = 0;
-        for (uint256 i = 0; i < validPoolInfos.length; i++) {
-            if (amount.add(validPoolInfos[i].maxloan) <= totalAmount) {
-                _flashLoan(
-                    _receiver,
-                    validPoolInfos[i].pool,
-                    _token,
-                    validPoolInfos[i].maxloan,
-                    _data
-                );
-                amount = amount.add(validPoolInfos[i].maxloan);
-                if (amount == totalAmount) {
-                    break;
-                }
-            } else {
-                _flashLoan(
-                    _receiver,
-                    validPoolInfos[i].pool,
-                    _token,
-                    totalAmount.sub(amount),
-                    _data
-                );
-                amount = totalAmount;
-                break;
-            }
-        }
+        _flashLoan(_pool, _receiver, _token, _amount, _data);
         return true;
     }
 
     function _flashLoan(
-        IERC3156FlashBorrower _receiver,
         address _pool,
+        IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
         bytes memory _data

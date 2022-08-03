@@ -46,88 +46,58 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         }
     }
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+        external
+        view
+        override
+        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+    {
+        address[] memory pools = new address[](1);
+        uint256[] memory maxloans = new uint256[](1);
+        uint256[] memory fees = new uint256[](1);
+
+        uint256 maxloan = tokensRegistered[_token] == true
+            ? IERC20(_token).balanceOf(address(soloMargin))
+            : 0;
+
+        if (maxloan >= _amount) {
+            pools[0] = address(0);
+            maxloans[0] = maxloan;
+            fees[0] = _flashFee(_token, 1e18);
+            return (pools, maxloans, fees);
+        } else {
+            pools[0] = address(0);
+            maxloans[0] = uint256(0);
+            fees[0] = uint256(0);
+            return (pools, maxloans, fees);
+        }
+    }
+
+    function flashFee(address _pair, address _token, uint256 _amount)
         external
         view
         override
         returns (uint256)
     {
-        return _maxFlashLoan(_token, _amount);
+        return _flashFee(_token, _amount);
     }
 
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return _maxFlashLoan(_token, 1);
-    }
-
-    function _maxFlashLoan(address _token, uint256 _amount)
+   function _flashFee(address _token, uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        uint256 maxloan = tokensRegistered[_token] == true
-            ? IERC20(_token).balanceOf(address(soloMargin))
-            : 0;
-        if (maxloan >= _amount) {
-            return maxloan;
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFee(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        uint256 maxloan = tokensRegistered[_token] == true
-            ? IERC20(_token).balanceOf(address(soloMargin))
-            : 0;
-        if (maxloan >= _amount) {
-            return 2;
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        uint256 maxloan = tokensRegistered[_token] == true
-            ? IERC20(_token).balanceOf(address(soloMargin))
-            : 0;
-        if (maxloan > 0) {
-            return 2;
-        } else {
-            return 0;
-        }
+        return 2;
     }
 
     function flashLoan(
+        address _pair,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes calldata _userData
+        bytes calldata _data
     ) external override returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
-        return true;
-    }
-
-    function flashLoanWithManyPairs_OR_ManyPools(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes calldata _userData
-    ) external override returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
+        _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }
 
@@ -135,13 +105,13 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes memory _userData
+        bytes memory _data
     ) internal {
         DYDXDataTypes.ActionArgs[]
             memory operations = new DYDXDataTypes.ActionArgs[](3);
         operations[0] = getWithdrawAction(_token, _amount);
         operations[1] = getCallAction(
-            abi.encode(msg.sender, _receiver, _token, _amount, _userData)
+            abi.encode(msg.sender, _receiver, _token, _amount, _data)
         );
         operations[2] = getDepositAction(_token, _amount.add(2));
         DYDXDataTypes.AccountInfo[]
@@ -151,7 +121,6 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         soloMargin.operate(accountInfos, operations);
     }
 
-    /// @dev DYDX flash loan callback. It sends the value borrowed to `receiver`, and takes it back plus a `flashFee` after the ERC3156 callback.
     function callFunction(
         address _sender,
         DYDXDataTypes.AccountInfo memory,

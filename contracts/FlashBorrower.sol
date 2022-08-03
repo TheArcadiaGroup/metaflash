@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.5.0;
+pragma solidity ^0.8.0;
 
 import "./libraries/SafeMath.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IFlashLender.sol";
+import "hardhat/console.sol";
 
 contract FlashBorrower is IERC3156FlashBorrower {
     using SafeMath for uint256;
@@ -65,16 +65,17 @@ contract FlashBorrower is IERC3156FlashBorrower {
     function flashBorrowWithManyProviders(
         IFlashLender lender,
         address token,
-        uint256 amount
+        uint256 amount,
+        uint256 minAmount
     ) public {
         uint256 _allowance = IERC20(token).allowance(
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFeeWithManyProviders(token, amount);
+        uint256 _fee = lender.flashFeeWithManyProviders(token, amount, minAmount);
         uint256 _repayment = amount.add(_fee);
-        IERC20(token).approve(address(lender), _allowance.add(_repayment));
+        IERC20(token).approve(address(lender), _allowance.add(_repayment).add(1));
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoanWithManyProviders(this, token, amount, data);
+        lender.flashLoanWithManyProviders(this, token, amount, data, minAmount);
     }
 }
