@@ -61,11 +61,51 @@ describe('FlashLoan', () => {
     const MultiplierFlashLenderInstance = await MultiplierFlashLender.deploy(config[chainId].multiplier.LendingPool);
     let multiplierLender = await MultiplierFlashLenderInstance.deployed();
 
+    // pancakeswap
+    const PancakeswapFlashLender = await ethers.getContractFactory("PancakeswapFlashLender")
+    const PancakeswapFlashLenderInstance = await PancakeswapFlashLender.deploy();
+    let pancakeswapLender = await PancakeswapFlashLenderInstance.deployed();
+
+    const rawPairsInfo_pancakeswap = fs.readFileSync('./config/pancakeswappair.json');
+    const pairsInfo_pancakeswap = JSON.parse(rawPairsInfo_pancakeswap);
+    const pairsInfoLength_pancakeswap = Object.keys(pairsInfo_pancakeswap).length;
+
+    let tokens0_pancakeswap = []
+    let tokens1_pancakeswap = []
+    let pairs_pancakeswap = []
+
+    for (let i = 1; i <= pairsInfoLength_pancakeswap; i++) {
+      tokens0_pancakeswap.push(pairsInfo_pancakeswap[i].tokens0);
+      tokens1_pancakeswap.push(pairsInfo_pancakeswap[i].tokens1);
+      pairs_pancakeswap.push(pairsInfo_pancakeswap[i].pairs);
+    }
+
+    await pancakeswapLender.addPairs(tokens0_pancakeswap, tokens1_pancakeswap, pairs_pancakeswap);
+
+    //creamfinance
+    const CreamFinanceFlashLender = await ethers.getContractFactory("CreamFinanceFlashLender")
+    const CreamFinanceFlashLenderInstance = await CreamFinanceFlashLender.deploy(owner.address);
+    let creamfinanceLender = await CreamFinanceFlashLenderInstance.deployed();
+
+    const rawCtoken_creamfinance = fs.readFileSync('./config/creamfinancectoken.json');
+    const ctokenInfo_creamfinance = JSON.parse(rawCtoken_creamfinance);
+    const ctokenInfoLength_creamfinance = Object.keys(ctokenInfo_creamfinance).length;
+
+    let ctoken_creamfinance = []
+    let underlying_creamfinance = []
+
+    for (let i = 1; i <= ctokenInfoLength_creamfinance; i++) {
+      ctoken_creamfinance.push(ctokenInfo_creamfinance[i].ctoken);
+      underlying_creamfinance.push(ctokenInfo_creamfinance[i].underlying);
+    }
+
+    await creamfinanceLender.addCTokens(ctoken_creamfinance, underlying_creamfinance);
+
     // FlashLoan
     const FlashLender = await ethers.getContractFactory('FlashLender');
     flashlender = await FlashLender.deploy(feeTo.address);
 
-    await flashlender.addProviders([fortubeLender.address]);
+    await flashlender.addProviders([creamfinanceLender.address]);
 
     // Borrower
     const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
@@ -87,13 +127,13 @@ describe('FlashLoan', () => {
   });
 
   it('flash supply', async function () {
-    [maxloans, feeOn1e18s, feeOnMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(busd.address, 1, { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(busd.address, 1, { gasLimit: 30000000 });
 
     let maxloan = BigNumber.from(0);
     for (let i = 0; i < maxloans.length; i++) {
       console.log("maxloans", maxloans[i].toString());
-      console.log("feeOn1e18s", feeOn1e18s[i].toString());
-      console.log("feeOnMaxLoans", feeOnMaxLoans[i].toString());
+      console.log("fee1e18s", fee1e18s[i].toString());
+      console.log("feeMaxLoans", feeMaxLoans[i].toString());
       maxloan = maxloan.add(maxloans[i]);
     }
 
@@ -106,24 +146,24 @@ describe('FlashLoan', () => {
   });
 
   it('flash fee', async function () {
-    [maxloans, feeOn1e18s, feeOnMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(busd.address, 1, { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(busd.address, 1, { gasLimit: 30000000 });
 
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
-    for (let i = 0; i < feeOnMaxLoans.length; i++) {
+    for (let i = 0; i < feeMaxLoans.length; i++) {
       console.log("maxloans", maxloans[i].toString());
-      console.log("feeOn1e18s", feeOn1e18s[i].toString());
-      console.log("feeOnMaxLoans", feeOnMaxLoans[i].toString());
-      fee = fee.add(feeOnMaxLoans[i]);
+      console.log("fee1e18s", fee1e18s[i].toString());
+      console.log("feeMaxLoans", feeMaxLoans[i].toString());
+      fee = fee.add(feeMaxLoans[i]);
       maxloan = maxloan.add(maxloans[i]);
     }
 
     let busdFeecheapest = await flashlender.flashFeeWithCheapestProvider(busd.address, maxloans[0]);
     console.log("daifeecheapest", busdFeecheapest.toString());
-    expect(feeOnMaxLoans[0]).to.equal(busdFeecheapest);
+    expect(feeMaxLoans[0]).to.equal(busdFeecheapest);
     let busdFee = await flashlender.flashFeeWithManyProviders(busd.address, maxloan, 1);
     console.log("daifee", busdFee.toString());
-    expect(fee).to.equal(busdFee);
+    expect(fee.add(maxloans.length)).to.equal(busdFee);
   });
 
   it('flashLoanWithCheapestProvider', async () => {
@@ -141,15 +181,15 @@ describe('FlashLoan', () => {
   });
 
   it('flashLoanWithManyProviders', async () => {
-    [maxloans, feeOn1e18s, feeOnMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(busd.address, 1, { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(busd.address, 1, { gasLimit: 30000000 });
 
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
-    for (let i = 0; i < feeOnMaxLoans.length; i++) {
+    for (let i = 0; i < feeMaxLoans.length; i++) {
       console.log("maxloans", maxloans[i].toString());
-      console.log("feeOn1e18s", feeOn1e18s[i].toString());
-      console.log("feeOnMaxLoans", feeOnMaxLoans[i].toString());
-      fee = fee.add(feeOnMaxLoans[i]);
+      console.log("fee1e18s", fee1e18s[i].toString());
+      console.log("feeMaxLoans", feeMaxLoans[i].toString());
+      fee = fee.add(feeMaxLoans[i]);
       maxloan = maxloan.add(maxloans[i]);
     }
     const maxloanWithManyProviders = await flashlender.maxFlashLoanWithManyProviders(busd.address, 1, { gasLimit: 30000000 });
@@ -163,8 +203,8 @@ describe('FlashLoan', () => {
     const totalFlashBalanceWithManyProviders = await flashborrower.totalFlashBalance();
     console.log("totalFlashBalanceWithManyProviders", totalFlashBalanceWithManyProviders.toString());
     console.log("maxloanWithManyProviders.add(feeWithManyProviders)", maxloanWithManyProviders.add(feeWithManyProviders).toString());
-    expect(totalFlashBalanceWithManyProviders).to.lte(maxloanWithManyProviders.add(feeWithManyProviders).add(maxloans.length));
-    expect(totalFlashBalanceWithManyProviders).to.gte(maxloanWithManyProviders.add(feeWithManyProviders).sub(maxloans.length));
+    expect(totalFlashBalanceWithManyProviders).to.lte(maxloanWithManyProviders.add(feeWithManyProviders));
+    expect(totalFlashBalanceWithManyProviders).to.gte(maxloanWithManyProviders.add(feeWithManyProviders).sub(maxloans.length).sub(maxloans.length));
     const balanceAfterFeeToWithManyProviders = await busd.balanceOf(feeTo.address);
     expect(balanceAfterFeeToWithManyProviders.sub(balanceBeforeFeeToWithManyProviders)).to.lte(maxloanWithManyProviders.mul(5).div(1000).add(maxloans.length));
     expect(balanceAfterFeeToWithManyProviders.sub(balanceBeforeFeeToWithManyProviders)).to.gte(maxloanWithManyProviders.mul(5).div(1000).sub(maxloans.length));

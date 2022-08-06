@@ -24,58 +24,58 @@ contract FlashBorrower is IERC3156FlashBorrower {
     uint256 public totalFlashBalance;
 
     function onFlashLoan(
-        address sender,
-        address token,
-        uint256 amount,
-        uint256 fee,
-        bytes calldata data
+        address _sender,
+        address _token,
+        uint256 _amount,
+        uint256 _fee,
+        bytes calldata _data
     ) external returns (bytes32) {
         require(
-            sender == address(this),
+            _sender == address(this),
             "FlashBorrower: sender must be this contract"
         );
-        Action action = abi.decode(data, (Action)); 
-        flashSender = sender;
-        flashToken = token;
-        flashAmount = amount;
-        flashFee = fee;
+        Action action = abi.decode(_data, (Action)); 
+        flashSender = _sender;
+        flashToken = _token;
+        flashAmount = _amount;
+        flashFee = _fee;
         if (action == Action.NORMAL) {
-            flashBalance = IERC20(token).balanceOf(address(this));
-            totalFlashBalance = totalFlashBalance.add(amount).add(fee);
+            flashBalance = IERC20(_token).balanceOf(address(this));
+            totalFlashBalance = totalFlashBalance.add(_amount).add(_fee);
         }
         return CALLBACK_SUCCESS;
     }
 
     function flashBorrowWithCheapestProvider(
-        IFlashLender lender,
-        address token,
-        uint256 amount
+        IFlashLender _lender,
+        address _token,
+        uint256 _amount
     ) public {
-        uint256 _allowance = IERC20(token).allowance(
+        uint256 allowance = IERC20(_token).allowance(
             address(this),
-            address(lender)
+            address(_lender)
         );
-        uint256 _fee = lender.flashFeeWithCheapestProvider(token, amount);
-        uint256 _repayment = amount.add(_fee);
-        IERC20(token).approve(address(lender), _allowance.add(_repayment));
+        uint256 _fee = _lender.flashFeeWithCheapestProvider(_token, _amount);
+        uint256 repayment = _amount.add(_fee);
+        IERC20(_token).approve(address(_lender), allowance.add(repayment));
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoanWithCheapestProvider(this, token, amount, data);
+        _lender.flashLoanWithCheapestProvider(this, _token, _amount, data);
     }
 
     function flashBorrowWithManyProviders(
-        IFlashLender lender,
-        address token,
-        uint256 amount,
-        uint256 minAmount
+        IFlashLender _lender,
+        address _token,
+        uint256 _amount,
+        uint256 _minAmount
     ) public {
-        uint256 _allowance = IERC20(token).allowance(
+        uint256 allowance = IERC20(_token).allowance(
             address(this),
-            address(lender)
+            address(_lender)
         );
-        uint256 _fee = lender.flashFeeWithManyProviders(token, amount, minAmount);
-        uint256 _repayment = amount.add(_fee);
-        IERC20(token).approve(address(lender), _allowance.add(_repayment).add(1));
+        uint256 fee = _lender.flashFeeWithManyProviders(_token, _amount, _minAmount);
+        uint256 repayment = _amount.add(fee);
+        IERC20(_token).approve(address(_lender), allowance.add(repayment));
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoanWithManyProviders(this, token, amount, data, minAmount);
+        _lender.flashLoanWithManyProviders(this, _token, _amount, data, _minAmount);
     }
 }

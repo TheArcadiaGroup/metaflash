@@ -182,13 +182,13 @@ describe('FlashLoan', () => {
   });
 
   it('flash supply', async function () {
-    [maxloans, feeOn1e18s, feeOnMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
 
     let maxloan = BigNumber.from(0);
     for (let i = 0; i < maxloans.length; i++) {
       console.log("maxloans", maxloans[i].toString());
-      console.log("feeOn1e18s", feeOn1e18s[i].toString());
-      console.log("feeOnMaxLoans", feeOnMaxLoans[i].toString());
+      console.log("fee1e18s", fee1e18s[i].toString());
+      console.log("feeMaxLoans", feeMaxLoans[i].toString());
       maxloan = maxloan.add(maxloans[i]);
     }
 
@@ -201,27 +201,29 @@ describe('FlashLoan', () => {
   });
 
   it('flash fee', async function () {
-    [maxloans, feeOn1e18s, feeOnMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
 
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
-    for (let i = 0; i < feeOnMaxLoans.length; i++) {
+    for (let i = 0; i < feeMaxLoans.length; i++) {
       console.log("maxloans", maxloans[i].toString());
-      console.log("feeOn1e18s", feeOn1e18s[i].toString());
-      console.log("feeOnMaxLoans", feeOnMaxLoans[i].toString());
-      fee = fee.add(feeOnMaxLoans[i]);
+      console.log("fee1e18s", fee1e18s[i].toString());
+      console.log("feeMaxLoans", feeMaxLoans[i].toString());
+      fee = fee.add(feeMaxLoans[i]);
       maxloan = maxloan.add(maxloans[i]);
     }
 
     let daifeecheapest = await flashlender.flashFeeWithCheapestProvider(dai.address, maxloans[0]);
     console.log("daifeecheapest", daifeecheapest.toString());
-    expect(feeOnMaxLoans[0]).to.equal(daifeecheapest);
+    expect(feeMaxLoans[0]).to.equal(daifeecheapest);
     let daifee = await flashlender.flashFeeWithManyProviders(dai.address, maxloan, 1);
     console.log("daifee", daifee.toString());
-    expect(fee).to.equal(daifee);
+    expect(fee.add(maxloans.length)).to.equal(daifee);
   });
 
   it('flashLoanWithCheapestProvider', async () => {
+    beforeETH = await ethers.provider.getBalance(user.address);
+
     const maxloanWithCheapestProvider = await flashlender.maxFlashLoanWithCheapestProvider(weth.address, 1, { gasLimit: 30000000 });
     const feeWithCheapestProvider = await flashlender.flashFeeWithCheapestProvider(weth.address, maxloanWithCheapestProvider, { gasLimit: 30000000 });
     const balanceBeforeFeeToWithCheapestProvider = await weth.balanceOf(feeTo.address);
@@ -233,18 +235,25 @@ describe('FlashLoan', () => {
     expect(totalFlashBalanceWithCheapestProvider).to.equal(maxloanWithCheapestProvider.add(feeWithCheapestProvider));
     const balanceAfterFeeToWithCheapestProvider = await weth.balanceOf(feeTo.address);
     expect(balanceAfterFeeToWithCheapestProvider.sub(balanceBeforeFeeToWithCheapestProvider)).to.equal(maxloanWithCheapestProvider.mul(5).div(1000));
+    
+    afterETH = await ethers.provider.getBalance(user.address);
+    console.log("afterETH", afterETH.toString());
+    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
+    console.log("feeETH", feeETH.toString());
   });
 
   it('flashLoanWithManyProviders', async () => {
-    [maxloans, feeOn1e18s, feeOnMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+    beforeETH = await ethers.provider.getBalance(user.address);
+
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
 
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
-    for (let i = 0; i < feeOnMaxLoans.length; i++) {
+    for (let i = 0; i < feeMaxLoans.length; i++) {
       console.log("maxloans", maxloans[i].toString());
-      console.log("feeOn1e18s", feeOn1e18s[i].toString());
-      console.log("feeOnMaxLoans", feeOnMaxLoans[i].toString());
-      fee = fee.add(feeOnMaxLoans[i]);
+      console.log("fee1e18s", fee1e18s[i].toString());
+      console.log("feeMaxLoans", feeMaxLoans[i].toString());
+      fee = fee.add(feeMaxLoans[i]);
       maxloan = maxloan.add(maxloans[i]);
     }
     const maxloanWithManyProviders = await flashlender.maxFlashLoanWithManyProviders(dai.address, 1, { gasLimit: 30000000 });
@@ -258,10 +267,15 @@ describe('FlashLoan', () => {
     const totalFlashBalanceWithManyProviders = await flashborrower.totalFlashBalance();
     console.log("totalFlashBalanceWithManyProviders", totalFlashBalanceWithManyProviders.toString());
     console.log("maxloanWithManyProviders.add(feeWithManyProviders)", maxloanWithManyProviders.add(feeWithManyProviders).toString());
-    expect(totalFlashBalanceWithManyProviders).to.lte(maxloanWithManyProviders.add(feeWithManyProviders).add(maxloans.length));
-    expect(totalFlashBalanceWithManyProviders).to.gte(maxloanWithManyProviders.add(feeWithManyProviders).sub(maxloans.length));
+    expect(totalFlashBalanceWithManyProviders).to.lte(maxloanWithManyProviders.add(feeWithManyProviders));
+    expect(totalFlashBalanceWithManyProviders).to.gte(maxloanWithManyProviders.add(feeWithManyProviders).sub(maxloans.length).sub(maxloans.length));
     const balanceAfterFeeToWithManyProviders = await dai.balanceOf(feeTo.address);
     expect(balanceAfterFeeToWithManyProviders.sub(balanceBeforeFeeToWithManyProviders)).to.lte(maxloanWithManyProviders.mul(5).div(1000).add(maxloans.length));
     expect(balanceAfterFeeToWithManyProviders.sub(balanceBeforeFeeToWithManyProviders)).to.gte(maxloanWithManyProviders.mul(5).div(1000).sub(maxloans.length));
+
+    afterETH = await ethers.provider.getBalance(user.address);
+    console.log("afterETH", afterETH.toString());
+    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
+    console.log("feeETH", feeETH.toString());
   });
 });

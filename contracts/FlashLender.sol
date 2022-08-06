@@ -197,7 +197,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         address _token,
         uint256 _minAmount
     )
-        external
+        public
         view
         returns (
             uint256[] memory,
@@ -209,21 +209,21 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             address[] memory providers,
             address[] memory pools,
             uint256[] memory maxloans,
-            uint256[] memory feesOn1e18s
+            uint256[] memory feePer1e18s
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
 
         require(providers.length > 0, "FlashLender: Found no providers");
 
         for (uint256 i = 0; i < maxloans.length; i++) {
-            feesOn1e18s[i] = feesOn1e18s[i].add(_additionalFee(1e18));
+            feePer1e18s[i] = feePer1e18s[i].add(_additionalFee(1e18));
         }
 
-        uint256[] memory feeOnMaxLoans = new uint256[](maxloans.length);
+        uint256[] memory feePerMaxLoans = new uint256[](maxloans.length);
         for (uint256 i = 0; i < maxloans.length; i++) {
-            feeOnMaxLoans[i] = _fee(providers[i], pools[i], _token, maxloans[i]);
+            feePerMaxLoans[i] = _fee(providers[i], pools[i], _token, maxloans[i]);
         }
 
-        return (maxloans, feesOn1e18s, feeOnMaxLoans);
+        return (maxloans, feePer1e18s, feePerMaxLoans);
     }
 
     // get the cheapest provider with maxFlashLoan >= _amount
@@ -343,8 +343,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             }
         }
 
-        // return fee.add(providerCount);
-        return fee;
+        return fee.add(providerCount);
     }
 
     function _fee(
@@ -490,13 +489,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         );
         uint256 payment = _amount.add(totalFee);
 
-        console.log("_fee", _fee);
-        console.log("totalFee", totalFee);
-        console.log("_amount", _amount);
-        console.log(
-            "address(receiver)",
-            IERC20(_token).balanceOf(address(receiver))
-        );
         require(
             IERC20(_token).transferFrom(
                 address(receiver),

@@ -88,26 +88,46 @@ contract CreamFinanceFlashLender is
         return true;
     }
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
         external
+        view
+        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+    {
+        address[] memory pools = new address[](1);
+        uint256[] memory maxloans = new uint256[](1);
+        uint256[] memory fees = new uint256[](1);
+
+        address ctoken = _getCtoken(_token);
+        uint256 maxloan = ICToken(ctoken).maxFlashLoan(_token);
+
+        if (maxloan >= _amount) {
+            pools[0] = address(0);
+            maxloans[0] = maxloan;
+            fees[0] = ICToken(ctoken).flashFee(_token, 1e18);
+
+            return (pools, maxloans, fees);
+        } else {
+            pools[0] = address(0);
+            maxloans[0] = uint256(0);
+            fees[0] = uint256(0);
+
+            return (pools, maxloans, fees);
+        }
+    }
+
+    function flashFee(address _pair, address _token, uint256 _amount)
+        public
         view
         returns (uint256)
     {
-        return _maxFlashLoan(_token, _amount);
+        address ctoken = _getCtoken(_token);
+        return ICToken(ctoken).flashFee(_token, _amount);
     }
 
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        returns (uint256)
-    {
-        return _maxFlashLoan(_token, 1);
-    }
-
-    function _maxFlashLoan(address _token, uint256 _amount)
+    function _getCtoken(address _token)
         internal
         view
-        returns (uint256)
+        returns (address)
     {
         address ctoken;
         for (uint256 i = 0; i < ctokens.length; i++) {
@@ -116,70 +136,17 @@ contract CreamFinanceFlashLender is
             }
         }
 
-        uint256 maxloan = ICToken(ctoken).maxFlashLoan(_token);
-
-        if (maxloan >= _amount) {
-            return maxloan;
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFee(address _token, uint256 _amount)
-        public
-        view
-        returns (uint256)
-    {
-        address ctoken;
-        for (uint256 i = 0; i < ctokens.length; i++) {
-            if (ctokens[i].underlying == _token) {
-                ctoken = ctokens[i].ctoken;
-            }
-        }
-        uint256 maxloan = ICToken(ctoken).maxFlashLoan(_token);
-        if (maxloan >= _amount) {
-            return ICToken(ctoken).flashFee(_token, _amount);
-        } else {
-            return 0;
-        }
-    }
-
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-        public
-        view
-        returns (uint256)
-    {
-        address ctoken;
-        for (uint256 i = 0; i < ctokens.length; i++) {
-            if (ctokens[i].underlying == _token) {
-                ctoken = ctokens[i].ctoken;
-            }
-        }
-        uint256 maxloan = ICToken(ctoken).maxFlashLoan(_token);
-        if (maxloan > 0) {
-            return ICToken(ctoken).flashFee(_token, _amount);
-        } else {
-            return 0;
-        }
+        return ctoken;
     }
 
     function flashLoan(
+        address _pair,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes calldata _userData
+        bytes calldata _data
     ) external returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
-        return true;
-    }
-
-    function flashLoanWithManyPairs_OR_ManyPools(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes calldata _userData
-    ) external returns (bool) {
-        _flashLoan(_receiver, _token, _amount, _userData);
+        _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }
 
@@ -189,14 +156,9 @@ contract CreamFinanceFlashLender is
         uint256 _amount,
         bytes memory _data
     ) internal {
-        address ctoken;
-        for (uint256 i = 0; i < ctokens.length; i++) {
-            if (ctokens[i].underlying == _token) {
-                ctoken = ctokens[i].ctoken;
-            }
-        }
-
+        address ctoken = _getCtoken(_token);
         bytes memory data = abi.encode(ctoken, msg.sender, _receiver, _data);
+
         ICToken(ctoken).flashLoan(this, _token, _amount, data);
     }
 
