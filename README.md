@@ -161,33 +161,33 @@ IERC3156FlashBorrower.sol
    
     2.a Get maxloan of the cheapest provider which has maxloan >= 1000 DAI
 
-        maxFlashLoanWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000")
+        maxFlashLoanWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000");
         --> return: 250000000.000000000000000000 DAI
     
     2.b Get the cheapest fee of 250000000 DAI
 
-        flashFeeWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000")
+        flashFeeWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000");
         --> return: 1250000.000000000000000000 DAI
 
     2.c Borrow 250000000 DAI on the cheapest provider
-
-        flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000")
+        bytes memory data = abi.encode("test");
+        flashLoanWithCheapestProvider(address(FlashLender), "0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000", data);
 
 3. If you want to borrow on many providers:
    
     3.a Get maxloan of many providers which have maxloan >= 1000 DAI
 
-        maxFlashLoanWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000")
+        maxFlashLoanWithManyProviders("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000");
         --> return: 1561640514.396367875356244897 DAI
     
     3.b Get the cheapest fee of 1561640514.396367875356244897 DAI
 
-        flashFeeWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897")
+        flashFeeWithManyProviders("0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897", "1000000000000000000000");
         --> return: 8694933.980543179519311289 DAI
     
     3.c Borrow 1561640514.396367875356244897 DAI on many providers
-
-        flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897", "1000000000000000000000")
+        bytes memory data = abi.encode("test");
+        flashLoanWithManyProviders(address(FlashLender), "0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897", data, "1000000000000000000000");
 
 ## Explanation of Flashlender's functions
 
