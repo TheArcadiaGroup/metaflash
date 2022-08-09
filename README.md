@@ -2,7 +2,7 @@
 
 ## Execute flashloan
 
-A. Implement FlashBorrower.sol to execute flashloan
+Implement FlashBorrower.sol to execute flashloan
 
 FlashBorrower.sol
 
@@ -135,9 +135,9 @@ IERC3156FlashBorrower.sol
         ) external returns (bytes32);
     }
 
-B. Examples for calling FlashLender's function
+## Examples for executing FlashLender's functions
 
-1. if you don't know how many tokens or how much fee that you want to borrow, you should use getFlashLoanInfoListWithCheaperFeePriority to  get flashloan information list of providers in #writeContract of etherscan.io.
+1. if you don't know how much maxloan/fee to use flashLoanWithCheapestProvider or  flashLoanWithManyProviders, you should use getFlashLoanInfoListWithCheaperFeePriority to get flashloan information list of providers in #writeContract of etherscan.io.
    
     If you want to get a flashloan information list(maxloan, fee1e18, feemaxloan)(explain in "Explanation of Flashlender's functions") of providers having maxloan of DAI token >= 1000 DAI as below:
 
@@ -156,8 +156,6 @@ B. Examples for calling FlashLender's function
         - maxloan[21]: 205787945408162232501371
         - fee1e18[21]: 8009027081243732
         - feemaxloan[21]: 1648161227767477860103
-
-    Basing on the result, you can choose a suitable flashloan: flashLoanWithCheapestProvider or flashLoanWithManyProviders
 
 2. If you want to borrow on the cheapest provider:
    
@@ -191,7 +189,7 @@ B. Examples for calling FlashLender's function
 
         flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897", "1000000000000000000000")
 
-## Explanation of Flashlender's functions:
+## Explanation of Flashlender's functions
 
 1. getFlashLoanInfoListWithCheaperFeePriority:
 
