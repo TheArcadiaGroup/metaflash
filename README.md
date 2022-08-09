@@ -1,7 +1,141 @@
 # metaflash
 
-## Steps for executing flashloan
-(Note: Following examples are on ethereum network)
+## Execute flashloan
+
+A. Implement FlashBorrower.sol to execute flashloan
+
+FlashBorrower.sol
+
+    pragma solidity ^0.8.0;
+
+    import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+    import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+    import "./interfaces/IFlashLender.sol";
+
+    contract FlashBorrower is IERC3156FlashBorrower {
+        using SafeMath for uint256;
+
+        enum Action {
+            NORMAL,
+            REENTER
+        }
+
+        bytes32 public constant CALLBACK_SUCCESS =
+            keccak256("ERC3156FlashBorrower.onFlashLoan");
+
+        function onFlashLoan(
+            address _sender,
+            address _token,
+            uint256 _amount,
+            uint256 _fee,
+            bytes calldata _data
+        ) external returns (bytes32) {
+            require(
+                _sender == address(this),
+                "FlashBorrower: sender must be this contract"
+            );
+
+            Action action = abi.decode(_data, (Action)); 
+
+            if (action == Action.NORMAL) {
+                // ****** IMPLEMENT HERE ******
+            }
+            return CALLBACK_SUCCESS;
+        }
+
+        function flashBorrowWithCheapestProvider(
+            IFlashLender _lender,
+            address _token,
+            uint256 _amount
+        ) public {
+            uint256 allowance = IERC20(_token).allowance(
+                address(this),
+                address(_lender)
+            );
+            uint256 _fee = _lender.flashFeeWithCheapestProvider(_token, _amount);
+            uint256 repayment = _amount.add(_fee);
+            IERC20(_token).approve(address(_lender), allowance.add(repayment));
+            bytes memory data = abi.encode(Action.NORMAL);
+            _lender.flashLoanWithCheapestProvider(this, _token, _amount, data);
+        }
+
+        function flashBorrowWithManyProviders(
+            IFlashLender _lender,
+            address _token,
+            uint256 _amount,
+            uint256 _minAmount
+        ) public {
+            uint256 allowance = IERC20(_token).allowance(
+                address(this),
+                address(_lender)
+            );
+            uint256 fee = _lender.flashFeeWithManyProviders(_token, _amount, _minAmount);
+            uint256 repayment = _amount.add(fee);
+            IERC20(_token).approve(address(_lender), allowance.add(repayment));
+            bytes memory data = abi.encode(Action.NORMAL);
+            _lender.flashLoanWithManyProviders(this, _token, _amount, data, _minAmount);
+        }
+    }
+
+IFlashLender.sol
+
+    pragma solidity ^0.8.0;
+
+    import "./IERC3156FlashBorrower.sol";
+
+    interface IFlashLender {
+        function maxFlashLoanWithCheapestProvider(
+            address token,
+            uint256 minAmount
+        ) external view returns (uint256);
+
+        function flashFeeWithCheapestProvider(
+            address token,
+            uint256 minAmount
+        ) external view returns (uint256);
+
+        function flashLoanWithCheapestProvider(
+            IERC3156FlashBorrower receiver,
+            address token,
+            uint256 amount,
+            bytes calldata data
+        ) external returns (bool);
+
+        function maxFlashLoanWithManyProviders(
+            address token,
+            uint256 minAmount
+        ) external view returns (uint256);
+
+        function flashFeeWithManyProviders(
+            address token,
+            uint256 amount,
+            uint256 minAmount
+        ) external view returns (uint256);
+
+        function flashLoanWithManyProviders(
+            IERC3156FlashBorrower receiver,
+            address token,
+            uint256 amount,
+            bytes calldata data,
+            uint256 minAmount
+        ) external returns (bool);
+    }
+
+IERC3156FlashBorrower.sol
+
+    pragma solidity ^0.8.0;
+
+    interface IERC3156FlashBorrower {
+        function onFlashLoan(
+            address initiator,
+            address token,
+            uint256 amount,
+            uint256 fee,
+            bytes calldata data
+        ) external returns (bytes32);
+    }
+
+B. Examples for calling FlashLender's function
 
 1. if you don't know how many tokens or how much fee that you want to borrow, you should use getFlashLoanInfoListWithCheaperFeePriority to  get flashloan information list of providers in #writeContract of etherscan.io.
    
@@ -30,34 +164,32 @@
     2.a Get maxloan of the cheapest provider which has maxloan >= 1000 DAI
 
         maxFlashLoanWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000")
-        --> return: 250000000000000000000000000
+        --> return: 250000000.000000000000000000 DAI
     
     2.b Get the cheapest fee of 250000000 DAI
 
         flashFeeWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000")
-        --> return: 1250000000000000000000000
-    
+        --> return: 1250000.000000000000000000 DAI
+
     2.c Borrow 250000000 DAI on the cheapest provider
 
-        flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000"
+        flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000")
 
 3. If you want to borrow on many providers:
    
     3.a Get maxloan of many providers which have maxloan >= 1000 DAI
 
         maxFlashLoanWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000")
-        --> return: 1561640514396367875356244897
+        --> return: 1561640514.396367875356244897 DAI
     
     3.b Get the cheapest fee of 1561640514.396367875356244897 DAI
 
         flashFeeWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897")
-        --> return: 8694933980543179519311289
+        --> return: 8694933.980543179519311289 DAI
     
     3.c Borrow 1561640514.396367875356244897 DAI on many providers
 
         flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897", "1000000000000000000000")
-
-
 
 ## Explanation of Flashlender's functions:
 
