@@ -137,7 +137,7 @@ IERC3156FlashBorrower.sol
 
 ## Examples for executing FlashLender's functions
 
-1. if you don't know how much maxloan/fee to use flashLoanWithCheapestProvider or  flashLoanWithManyProviders, you should use getFlashLoanInfoListWithCheaperFeePriority to get flashloan information list of providers in #writeContract of etherscan.io.
+1. if you don't know how much maxloan/fee to use flashLoanWithCheapestProvider or  flashLoanWithManyProviders, you should use getFlashLoanInfoListWithCheaperFeePriority to get flashloan information list of providers.
    
     If you want to get a flashloan information list(maxloan, fee1e18, feemaxloan)(explain in "Explanation of Flashlender's functions") of providers having maxloan of DAI token >= 1000 DAI as below:
 
