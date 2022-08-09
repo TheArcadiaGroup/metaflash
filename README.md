@@ -1,37 +1,65 @@
 # metaflash
 
-Explanation of functions:
+## Steps for executing flashloan
+(Note: Following examples are on ethereum network)
 
-A. FlashBorrower
+1. if you don't know how many tokens or how much fee that you want to borrow, you should use getFlashLoanInfoListWithCheaperFeePriority to  get flashloan information list of providers in #writeContract of etherscan.io.
+   
+    If you want to get a flashloan information list(maxloan, fee1e18, feemaxloan)(explain in "Explanation of Flashlender's functions") of providers having maxloan of DAI token >= 1000 DAI as below:
 
-1. flashBorrowWithCheapestProvider: 
+        getFlashLoanInfoListWithCheaperFeePriority("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000")
 
-	To execute flashBorrow on the provider which has maxloan >= _amount and has the cheapest fee
-	- Inputs: 
+        - maxloan[0]: 250000000000000000000000000
+        - fee1e18[0]: 5000000000000000
+        - feemaxloan[0]: 1250000000000000000000000
   
-		IFlashLender _lender    : FlashLender
-
-	    address _token          : Borrowing token
-
-	    uint256 _amount         : Number of tokens to borrow
-
-2. flashBorrowWithManyProviders: 
-
-	To execute flashBorrow on many providers which have maxloan >= _minAmount and have cheaper fee.
-	When using this function, onFlashLoan function in FlashBorrower will be executed many times beacause of calling many providers. So, only use this function if the onFlashLoan can work independently when calling many times for each flashloan
-
-	- Inputs: 
+        - maxloan[1]: 34666573213559721749534644
+        - fee1e18[1]: 5000000000000000
+        - feemaxloan[1]: 173332866067798608747673
   
-		IFlashLender _lender    : FlashLender
+        ...
 
-	    address _token          : Borrowing token
+        - maxloan[21]: 205787945408162232501371
+        - fee1e18[21]: 8009027081243732
+        - feemaxloan[21]: 1648161227767477860103
 
-	    uint256 _amount         : Number of tokens to borrow
+    Basing on the result, you can choose a suitable flashloan: flashLoanWithCheapestProvider or flashLoanWithManyProviders
 
-	    uint256 _minAmount      : Minimum amount
+2. If you want to borrow on the cheapest provider:
+   
+    2.a Get maxloan of the cheapest provider which has maxloan >= 1000 DAI
+
+        maxFlashLoanWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000")
+        --> return: 250000000000000000000000000
+    
+    2.b Get the cheapest fee of 250000000 DAI
+
+        flashFeeWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000")
+        --> return: 1250000000000000000000000
+    
+    2.c Borrow 250000000 DAI on the cheapest provider
+
+        flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "250000000000000000000000000"
+
+3. If you want to borrow on many providers:
+   
+    3.a Get maxloan of many providers which have maxloan >= 1000 DAI
+
+        maxFlashLoanWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1000000000000000000000")
+        --> return: 1561640514396367875356244897
+    
+    3.b Get the cheapest fee of 1561640514.396367875356244897 DAI
+
+        flashFeeWithCheapestProvider("0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897")
+        --> return: 8694933980543179519311289
+    
+    3.c Borrow 1561640514.396367875356244897 DAI on many providers
+
+        flashLoanWithCheapestProvider(FlashLender.address, "0x6b175474e89094c44da98b954eedeac495271d0f", "1561640514396367875356244897", "1000000000000000000000")
 
 
-B. Flashlender
+
+## Explanation of Flashlender's functions:
 
 1. getFlashLoanInfoListWithCheaperFeePriority:
 
