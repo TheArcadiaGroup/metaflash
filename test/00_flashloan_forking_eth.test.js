@@ -14,6 +14,8 @@ describe('FlashLoan', () => {
   let flashlender, flashborrower, pairPoolDAICount, pairPoolETHCount;
   const chainId = chainIdByName(network.name);
   console.log("chainId", chainId);
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+  const ONE_ADDRESS = '0x1111111111111111111111111111111111111111'
 
   beforeEach(async () => {
     [owner, user, feeTo] = await ethers.getSigners();
@@ -181,15 +183,59 @@ describe('FlashLoan', () => {
     expect(await flashlender.FEETO()).to.equal(user.address);
   });
 
-  it('flash supply', async function () {
-    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+  it("add/removeProviders", async function () {
+    //add
+    await expect(flashlender.connect(user).addProviders([ONE_ADDRESS])).to.revertedWith('FlashLender: Not factory');
+    await expect(flashlender.addProviders([ZERO_ADDRESS])).to.revertedWith('FlashLender: provider address is zero address!');
+
+    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    await flashlender.addProviders([ONE_ADDRESS]);
+    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    await expect(beforeProviderLength.add(1)).eq(afterProviderLength);
+
+    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    await flashlender.addProviders([ONE_ADDRESS]);
+    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    await expect(beforeProviderLength).eq(afterProviderLength);
+
+    //remove
+    await expect(flashlender.connect(user).removeProviders([ONE_ADDRESS])).to.revertedWith('FlashLender: Not factory');
+
+    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    await flashlender.removeProviders([ONE_ADDRESS]);
+    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    await expect(beforeProviderLength).eq(afterProviderLength.add(1));
+
+    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    await flashlender.removeProviders([ONE_ADDRESS]);
+    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    await expect(beforeProviderLength).eq(afterProviderLength);
+
+  });
+
+  it('getFlashLoanInfoListWithCheaperFeePriority', async function () {
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, "1000000000000000000000", { gasLimit: 30000000 });
+    console.log("maxloans.length", maxloans.length);
+    if(maxloans.length > 1){
+      for (let i = 0; i < maxloans.length - 1 ; i++) {
+        expect(fee1e18s[i]).to.lte(fee1e18s[i+1]);
+        if(fee1e18s[i] == fee1e18s[i+1]){
+          expect(maxloans[i]).to.gte(maxloans[i+1]);
+        }
+      }
+    }
+  });
+
+  it('maxFlashLoan', async function () {
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, "1000000000000000000000", { gasLimit: 30000000 });
 
     let maxloan = BigNumber.from(0);
+    let max = BigNumber.from(0);
     for (let i = 0; i < maxloans.length; i++) {
-      console.log("maxloans", maxloans[i].toString());
-      console.log("fee1e18s", fee1e18s[i].toString());
-      console.log("feeMaxLoans", feeMaxLoans[i].toString());
       maxloan = maxloan.add(maxloans[i]);
+      if(max.lt(maxloans[i])){
+        max = maxloans[i];
+      }
     }
 
     let daimaxloancheapest = await flashlender.maxFlashLoanWithCheapestProvider(dai.address, 1);
@@ -198,19 +244,36 @@ describe('FlashLoan', () => {
     let daimaxloan = await flashlender.maxFlashLoanWithManyProviders(dai.address, 1);
     console.log("daimaxloan", daimaxloan.toString());
     expect(maxloan).to.equal(daimaxloan);
+
+    daimaxloancheapest = await flashlender.maxFlashLoanWithCheapestProvider(dai.address, max);
+    console.log("daimaxloancheapest", daimaxloancheapest.toString());
+    expect(max).to.equal(daimaxloancheapest);
+    let max2 = BigNumber.from(0);
+    for (let i = 0; i < maxloans.length; i++) {
+      if(max == maxloans[i]){
+        max2 = max2.add(maxloans[i]);
+      }
+    }
+    daimaxloan = await flashlender.maxFlashLoanWithManyProviders(dai.address, max);
+    console.log("daimaxloan", daimaxloan.toString());
+    expect(max2).to.equal(daimaxloan);
+
+    await expect(flashlender.maxFlashLoanWithCheapestProvider(dai.address, max.add(1), { gasLimit: 30000000 })).to.revertedWith('FlashLender: Found no provider');
+    await expect(flashlender.maxFlashLoanWithManyProviders(dai.address, max.add(1), { gasLimit: 30000000 })).to.revertedWith('FlashLender: Found no provider');
   });
 
-  it('flash fee', async function () {
-    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+  it('flashFee', async function () {
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, "1000000000000000000000", { gasLimit: 30000000 });
 
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
+    let max = BigNumber.from(0);
     for (let i = 0; i < feeMaxLoans.length; i++) {
-      console.log("maxloans", maxloans[i].toString());
-      console.log("fee1e18s", fee1e18s[i].toString());
-      console.log("feeMaxLoans", feeMaxLoans[i].toString());
       fee = fee.add(feeMaxLoans[i]);
       maxloan = maxloan.add(maxloans[i]);
+      if(max.lt(maxloans[i])){
+        max = maxloans[i];
+      }
     }
 
     let daifeecheapest = await flashlender.flashFeeWithCheapestProvider(dai.address, maxloans[0]);
@@ -219,6 +282,10 @@ describe('FlashLoan', () => {
     let daifee = await flashlender.flashFeeWithManyProviders(dai.address, maxloan, 1);
     console.log("daifee", daifee.toString());
     expect(fee.add(maxloans.length)).to.equal(daifee);
+
+    await expect(flashlender.flashFeeWithCheapestProvider(dai.address, max.add(1), { gasLimit: 30000000 })).to.revertedWith('FlashLender: Found no provider');
+    await expect(flashlender.flashFeeWithManyProviders(dai.address, maxloan, max.add(1), { gasLimit: 30000000 })).to.revertedWith('FlashLender: Found no provider');
+    await expect(flashlender.flashFeeWithManyProviders(dai.address, maxloan.add(1), 1, { gasLimit: 30000000 })).to.revertedWith('FlashLender: Amount is more than maxFlashLoan');
   });
 
   it('flashLoanWithCheapestProvider', async () => {
@@ -242,20 +309,30 @@ describe('FlashLoan', () => {
     console.log("feeETH", feeETH.toString());
   });
 
+    it('Invalid case - flashLoanWithCheapestProvider', async () => {
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+
+    let maxloan = BigNumber.from(0);
+    for (let i = 0; i < feeMaxLoans.length; i++) {
+      if(maxloan.lt(maxloans[i])){
+        maxloan = maxloans[i];
+      }
+    }
+    await expect(flashborrower.connect(user).flashBorrowWithCheapestProvider(flashlender.address, weth.address, maxloan.add(1), { gasLimit: 30000000 })).to.revertedWith('FlashLender: Found no provider');
+  });
+
   it('flashLoanWithManyProviders', async () => {
     beforeETH = await ethers.provider.getBalance(user.address);
 
     [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
 
-    let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
     for (let i = 0; i < feeMaxLoans.length; i++) {
-      console.log("maxloans", maxloans[i].toString());
-      console.log("fee1e18s", fee1e18s[i].toString());
-      console.log("feeMaxLoans", feeMaxLoans[i].toString());
-      fee = fee.add(feeMaxLoans[i]);
-      maxloan = maxloan.add(maxloans[i]);
+      if(maxloan.lt(maxloans[i])){
+        maxloan = maxloans[i];
+      }
     }
+
     const maxloanWithManyProviders = await flashlender.maxFlashLoanWithManyProviders(dai.address, 1, { gasLimit: 30000000 });
     const feeWithManyProviders = await flashlender.flashFeeWithManyProviders(dai.address, maxloanWithManyProviders, 1, { gasLimit: 30000000 });
     const balanceBeforeFeeToWithManyProviders = await dai.balanceOf(feeTo.address);
@@ -277,5 +354,22 @@ describe('FlashLoan', () => {
     console.log("afterETH", afterETH.toString());
     let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
     console.log("feeETH", feeETH.toString());
+  });
+  
+  it('Invalid cases - flashLoanWithManyProviders', async () => {
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+
+    let maxloan = BigNumber.from(0);
+    for (let i = 0; i < feeMaxLoans.length; i++) {
+      if(maxloan.lt(maxloans[i])){
+        maxloan = maxloans[i];
+      }
+    }
+
+    const maxloanWithManyProviders = await flashlender.maxFlashLoanWithManyProviders(dai.address, 1, { gasLimit: 30000000 });
+
+    await expect(flashborrower.connect(user).flashBorrowWithManyProviders(flashlender.address, dai.address, maxloan.add(1), maxloan.add(1), { gasLimit: 30000000 })).to.revertedWith('FlashLender: Found no provider');
+
+    await expect(flashborrower.connect(user).flashBorrowWithManyProviders(flashlender.address, dai.address, maxloanWithManyProviders.add(1), 1, { gasLimit: 30000000 })).to.revertedWith('FlashLender: Amount is more than maxFlashLoan');
   });
 });

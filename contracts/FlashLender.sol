@@ -17,7 +17,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     address public FEETO;
 
     address[] public providers;
-    address[] public validProviders;
 
     struct ProviderInfo {
         address provider;
@@ -25,9 +24,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 maxloan;
         uint256 fee;
     }
-
-    bool internal called;
-    uint256 internal count;
 
     constructor(address _feeTo) public {
         require(
@@ -59,7 +55,15 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
                 _providers[i] != address(0),
                 "FlashLender: provider address is zero address!"
             );
-            providers.push(_providers[i]);
+            bool checkProvider = false;
+            for (uint256 j = 0; j < providers.length; j++) {
+                if (_providers[i] == providers[j]) {
+                    checkProvider = true;
+                }
+            }
+            if (!checkProvider) {
+                providers.push(_providers[i]);
+            }
         }
         return true;
     }
@@ -78,6 +82,10 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             }
         }
         return true;
+    }
+
+    function getProviderLength() public view returns (uint256) {
+        return providers.length;
     }
 
     function _getFlashLoanInfoListWithCheaperFeePriority(
@@ -212,15 +220,18 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory feePer1e18s
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
 
-        require(providers.length > 0, "FlashLender: Found no providers");
-
         for (uint256 i = 0; i < maxloans.length; i++) {
             feePer1e18s[i] = feePer1e18s[i].add(_additionalFee(1e18));
         }
 
         uint256[] memory feePerMaxLoans = new uint256[](maxloans.length);
         for (uint256 i = 0; i < maxloans.length; i++) {
-            feePerMaxLoans[i] = _fee(providers[i], pools[i], _token, maxloans[i]);
+            feePerMaxLoans[i] = _fee(
+                providers[i],
+                pools[i],
+                _token,
+                maxloans[i]
+            );
         }
 
         return (maxloans, feePer1e18s, feePerMaxLoans);
@@ -237,8 +248,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory maxloans,
             uint256[] memory fees
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
-
-        require(providers.length > 0, "FlashLender: Found no providers");
 
         return maxloans[0];
     }
@@ -257,7 +266,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory fees
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
 
-        require(providers.length > 0, "FlashLender: Found no providers");
         for (uint256 i = 0; i < maxloans.length; i++) {
             maxloan = maxloan.add(maxloans[i]);
         }
@@ -277,8 +285,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory fees
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _amount);
 
-        require(providers.length > 0, "FlashLender: Found no providers");
-
         return _fee(providers[0], pools[0], _token, _amount);
     }
 
@@ -295,8 +301,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory maxloans,
             uint256[] memory fees
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
-
-        require(providers.length > 0, "FlashLender: Found no providers");
 
         for (uint256 i = 0; i < maxloans.length; i++) {
             maxloan = maxloan.add(maxloans[i]);
@@ -378,8 +382,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory fees
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _amount);
 
-        require(providers.length > 0, "FlashLender: Found no providers");
-
         _flashLoan(_receiver, _token, _amount, _data, providers[0], pools[0]);
 
         return true;
@@ -400,6 +402,17 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory maxloans,
             uint256[] memory fees
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
+
+        uint256 maxloan = 0;
+
+        for (uint256 i = 0; i < providers.length; i++) {
+            maxloan = maxloan.add(maxloans[i]);
+        }
+
+        require(
+            _amount <= maxloan,
+            "FlashLender: Amount is more than maxFlashLoan"
+        );
 
         for (uint256 i = 0; i < providers.length; i++) {
             if (amount.add(maxloans[i]) <= _amount) {
