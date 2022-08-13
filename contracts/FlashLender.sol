@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
 import "./libraries/SafeMath.sol";
@@ -13,7 +14,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
-    address public factory;
+    address public operator;
     address public FEETO;
 
     address[] public providers;
@@ -30,17 +31,20 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             address(_feeTo) != address(0),
             "FlashLender: feeTo address is zero address!"
         );
-        factory = msg.sender;
+        operator = msg.sender;
         FEETO = _feeTo;
     }
 
-    function setFactory(address _factory) external {
-        require(msg.sender == factory, "FlashLender: Not factory");
-        factory = _factory;
+    modifier onlyOperator() {
+        require(msg.sender == operator, "FlashLender: Not operator");
+        _;
     }
 
-    function setFeeTo(address _feeTo) public {
-        require(msg.sender == factory, "FlashLender: Not factory");
+    function setOperator(address _operator) public onlyOperator {
+        operator = _operator;
+    }
+
+    function setFeeTo(address _feeTo) public onlyOperator {
         require(
             address(_feeTo) != address(0),
             "FlashLender: feeTo address is zero address!"
@@ -48,8 +52,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         FEETO = _feeTo;
     }
 
-    function addProviders(address[] memory _providers) public returns (bool) {
-        require(msg.sender == factory, "FlashLender: Not factory");
+    function addProviders(address[] memory _providers) public onlyOperator returns (bool) {
         for (uint256 i = 0; i < _providers.length; i++) {
             require(
                 _providers[i] != address(0),
@@ -70,9 +73,9 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
 
     function removeProviders(address[] memory _providers)
         public
+        onlyOperator
         returns (bool)
     {
-        require(msg.sender == factory, "FlashLender: Not factory");
         for (uint256 i = 0; i < _providers.length; i++) {
             for (uint256 j = 0; j < providers.length; j++) {
                 if (providers[j] == _providers[i]) {
@@ -84,7 +87,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         return true;
     }
 
-    function getProviderLength() public view returns (uint256) {
+    function getProviderLength() public view onlyOperator returns (uint256) {
         return providers.length;
     }
 

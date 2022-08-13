@@ -9,12 +9,10 @@ import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/IPancakePair.sol";
 import "./interfaces/IPancakeswapFlashBorrower.sol";
 import "./interfaces/IPancakeswapFlashLender.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PancakeswapFlashLender is
     IPancakeswapFlashLender,
-    IPancakeswapFlashBorrower,
-    Ownable
+    IPancakeswapFlashBorrower
 {
     using SafeMath for uint256;
 
@@ -35,14 +33,39 @@ contract PancakeswapFlashLender is
     }
 
     Pair[] public pairs;
+        address public operator;
+    address public flashloaner;
 
-    constructor() public {}
+    constructor() public {
+        operator = msg.sender;
+    }
+
+    modifier onlyOperator() {
+        require(msg.sender == operator, "PancakeswapFlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "PancakeswapFlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
 
     function addPairs(
         address[] memory _tokens0,
         address[] memory _tokens1,
         address[] memory _pairs
-    ) public onlyOwner returns (bool) {
+    ) public onlyOperator returns (bool) {
         require(
             (_tokens0.length == _tokens1.length) &&
                 (_tokens1.length == _pairs.length),
@@ -61,13 +84,21 @@ contract PancakeswapFlashLender is
                 _pairs[i] != address(0),
                 "PancakeswapFlashLender: _pairs is address(0)"
             );
-            pairs.push(
-                Pair({
-                    token0: _tokens0[i],
-                    token1: _tokens1[i],
-                    pair: _pairs[i]
-                })
-            );
+            bool checkPair = false;
+            for (uint256 j = 0; j < pairs.length; j++) {
+                if (_pairs[i] == pairs[j].pair) {
+                    checkPair = true;
+                }
+            }
+            if (!checkPair) {
+                pairs.push(
+                    Pair({
+                        token0: _tokens0[i],
+                        token1: _tokens1[i],
+                        pair: _pairs[i]
+                    })
+                );
+            }
         }
 
         return true;
@@ -75,7 +106,7 @@ contract PancakeswapFlashLender is
 
     function removePairs(address[] memory _pairs)
         public
-        onlyOwner
+        onlyOperator
         returns (bool)
     {
         for (uint256 i = 0; i < _pairs.length; i++) {
@@ -90,6 +121,10 @@ contract PancakeswapFlashLender is
         }
 
         return true;
+    }
+
+    function getPairLength() public view onlyOperator returns (uint256) {
+        return pairs.length;
     }
 
     function _getValidPairs(address _token, uint256 _amount)

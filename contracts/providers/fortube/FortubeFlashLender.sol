@@ -10,19 +10,16 @@ import "./interfaces/IFortubeFlashLender.sol";
 import "./interfaces/IFortubeFlashBorrower.sol";
 import "./interfaces/IFortubeBank.sol";
 import "./interfaces/IFortubeBankController.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract FortubeFlashLender is
-    IFortubeFlashLender,
-    IFortubeFlashBorrower,
-    Ownable
-{
+contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower {
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
     IFortubeBank public bank;
     IFortubeBankController public bankcontroller;
+    address public operator;
+    address public flashloaner;
 
     constructor(address _bank, address _bankcontroller) public {
         bank = IFortubeBank(_bank);
@@ -37,13 +34,43 @@ contract FortubeFlashLender is
             address(bankcontroller) != address(0),
             "FortubeFlashLender: bankcontroller address is zero address!"
         );
+        operator = msg.sender;
     }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    modifier onlyOperator() {
+        require(msg.sender == operator, "FortubeFlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "FortubeFlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
+
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         address[] memory pools = new address[](1);
         uint256[] memory maxloans = new uint256[](1);
@@ -64,12 +91,11 @@ contract FortubeFlashLender is
         }
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) public view override onlyFlashLoaner returns (uint256) {
         return _flashFee(_token, _amount);
     }
 
@@ -81,14 +107,13 @@ contract FortubeFlashLender is
         return _amount.mul(bankcontroller.flashloanFeeBips()).div(10000);
     }
 
-
     function flashLoan(
         address _pair,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
         bytes calldata _userData
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
         return true;
     }
@@ -99,7 +124,12 @@ contract FortubeFlashLender is
         uint256 _amount,
         bytes memory _userData
     ) internal {
-        bytes memory data = abi.encode(address(this), msg.sender, _receiver, _userData);
+        bytes memory data = abi.encode(
+            address(this),
+            msg.sender,
+            _receiver,
+            _userData
+        );
         bank.flashloan(address(this), _token, _amount, data);
     }
 

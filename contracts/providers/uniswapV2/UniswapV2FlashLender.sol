@@ -9,12 +9,10 @@ import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IUniswapV2FlashLender.sol";
 import "./interfaces/IUniswapV2FlashBorrower.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract UniswapV2FlashLender is
     IUniswapV2FlashLender,
-    IUniswapV2FlashBorrower,
-    Ownable
+    IUniswapV2FlashBorrower
 {
     using SafeMath for uint256;
 
@@ -35,16 +33,39 @@ contract UniswapV2FlashLender is
     }
 
     Pair[] public pairs;
+    address public operator;
+    address public flashloaner;
 
-    constructor() {}
+    constructor() {
+        operator = msg.sender;
+    }
 
-    receive() external payable {}
+    modifier onlyOperator() {
+        require(msg.sender == operator, "UniswapV2FlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "UniswapV2FlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
 
     function addPairs(
         address[] memory _tokens0,
         address[] memory _tokens1,
         address[] memory _pairs
-    ) public onlyOwner returns (bool) {
+    ) public onlyOperator returns (bool) {
         require(
             (_tokens0.length == _tokens1.length) &&
                 (_tokens1.length == _pairs.length),
@@ -63,13 +84,21 @@ contract UniswapV2FlashLender is
                 _pairs[i] != address(0),
                 "UniswapV2FlashLender: _pairs is address(0)"
             );
-            pairs.push(
-                Pair({
-                    token0: _tokens0[i],
-                    token1: _tokens1[i],
-                    pair: _pairs[i]
-                })
-            );
+            bool checkPair = false;
+            for (uint256 j = 0; j < pairs.length; j++) {
+                if (_pairs[i] == pairs[j].pair) {
+                    checkPair = true;
+                }
+            }
+            if (!checkPair) {
+                pairs.push(
+                    Pair({
+                        token0: _tokens0[i],
+                        token1: _tokens1[i],
+                        pair: _pairs[i]
+                    })
+                );
+            }
         }
 
         return true;
@@ -77,7 +106,7 @@ contract UniswapV2FlashLender is
 
     function removePairs(address[] memory _pairs)
         public
-        onlyOwner
+        onlyOperator
         returns (bool)
     {
         for (uint256 i = 0; i < _pairs.length; i++) {
@@ -92,6 +121,10 @@ contract UniswapV2FlashLender is
         }
 
         return true;
+    }
+
+    function getPairLength() public view onlyOperator returns (uint256) {
+        return pairs.length;
     }
 
     function _getValidPairs(address _token, uint256 _amount)
@@ -119,7 +152,9 @@ contract UniswapV2FlashLender is
 
             return validFlashLoanInfos;
         } else {
-            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](count);
+            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](
+                count
+            );
             uint256 validCount = 0;
 
             for (uint256 i = 0; i < pairs.length; i++) {
@@ -128,7 +163,9 @@ contract UniswapV2FlashLender is
                     if (balance >= _amount.add(1)) {
                         uint256 fee = _flashFee(_token, amount);
                         validFlashLoanInfos[validCount].pool = pairs[i].pair;
-                        validFlashLoanInfos[validCount].maxloan = balance.sub(1);
+                        validFlashLoanInfos[validCount].maxloan = balance.sub(
+                            1
+                        );
                         validFlashLoanInfos[validCount].fee = fee;
                         validCount = validCount.add(1);
                         if (validCount == count) {
@@ -155,22 +192,30 @@ contract UniswapV2FlashLender is
                     }
                 }
             }
-            
+
             return validFlashLoanInfos;
         }
     }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         FlashLoanInfo[] memory flashLoanInfos = _getValidPairs(_token, _amount);
         address[] memory pools = new address[](flashLoanInfos.length);
         uint256[] memory maxloans = new uint256[](flashLoanInfos.length);
         uint256[] memory fees = new uint256[](flashLoanInfos.length);
-        for(uint256 i = 0; i < flashLoanInfos.length; i++){
+        for (uint256 i = 0; i < flashLoanInfos.length; i++) {
             pools[i] = flashLoanInfos[i].pool;
             maxloans[i] = flashLoanInfos[i].maxloan;
             fees[i] = flashLoanInfos[i].fee;
@@ -179,12 +224,11 @@ contract UniswapV2FlashLender is
         return (pools, maxloans, fees);
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) public view override onlyFlashLoaner returns (uint256) {
         return _flashFee(_token, _amount);
     }
 
@@ -202,7 +246,7 @@ contract UniswapV2FlashLender is
         address _token,
         uint256 _amount,
         bytes memory _userData
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _swap(_pair, _receiver, _token, _amount, _userData);
         return true;
     }
@@ -268,10 +312,13 @@ contract UniswapV2FlashLender is
             "UniswapV2FlashLender: Callback failed"
         );
 
-        IERC20(token).transferFrom(
-            address(receiver),
-            address(this),
-            amount.add(fee)
+        require(
+            IERC20(token).transferFrom(
+                address(receiver),
+                address(this),
+                amount.add(fee)
+        ),
+            "UniswapV2FlashLender: Transfer failed"
         );
 
         IERC20(token).transfer(msg.sender, amount.add(fee));

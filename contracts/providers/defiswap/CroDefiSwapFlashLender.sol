@@ -1,18 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2021 Dai Foundation
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pragma solidity >=0.6.12;
 pragma experimental ABIEncoderV2;
@@ -23,12 +9,10 @@ import "./interfaces/ICroDefiSwapFlashBorrower.sol";
 import "./interfaces/ICroDefiSwapPair.sol";
 import "./interfaces/ICroDefiSwapFactory.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract CroDefiSwapFlashLender is
     ICroDefiSwapFlashLender,
-    ICroDefiSwapFlashBorrower,
-    Ownable
+    ICroDefiSwapFlashBorrower
 {
     using SafeMath for uint256;
 
@@ -50,6 +34,8 @@ contract CroDefiSwapFlashLender is
     }
 
     Pair[] public pairs;
+    address public operator;
+    address public flashloaner;
 
     // --- Init ---
     constructor(address _factory) {
@@ -58,13 +44,35 @@ contract CroDefiSwapFlashLender is
             address(factory) != address(0),
             "CroDefiSwapFlashLender: factory address is zero address!"
         );
+        operator = msg.sender;
+    }
+
+    modifier onlyOperator() {
+        require(msg.sender == operator, "CroDefiSwapFlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "CroDefiSwapFlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
     }
 
     function addPairs(
         address[] memory _tokens0,
         address[] memory _tokens1,
         address[] memory _pairs
-    ) public onlyOwner returns (bool) {
+    ) public onlyOperator returns (bool) {
         require(
             (_tokens0.length == _tokens1.length) &&
                 (_tokens1.length == _pairs.length),
@@ -83,20 +91,29 @@ contract CroDefiSwapFlashLender is
                 _pairs[i] != address(0),
                 "CroDefiSwapFlashLender: _pairs is address(0)"
             );
-            pairs.push(
-                Pair({
-                    token0: _tokens0[i],
-                    token1: _tokens1[i],
-                    pair: _pairs[i]
-                })
-            );
+
+            bool checkPair = false;
+            for (uint256 j = 0; j < pairs.length; j++) {
+                if (_pairs[i] == pairs[j].pair) {
+                    checkPair = true;
+                }
+            }
+            if (!checkPair) {
+                pairs.push(
+                    Pair({
+                        token0: _tokens0[i],
+                        token1: _tokens1[i],
+                        pair: _pairs[i]
+                    })
+                );
+            }
         }
         return true;
     }
 
     function removePairs(address[] memory _pairs)
         public
-        onlyOwner
+        onlyOperator
         returns (bool)
     {
         for (uint256 i = 0; i < _pairs.length; i++) {
@@ -110,6 +127,10 @@ contract CroDefiSwapFlashLender is
             }
         }
         return true;
+    }
+
+    function getPairLength() public view onlyOperator returns (uint256) {
+        return pairs.length;
     }
 
     function _getValidPairs(address _token, uint256 _amount)
@@ -135,7 +156,9 @@ contract CroDefiSwapFlashLender is
 
             return validFlashLoanInfos;
         } else {
-            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](count);
+            FlashLoanInfo[] memory validFlashLoanInfos = new FlashLoanInfo[](
+                count
+            );
             uint256 validCount = 0;
             uint256 fee = _flashFee(_token, amount);
             for (uint256 i = 0; i < pairs.length; i++) {
@@ -143,7 +166,9 @@ contract CroDefiSwapFlashLender is
                     uint256 balance = IERC20(_token).balanceOf(pairs[i].pair);
                     if (balance >= _amount.add(1)) {
                         validFlashLoanInfos[validCount].pool = pairs[i].pair;
-                        validFlashLoanInfos[validCount].maxloan = balance.sub(1);
+                        validFlashLoanInfos[validCount].maxloan = balance.sub(
+                            1
+                        );
                         validFlashLoanInfos[validCount].fee = fee;
                         validCount = validCount.add(1);
                         if (validCount == count) {
@@ -159,7 +184,10 @@ contract CroDefiSwapFlashLender is
                 // sort by fee
                 for (uint256 i = 1; i < validFlashLoanInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (validFlashLoanInfos[i].fee < validFlashLoanInfos[j].fee) {
+                        if (
+                            validFlashLoanInfos[i].fee <
+                            validFlashLoanInfos[j].fee
+                        ) {
                             FlashLoanInfo memory x = validFlashLoanInfos[i];
                             validFlashLoanInfos[i] = validFlashLoanInfos[j];
                             validFlashLoanInfos[j] = x;
@@ -169,7 +197,10 @@ contract CroDefiSwapFlashLender is
                 // sort by maxloan
                 for (uint256 i = 1; i < validFlashLoanInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (validFlashLoanInfos[i].fee == validFlashLoanInfos[j].fee) {
+                        if (
+                            validFlashLoanInfos[i].fee ==
+                            validFlashLoanInfos[j].fee
+                        ) {
                             if (
                                 validFlashLoanInfos[i].maxloan >
                                 validFlashLoanInfos[j].maxloan
@@ -187,17 +218,25 @@ contract CroDefiSwapFlashLender is
         }
     }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         FlashLoanInfo[] memory flashLoanInfos = _getValidPairs(_token, _amount);
         address[] memory pools = new address[](flashLoanInfos.length);
         uint256[] memory maxloans = new uint256[](flashLoanInfos.length);
         uint256[] memory fees = new uint256[](flashLoanInfos.length);
-        for(uint256 i = 0; i < flashLoanInfos.length; i++){
+        for (uint256 i = 0; i < flashLoanInfos.length; i++) {
             pools[i] = flashLoanInfos[i].pool;
             maxloans[i] = flashLoanInfos[i].maxloan;
             fees[i] = flashLoanInfos[i].fee;
@@ -206,12 +245,11 @@ contract CroDefiSwapFlashLender is
         return (pools, maxloans, fees);
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) external view override onlyFlashLoaner returns (uint256) {
         return _flashFee(_token, _amount);
     }
 
@@ -236,7 +274,7 @@ contract CroDefiSwapFlashLender is
         address _token,
         uint256 _amount,
         bytes memory _userData
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _swap(_pair, _receiver, _token, _amount, _userData);
 
         return true;
@@ -303,10 +341,19 @@ contract CroDefiSwapFlashLender is
             "CroDefiSwapFlashLender: Callback failed"
         );
 
-        IERC20(token).transferFrom(
-            address(receiver),
-            address(this),
-            amount.add(fee)
+        // IERC20(token).transferFrom(
+        //     address(receiver),
+        //     address(this),
+        //     amount.add(fee)
+        // );
+
+        require(
+            IERC20(token).transferFrom(
+                address(receiver),
+                address(this),
+                amount.add(fee)
+            ),
+            "CroDefiSwapFlashLender: Transfer failed"
         );
 
         IERC20(token).transfer(msg.sender, amount.add(fee));

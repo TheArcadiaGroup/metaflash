@@ -31,6 +31,8 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
     ISoloMargin public soloMargin;
     mapping(address => uint256) public tokenAddressToMarketId;
     mapping(address => bool) public tokensRegistered;
+    address public operator;
+    address public flashloaner;
 
     constructor(ISoloMargin _soloMargin) {
         require(
@@ -44,13 +46,40 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
             tokenAddressToMarketId[token] = marketId;
             tokensRegistered[token] = true;
         }
+        operator = msg.sender;
     }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    modifier onlyOperator() {
+        require(msg.sender == operator, "DYDXFlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(msg.sender == flashloaner, "DYDXFlashLender: Not flashloaner");
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
+
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         address[] memory pools = new address[](1);
         uint256[] memory maxloans = new uint256[](1);
@@ -73,16 +102,15 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         }
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) external view override onlyFlashLoaner returns (uint256) {
         return _flashFee(_token, _amount);
     }
 
-   function _flashFee(address _token, uint256 _amount)
+    function _flashFee(address _token, uint256 _amount)
         internal
         view
         returns (uint256)
@@ -96,7 +124,7 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
         address _token,
         uint256 _amount,
         bytes calldata _data
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity >=0.6.12;
 
 import "./interfaces/ISaddleFinanceSwapFlashLoan.sol";
@@ -5,13 +6,10 @@ import "./interfaces/ISaddleFinanceFlashBorrower.sol";
 import "./interfaces/ISaddleFinanceFlashLender.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract SaddleFinanceFlashLender is
     ISaddleFinanceFlashLender,
-    ISaddleFinanceFlashBorrower,
-    Ownable
+    ISaddleFinanceFlashBorrower
 {
     using SafeMath for uint256;
 
@@ -19,6 +17,8 @@ contract SaddleFinanceFlashLender is
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     address[] public pools;
+    address public operator;
+    address public flashloaner;
 
     struct FlashLoanInfo {
         address pool;
@@ -26,23 +26,53 @@ contract SaddleFinanceFlashLender is
         uint256 fee;
     }
 
-    // --- Init ---
-    constructor() public {}
+    constructor() public {
+        operator = msg.sender;
+    }
 
-    function addPools(address[] memory _pool) public onlyOwner returns (bool) {
-        for (uint256 i = 0; i < _pool.length; i++) {
+    modifier onlyOperator() {
+        require(msg.sender == operator, "SaddleFinanceFlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "SaddleFinanceFlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
+
+    function addPools(address[] memory _pools) public onlyOperator returns (bool) {
+        for (uint256 i = 0; i < _pools.length; i++) {
             require(
-                _pool[i] != address(0),
+                _pools[i] != address(0),
                 "SaddleFinanceFlashLender: _pool address is zero address!"
             );
-            pools.push(_pool[i]);
+            bool checkPool = false;
+            for (uint256 j = 0; j < pools.length; j++) {
+                if (_pools[i] == pools[j]) {
+                    checkPool = true;
+                }
+            }
+            if (!checkPool) {
+                pools.push(_pools[i]);
+            }
         }
         return true;
     }
 
     function removePools(address[] memory _pool)
         public
-        onlyOwner
+        onlyOperator
         returns (bool)
     {
         for (uint256 i = 0; i < _pool.length; i++) {
@@ -54,6 +84,10 @@ contract SaddleFinanceFlashLender is
             }
         }
         return true;
+    }
+
+    function getPoolLength() public view onlyOperator returns (uint256) {
+        return pools.length;
     }
 
     function _getValidPools(address _token, uint256 _amount)
@@ -134,6 +168,7 @@ contract SaddleFinanceFlashLender is
         external
         view
         override
+        onlyFlashLoaner
         returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
     {
         FlashLoanInfo[] memory flashLoanInfos = _getValidPools(_token, _amount);
@@ -153,6 +188,7 @@ contract SaddleFinanceFlashLender is
         public
         view
         override
+        onlyFlashLoaner
         returns (uint256)
     {
         return _flashFee(_pool, _token, _amount);
@@ -175,7 +211,7 @@ contract SaddleFinanceFlashLender is
         address _token,
         uint256 _amount,
         bytes calldata _data
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _flashLoan(_pool, _receiver, _token, _amount, _data);
         return true;
     }

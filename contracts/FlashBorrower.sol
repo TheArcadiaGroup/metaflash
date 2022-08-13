@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
 import "./libraries/SafeMath.sol";
@@ -34,7 +35,8 @@ contract FlashBorrower is IERC3156FlashBorrower {
             _sender == address(this),
             "FlashBorrower: sender must be this contract"
         );
-        Action action = abi.decode(_data, (Action)); 
+
+        Action action = abi.decode(_data, (Action));
         flashSender = _sender;
         flashToken = _token;
         flashAmount = _amount;
@@ -72,10 +74,20 @@ contract FlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(_lender)
         );
-        uint256 fee = _lender.flashFeeWithManyProviders(_token, _amount, _minAmount);
+        uint256 fee = _lender.flashFeeWithManyProviders(
+            _token,
+            _amount,
+            _minAmount
+        );
         uint256 repayment = _amount.add(fee);
         IERC20(_token).approve(address(_lender), allowance.add(repayment));
         bytes memory data = abi.encode(Action.NORMAL);
-        _lender.flashLoanWithManyProviders(this, _token, _amount, data, _minAmount);
+        _lender.flashLoanWithManyProviders(
+            this,
+            _token,
+            _amount,
+            data,
+            _minAmount
+        );
     }
 }

@@ -3,6 +3,7 @@ const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 const ERC20_ABI = require('../contracts/providers/fortube/abi/IERC20.json');
 const BankController_ABI = require('../contracts/providers/fortube/abi/BankController.json');
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 describe('fortube', () => {
   let owner, user;
@@ -46,79 +47,100 @@ describe('fortube', () => {
 
     flashloanFeeBips = await bankController.flashloanFeeBips();
     daiMaxLoan = await dai.balanceOf(bankControllerAddress);
+
+    await lender.setFlashLoaner(owner.address);
   });
 
-  it('flash supply', async function () {
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    expect(await lender.maxFlashLoan(daiAddress, daiMaxLoan)).to.equal(daiMaxLoan);
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
+  it("check operator", async function () {
+    expect(await lender.operator()).to.equal(owner.address);
+    await expect(lender.connect(user).setOperator(user.address)).to.revertedWith('FortubeFlashLender: Not operator');
+    await lender.setOperator(user.address);
+    expect(await lender.operator()).to.equal(user.address);
+  });
 
-    expect(await lender.maxFlashLoan(daiAddress, daiMaxLoan.add(1))).to.equal(0);
+  it("check flashloaner", async function () {
+    expect(await lender.flashloaner()).to.equal(owner.address);
+    await expect(lender.connect(user).setFlashLoaner(user.address)).to.revertedWith('FortubeFlashLender: Not operator');
+    await lender.setFlashLoaner(user.address);
+    expect(await lender.flashloaner()).to.equal(user.address);
+  });
 
-    beforeETH2 = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH2", beforeETH2.toString());
-    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(daiAddress)).to.equal(daiMaxLoan);
-    afterETH2 = await ethers.provider.getBalance(user.address);
-    console.log("afterETH2", afterETH2.toString());
-    let feeETH2 = ethers.BigNumber.from(beforeETH2).sub(afterETH2);
-    console.log("feeETH2", feeETH2.toString());
+  it('getFlashLoanInfoListWithCheaperFeePriority', async function () {
+    await expect(lender.connect(user).getFlashLoanInfoListWithCheaperFeePriority(daiAddress, 1)).to.revertedWith('FortubeFlashLender: Not flashloaner');
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(daiAddress, 1);
+    if(maxloans.length > 1){
+      for (let i = 0; i < maxloans.length - 1 ; i++) {
+        expect(fees[i]).to.lte(fees[i+1]);
+        if(fees[i] == fees[i+1]){
+          expect(maxloans[i]).to.gte(maxloans[i+1]);
+        }
+      }
+    }
   });
 
   it('flash fee', async function () {
+    await expect(lender.connect(user).flashFee(ZERO_ADDRESS, daiAddress, "1000")).to.revertedWith('FortubeFlashLender: Not flashloaner');
     let feeMaxLoan = BigNumber.from(daiMaxLoan).mul(flashloanFeeBips).div(10000)
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    expect(await lender.flashFee(dai.address, daiMaxLoan)).to.equal(feeMaxLoan);
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
-
-    expect(await lender.flashFee(dai.address, daiMaxLoan.add(1))).to.equal(0);
-
-    beforeETH2 = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH2", beforeETH2.toString());
-    fee = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, daiMaxLoan);
-    expect(fee).to.equal(feeMaxLoan);
-    afterETH2 = await ethers.provider.getBalance(user.address);
-    console.log("afterETH2", afterETH2.toString());
-    let feeETH2 = ethers.BigNumber.from(beforeETH2).sub(afterETH2);
-    console.log("feeETH2", feeETH2.toString());
+    expect(await lender.flashFee(ZERO_ADDRESS, daiAddress, daiMaxLoan)).to.equal(feeMaxLoan);
   });
 
   it('flashLoan', async () => {
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    const maxloan = BigNumber.from(await lender.maxFlashLoan(dai.address, 1));
-    const fee = BigNumber.from(await lender.flashFee(dai.address, maxloan));
-    await dai.connect(daiuser).transfer(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, dai.address, maxloan);
-    const totalFlashBalance = await borrower.totalFlashBalance();
-    expect(totalFlashBalance).to.equal(maxloan.add(fee));
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
+    await expect(lender.connect(user).flashLoan(ZERO_ADDRESS, borrower.address, daiAddress, "1000", "0x00000000000000000000000000000000000000000000000000000000000000")).to.revertedWith('FortubeFlashLender: Not flashloaner');
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(daiAddress, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i];
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], daiAddress, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await dai.connect(daiuser).transfer(borrower.address, tempFee, {gasLimit: 30000000});
+      await borrower.connect(user).flashBorrow(pairs[i], lender.address, daiAddress, tempBal, { gasLimit: 30000000 });
+      const flashSender = await borrower.flashSender();
+      expect(flashSender.toLowerCase()).to.equal(borrower.address.toLowerCase());
+      const flashToken = await borrower.flashToken();
+      expect(flashToken.toLowerCase()).to.equal(daiAddress.toLowerCase());
+      const flashAmount = await borrower.flashAmount();
+      expect(flashAmount).to.equal(tempBal);
+      const flashFee = await borrower.flashFee();
+      expect(flashFee).to.equal(tempFee);
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
   });
 
-  it('flashLoanWithManyPairs_OR_ManyPools', async () => {
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    const maxloan = BigNumber.from(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address, {gasLimit: 30000000}));
-    fee = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, maxloan, {gasLimit: 30000000});
-    console.log("fee", fee.toString());
-    await dai.connect(daiuser).transfer(borrower.address, fee, {gasLimit: 30000000});
-    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, dai.address, maxloan, {gasLimit: 30000000});
-    const totalFlashBalance = await borrower.totalFlashBalance();
-    expect(totalFlashBalance).to.lte(maxloan.add(fee));
-    // expect(totalFlashBalance).to.gte(maxloan.add(fee).sub(pairCount));
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
+  it('invalid case - flashLoan', async () => {
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(daiAddress, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i].add(1);
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], daiAddress, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await dai.connect(daiuser).transfer(borrower.address, tempFee, {gasLimit: 30000000});
+      await expect(borrower.connect(user).flashBorrow(pairs[i], lender.address, daiAddress, tempBal, { gasLimit: 30000000 })).to.revertedWith('insufficient flashloan liquidity');
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
+  });
+
+  it('invalid case - flashLoan', async () => {
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(daiAddress, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i];
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], daiAddress, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await dai.connect(daiuser).transfer(borrower.address, tempFee.sub(1), {gasLimit: 30000000});
+      await expect(borrower.connect(user).flashBorrow(pairs[i], lender.address, daiAddress, tempBal, { gasLimit: 30000000 })).to.revertedWith('Dai/insufficient-balance');
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
   });
 });

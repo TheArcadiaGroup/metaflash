@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity >=0.6.12;
 
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
@@ -6,32 +7,58 @@ import "./interfaces/IMakerDaoFlashBorrower.sol";
 import "./interfaces/IMakerDaoDssFlash.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract MakerDaoFlashLender is
-    IMakerDaoFlashLender,
-    IERC3156FlashBorrower,
-    Ownable
-{
+contract MakerDaoFlashLender is IMakerDaoFlashLender, IERC3156FlashBorrower {
     using SafeMath for uint256;
     IMakerDaoDssFlash dssflash;
+    address public operator;
+    address public flashloaner;
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
-    // --- Init ---
     constructor(address _dssflash) public {
         require(
             address(_dssflash) != address(0),
             "MakerDaoFlashLender: _dssflash address is zero address!"
         );
         dssflash = IMakerDaoDssFlash(_dssflash);
+        operator = msg.sender;
     }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    modifier onlyOperator() {
+        require(msg.sender == operator, "MakerDaoFlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "MakerDaoFlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
+
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         address[] memory pools = new address[](1);
         uint256[] memory maxloans = new uint256[](1);
@@ -52,12 +79,11 @@ contract MakerDaoFlashLender is
         }
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) public view override onlyFlashLoaner returns (uint256) {
         return dssflash.flashFee(_token, _amount);
     }
 
@@ -67,7 +93,7 @@ contract MakerDaoFlashLender is
         address _token,
         uint256 _amount,
         bytes calldata _userData
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
         return true;
     }

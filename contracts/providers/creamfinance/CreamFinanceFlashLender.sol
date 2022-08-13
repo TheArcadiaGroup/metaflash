@@ -18,41 +18,44 @@ contract CreamFinanceFlashLender is
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrowerInterface.onFlashLoan");
 
-    address public factory;
-    address permissionedCTokenAddress;
-
     struct CToken {
         address ctoken;
         address underlying;
     }
 
-    struct PairInfo {
-        address ctoken;
-        uint256 maxloan;
-    }
-
     CToken[] public ctokens;
+    address public operator;
+    address public flashloaner;
 
-    constructor(address _factory) public {
-        require(
-            address(_factory) != address(0),
-            "CreamFinanceFlashLender: factory address is zero address!"
-        );
-        factory = _factory;
+    constructor() public {
+        operator = msg.sender;
     }
 
-    function() external payable {}
+    modifier onlyOperator() {
+        require(msg.sender == operator, "CreamFinanceFlashLender: Not operator");
+        _;
+    }
 
-    function setFactory(address _factory) external {
-        require(msg.sender == factory, "CreamFinanceFlashLender: Not factory");
-        factory = _factory;
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "CreamFinanceFlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
     }
 
     function addCTokens(
         address[] memory _ctokens,
         address[] memory _underlyings
-    ) public returns (bool) {
-        require(msg.sender == factory, "CreamFinanceFlashLender: Not factory");
+    ) public onlyOperator returns (bool) {
         require(
             (_ctokens.length == _underlyings.length),
             "CreamFinanceFlashLender: mismatch length of _ctoken, _underlying"
@@ -66,15 +69,22 @@ contract CreamFinanceFlashLender is
                 _underlyings[i] != address(0),
                 "CreamFinanceFlashLender: _underlyings address is zero address"
             );
-            ctokens.push(
-                CToken({ctoken: _ctokens[i], underlying: _underlyings[i]})
-            );
+            bool checkCToken = false;
+            for (uint256 j = 0; j < ctokens.length; j++) {
+                if (_ctokens[i] == ctokens[j].ctoken) {
+                    checkCToken = true;
+                }
+            }
+            if (!checkCToken) {
+                ctokens.push(
+                    CToken({ctoken: _ctokens[i], underlying: _underlyings[i]})
+                );
+            }
         }
         return true;
     }
 
-    function removeCTokens(address[] memory _ctokens) public returns (bool) {
-        require(msg.sender == factory, "CreamFinanceERC3156: Not factory");
+    function removeCTokens(address[] memory _ctokens) public onlyOperator returns (bool) {
         for (uint256 i = 0; i < _ctokens.length; i++) {
             for (uint256 j = 0; j < ctokens.length; j++) {
                 if (ctokens[j].ctoken == _ctokens[i]) {
@@ -88,9 +98,14 @@ contract CreamFinanceFlashLender is
         return true;
     }
 
+    function getCTokenLength() public view onlyOperator returns (uint256) {
+        return ctokens.length;
+    }
+
     function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
         external
         view
+        onlyFlashLoaner
         returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
     {
         address[] memory pools = new address[](1);
@@ -118,6 +133,7 @@ contract CreamFinanceFlashLender is
     function flashFee(address _pair, address _token, uint256 _amount)
         public
         view
+        onlyFlashLoaner
         returns (uint256)
     {
         address ctoken = _getCtoken(_token);
@@ -145,7 +161,7 @@ contract CreamFinanceFlashLender is
         address _token,
         uint256 _amount,
         bytes calldata _data
-    ) external returns (bool) {
+    ) external onlyFlashLoaner returns (bool) {
         _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }

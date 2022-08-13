@@ -167,48 +167,59 @@ describe('FlashLoan', () => {
     // Borrower
     const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
     flashborrower = await FlashBorrower.deploy();
+
+    await aavev2Lender.setFlashLoaner(flashlender.address);
+    await dydxLender.setFlashLoaner(flashlender.address);
+    await uniswapv2Lender.setFlashLoaner(flashlender.address);
+    await uniswapv3Lender.setFlashLoaner(flashlender.address);
+    await makerdaoLender.setFlashLoaner(flashlender.address);
+    await saddlefinanceLender.setFlashLoaner(flashlender.address);
+    await defiswapLender.setFlashLoaner(flashlender.address);
+    await fortubeLender.setFlashLoaner(flashlender.address);
+    await eulerLender.setFlashLoaner(flashlender.address);
   });
 
-  it("check factory", async function () {
-    expect(await flashlender.factory()).to.equal(owner.address);
-    await expect(flashlender.connect(user).setFactory(user.address)).to.revertedWith('FlashLender: Not factory');
-    await flashlender.setFactory(user.address);
-    expect(await flashlender.factory()).to.equal(user.address);
+  it("check operator", async function () {
+    expect(await flashlender.operator()).to.equal(owner.address);
+    await expect(flashlender.connect(user).setOperator(user.address)).to.revertedWith('FlashLender: Not operator');
+    await flashlender.setOperator(user.address);
+    expect(await flashlender.operator()).to.equal(user.address);
   });
 
   it("check feeTo", async function () {
     expect(await flashlender.FEETO()).to.equal(feeTo.address);
-    await expect(flashlender.connect(user).setFeeTo(user.address)).to.revertedWith('FlashLender: Not factory');
+    await expect(flashlender.connect(user).setFeeTo(user.address)).to.revertedWith('FlashLender: Not operator');
     await flashlender.setFeeTo(user.address);
     expect(await flashlender.FEETO()).to.equal(user.address);
   });
 
   it("add/removeProviders", async function () {
     //add
-    await expect(flashlender.connect(user).addProviders([ONE_ADDRESS])).to.revertedWith('FlashLender: Not factory');
+    await expect(flashlender.connect(user).addProviders([ONE_ADDRESS])).to.revertedWith('FlashLender: Not operator');
     await expect(flashlender.addProviders([ZERO_ADDRESS])).to.revertedWith('FlashLender: provider address is zero address!');
+    await expect(flashlender.connect(user).getProviderLength()).to.revertedWith('FlashLender: Not operator');
 
-    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    beforeProviderLength = await flashlender.getProviderLength();
     await flashlender.addProviders([ONE_ADDRESS]);
-    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    afterProviderLength = await flashlender.getProviderLength();
     await expect(beforeProviderLength.add(1)).eq(afterProviderLength);
 
-    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    beforeProviderLength = await flashlender.getProviderLength();
     await flashlender.addProviders([ONE_ADDRESS]);
-    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    afterProviderLength = await flashlender.getProviderLength();
     await expect(beforeProviderLength).eq(afterProviderLength);
 
     //remove
-    await expect(flashlender.connect(user).removeProviders([ONE_ADDRESS])).to.revertedWith('FlashLender: Not factory');
+    await expect(flashlender.connect(user).removeProviders([ONE_ADDRESS])).to.revertedWith('FlashLender: Not operator');
 
-    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    beforeProviderLength = await flashlender.getProviderLength();
     await flashlender.removeProviders([ONE_ADDRESS]);
-    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    afterProviderLength = await flashlender.getProviderLength();
     await expect(beforeProviderLength).eq(afterProviderLength.add(1));
 
-    beforeProviderLength = await flashlender.connect(user).getProviderLength();
+    beforeProviderLength = await flashlender.getProviderLength();
     await flashlender.removeProviders([ONE_ADDRESS]);
-    afterProviderLength = await flashlender.connect(user).getProviderLength();
+    afterProviderLength = await flashlender.getProviderLength();
     await expect(beforeProviderLength).eq(afterProviderLength);
 
   });

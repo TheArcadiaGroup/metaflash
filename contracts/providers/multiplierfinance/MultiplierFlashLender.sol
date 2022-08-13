@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-
 import "./interfaces/IMultiplierFlashLender.sol";
 import "./interfaces/IMultiplierFlashBorrower.sol";
 import "./interfaces/ILendingPool.sol";
@@ -25,6 +24,8 @@ contract MultiplierFlashLender is
     ILendingPool public lendingpool;
     address public core;
     uint256 public protocolFeeRate;
+    address public operator;
+    address public flashloaner;
 
     constructor(address _lendingpool) {
         require(
@@ -35,15 +36,43 @@ contract MultiplierFlashLender is
         core = lendingpool.core();
         protocolFeeRate = IFeeProvider(lendingpool.feeProvider())
             .getFlashLoanFee();
+        operator = msg.sender;
     }
 
-    receive() external payable {}
+    modifier onlyOperator() {
+        require(msg.sender == operator, "MultiplierFlashLender: Not operator");
+        _;
+    }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "MultiplierFlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
+
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         address[] memory pools = new address[](1);
         uint256[] memory maxloans = new uint256[](1);
@@ -64,12 +93,11 @@ contract MultiplierFlashLender is
         }
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) public view override onlyFlashLoaner returns (uint256) {
         return _flashFee(_token, _amount);
     }
 
@@ -87,7 +115,7 @@ contract MultiplierFlashLender is
         address _token,
         uint256 _amount,
         bytes calldata _userData
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _flashLoan(_receiver, _token, _amount, _userData);
         return true;
     }

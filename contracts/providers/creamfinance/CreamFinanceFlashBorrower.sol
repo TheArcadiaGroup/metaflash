@@ -12,17 +12,13 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
     }
 
     bytes32 public constant CALLBACK_SUCCESS =
-        keccak256("ERC3156FlashBorrowerInterface.onFlashLoan");
+        keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     uint256 public flashBalance;
     address public flashSender;
     address public flashToken;
     uint256 public flashAmount;
     uint256 public flashFee;
-    uint256 public totalFlashBalance;
-    uint256 public beforeflashBalance;
-
-    function() external payable {}
 
     /// @dev ERC-3156 Flash loan callback
     function onFlashLoan(
@@ -43,7 +39,6 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
         flashFee = fee;
         if (action == Action.NORMAL) {
             flashBalance = IERC20(token).balanceOf(address(this));
-            totalFlashBalance = totalFlashBalance + amount + fee;
         } else if (action == Action.REENTER) {
             // do nothing
         }
@@ -51,6 +46,7 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
+        address pair,
         ICreamFinanceFlashLender lender,
         address token,
         uint256 amount
@@ -59,12 +55,10 @@ contract CreamFinanceFlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFee(address(0), token, amount);
+        uint256 _fee = lender.flashFee(pair, token, amount);
         uint256 _repayment = amount + _fee;
-
-        beforeflashBalance = IERC20(token).balanceOf(address(this));
         IERC20(token).approve(address(lender), _allowance + _repayment);
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoan(address(0), this, token, amount, data);
+        lender.flashLoan(pair, this, token, amount, data);
     }
 }

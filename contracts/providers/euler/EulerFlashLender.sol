@@ -7,14 +7,15 @@ import "./interfaces/IEulerFlashLender.sol";
 import "./interfaces/IFLoan.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
-import {Ownable} from "./libraries/Ownable.sol";
 
-contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
+contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower {
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
     IFLoan public flashloan;
+    address public operator;
+    address public flashloaner;
 
     constructor(address _flashloan) {
         require(
@@ -22,15 +23,40 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
             "EulerFlashLender: _flashloan address is zero address!"
         );
         flashloan = IFLoan(_flashloan);
+        operator = msg.sender;
     }
 
-    receive() external payable {}
+    modifier onlyOperator() {
+        require(msg.sender == operator, "EulerFlashLender: Not operator");
+        _;
+    }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    modifier onlyFlashLoaner() {
+        require(msg.sender == flashloaner, "EulerFlashLender: Not flashloaner");
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
+
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         address[] memory pools = new address[](1);
         uint256[] memory maxloans = new uint256[](1);
@@ -51,73 +77,13 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
         }
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) public view override onlyFlashLoaner returns (uint256) {
         return flashloan.flashFee(_token, _amount);
     }
-
-    // function maxFlashLoan(address _token, uint256 _amount)
-    //     external
-    //     view
-    //     override
-    //     returns (uint256)
-    // {
-    //     return _maxFlashLoan(_token, _amount);
-    // }
-
-    // function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-    //     external
-    //     view
-    //     override
-    //     returns (uint256)
-    // {
-    //     return _maxFlashLoan(_token, 1);
-    // }
-
-    // function _maxFlashLoan(address _token, uint256 _amount)
-    //     internal
-    //     view
-    //     returns (uint256)
-    // {
-    //     uint256 maxloan = flashloan.maxFlashLoan(_token);
-    //     if (maxloan >= _amount) {
-    //         return maxloan;
-    //     } else {
-    //         return 0;
-    //     }
-    // }
-
-    // function flashFee(address _token, uint256 _amount)
-    //     public
-    //     view
-    //     override
-    //     returns (uint256)
-    // {
-    //     uint256 maxloan = flashloan.maxFlashLoan(_token);
-    //     if (maxloan >= _amount) {
-    //         return flashloan.flashFee(_token, _amount);
-    //     } else {
-    //         return 0;
-    //     }
-    // }
-
-    // function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
-    //     public
-    //     view
-    //     override
-    //     returns (uint256)
-    // {
-    //     uint256 maxloan = flashloan.maxFlashLoan(_token);
-    //     if (maxloan > 0) {
-    //         return flashloan.flashFee(_token, _amount);
-    //     } else {
-    //         return 0;
-    //     }
-    // }
 
     function flashLoan(
         address _pair,
@@ -125,20 +91,10 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower, Ownable {
         address _token,
         uint256 _amount,
         bytes calldata _data
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }
-
-    // function flashLoanWithManyPairs_OR_ManyPools(
-    //     IERC3156FlashBorrower _receiver,
-    //     address _token,
-    //     uint256 _amount,
-    //     bytes calldata _userData
-    // ) external override returns (bool) {
-    //     _flashLoan(_receiver, _token, _amount, _userData);
-    //     return true;
-    // }
 
     function _flashLoan(
         IERC3156FlashBorrower _receiver,

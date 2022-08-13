@@ -45,12 +45,12 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
-        forking: {
-          url: `https://bsc-dataseed4.binance.org`,
-          // url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
-          timeout: 3000000
-        },
-      allowUnlimitedContractSize: true
+      //   forking: {
+      //     url: `https://bsc-dataseed4.binance.org`,
+      //     // url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
+      //     timeout: 3000000
+      //   },
+      // allowUnlimitedContractSize: true
     },
     localhost: {
       timeout: 3000000

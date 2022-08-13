@@ -84,7 +84,7 @@ describe('FlashLoan', () => {
 
     //creamfinance
     const CreamFinanceFlashLender = await ethers.getContractFactory("CreamFinanceFlashLender")
-    const CreamFinanceFlashLenderInstance = await CreamFinanceFlashLender.deploy(owner.address);
+    const CreamFinanceFlashLenderInstance = await CreamFinanceFlashLender.deploy();
     let creamfinanceLender = await CreamFinanceFlashLenderInstance.deployed();
 
     const rawCtoken_creamfinance = fs.readFileSync('./config/creamfinancectoken.json');

@@ -1,14 +1,15 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 describe('DYDX', () => {
-  let user;
+  let owner, user;
   let weth, dai, usdc, borrower, solo, lender;
   const soloBalance = BigNumber.from(100000);
 
   beforeEach(async function () {
-    [_, user] = await ethers.getSigners();
+    [owner, user] = await ethers.getSigners();
 
     const SoloMarginMock = await ethers.getContractFactory('SoloMarginMock');
     const DYDXERC3156 = await ethers.getContractFactory('DYDXFlashLender');
@@ -25,44 +26,99 @@ describe('DYDX', () => {
 
     await weth.mint(solo.address, soloBalance);
     await dai.mint(solo.address, soloBalance);
-    const fee = await lender.flashFee(weth.address, soloBalance);
-    await weth.mint(borrower.address, fee);
-    await dai.mint(borrower.address, fee);
+
+    await lender.setFlashLoaner(owner.address);
   });
   
-  it('flash supply', async function () {
-    expect(await lender.maxFlashLoan(weth.address, 1)).to.equal(soloBalance);
-    expect(await lender.maxFlashLoan(usdc.address, 1)).to.equal('0');
-    expect(await lender.maxFlashLoan(lender.address, 1)).to.equal('0');
+  it("check operator", async function () {
+    expect(await lender.operator()).to.equal(owner.address);
+    await expect(lender.connect(user).setOperator(user.address)).to.revertedWith('DYDXFlashLender: Not operator');
+    await lender.setOperator(user.address);
+    expect(await lender.operator()).to.equal(user.address);
+  });
 
-    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(weth.address)).to.equal(soloBalance);
-    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(usdc.address)).to.equal('0');
-    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(lender.address)).to.equal('0');
+  it("check flashloaner", async function () {
+    expect(await lender.flashloaner()).to.equal(owner.address);
+    await expect(lender.connect(user).setFlashLoaner(user.address)).to.revertedWith('DYDXFlashLender: Not operator');
+    await lender.setFlashLoaner(user.address);
+    expect(await lender.flashloaner()).to.equal(user.address);
+  });
+
+  it('getFlashLoanInfoListWithCheaperFeePriority', async function () {
+    await expect(lender.connect(user).getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1)).to.revertedWith('DYDXFlashLender: Not flashloaner');
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1);
+    if(maxloans.length > 1){
+      for (let i = 0; i < maxloans.length - 1 ; i++) {
+        expect(fees[i]).to.lte(fees[i+1]);
+        if(fees[i] == fees[i+1]){
+          expect(maxloans[i]).to.gte(maxloans[i+1]);
+        }
+      }
+    }
   });
 
   it('flash fee', async function () {
-    expect(await lender.flashFee(weth.address, soloBalance)).to.equal(2);
-    expect(await lender.flashFee(usdc.address, soloBalance)).to.equal(0);
-
-    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, soloBalance)).to.equal(2);
-    expect(await lender.flashFeeWithManyPairs_OR_ManyPools(usdc.address, soloBalance)).to.equal(0);
+    await expect(lender.connect(user).flashFee(ZERO_ADDRESS, dai.address, soloBalance)).to.revertedWith('DYDXFlashLender: Not flashloaner');
+    expect(await lender.flashFee(ZERO_ADDRESS, dai.address, soloBalance)).to.equal(2);
   });
 
   it('flashLoan', async () => {
-    const maxloan = await lender.maxFlashLoan(dai.address, 1);
-    const fee = await lender.flashFee(dai.address, maxloan);
-    await dai.mint(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, dai.address, maxloan);
-    const totalFlashBalance = await borrower.totalFlashBalance();
-    expect(totalFlashBalance).to.equal(maxloan.add(fee));
+    await expect(lender.connect(user).flashLoan(ZERO_ADDRESS, borrower.address, dai.address, "1000", "0x00000000000000000000000000000000000000000000000000000000000000")).to.revertedWith('DYDXFlashLender: Not flashloaner');
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i];
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], dai.address, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await dai.mint(borrower.address, tempFee);
+      await borrower.connect(user).flashBorrow(pairs[i], lender.address, dai.address, tempBal, { gasLimit: 30000000 });
+      const flashSender = await borrower.flashSender();
+      expect(flashSender.toLowerCase()).to.equal(borrower.address.toLowerCase());
+      const flashToken = await borrower.flashToken();
+      expect(flashToken.toLowerCase()).to.equal(dai.address.toLowerCase());
+      const flashAmount = await borrower.flashAmount();
+      expect(flashAmount).to.equal(tempBal);
+      const flashFee = await borrower.flashFee();
+      expect(flashFee).to.equal(tempFee);
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
   });
 
-  it('flashLoanWithManyPairs_OR_ManyPools', async () => {
-    const maxloan = await lender.maxFlashLoanWithManyPairs_OR_ManyPools(dai.address);
-    const fee = await lender.flashFeeWithManyPairs_OR_ManyPools(dai.address, maxloan);
-    await dai.mint(borrower.address, fee);
-    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, dai.address, maxloan);
-    const totalFlashBalance = await borrower.totalFlashBalance();
-    expect(totalFlashBalance).to.equal(maxloan.add(fee));
+  it('invalid case - flashLoan', async () => {
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i].add(1);
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], dai.address, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await dai.mint(borrower.address, tempFee);
+      await expect(borrower.connect(user).flashBorrow(pairs[i], lender.address, dai.address, tempBal, { gasLimit: 30000000 })).to.revertedWith('ERC20: transfer amount exceeds balance');
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
+  });
+
+  it('invalid case - flashLoan', async () => {
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i].add(1);
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], dai.address, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await dai.mint(borrower.address, tempFee.sub(1));
+      await expect(borrower.connect(user).flashBorrow(pairs[i], lender.address, dai.address, tempBal, { gasLimit: 30000000 })).to.revertedWith('ERC20: transfer amount exceeds balance');
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
   });
 });

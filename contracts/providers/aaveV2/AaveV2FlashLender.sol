@@ -11,18 +11,15 @@ import "./interfaces/IAaveV2FlashBorrower.sol";
 import "./interfaces/ILendingPool.sol";
 import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./libraries/AaveDataTypes.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract AaveV2FlashLender is
-    IAaveV2FlashLender,
-    IAaveV2FlashBorrower,
-    Ownable
-{
+contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower {
     using SafeMath for uint256;
 
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
     ILendingPool public lendingPool;
+    address public operator;
+    address public flashloaner;
 
     constructor(ILendingPoolAddressesProvider _provider) {
         lendingPool = ILendingPool(_provider.getLendingPool());
@@ -30,13 +27,43 @@ contract AaveV2FlashLender is
             address(lendingPool) != address(0),
             "AaveV2FlashLender: lendingPool address is zero address!"
         );
+        operator = msg.sender;
     }
 
-    function getFlashLoanInfoListWithCheaperFeePriority(address _token, uint256 _amount)
+    modifier onlyOperator() {
+        require(msg.sender == operator, "AaveV2FlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "AaveV2FlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        flashloaner = _flashloaner;
+    }
+
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (address[] memory pools, uint256[] memory maxloans, uint256[] memory fees)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
         address[] memory pools = new address[](1);
         uint256[] memory maxloans = new uint256[](1);
@@ -59,16 +86,15 @@ contract AaveV2FlashLender is
         }
     }
 
-    function flashFee(address _pair, address _token, uint256 _amount)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function flashFee(
+        address _pair,
+        address _token,
+        uint256 _amount
+    ) external view override onlyFlashLoaner returns (uint256) {
         return _flashFee(_token, _amount);
     }
 
-   function _flashFee(address _token, uint256 _amount)
+    function _flashFee(address _token, uint256 _amount)
         internal
         view
         returns (uint256)
@@ -82,7 +108,7 @@ contract AaveV2FlashLender is
         address _token,
         uint256 _amount,
         bytes calldata _data
-    ) external override returns (bool) {
+    ) external override onlyFlashLoaner returns (bool) {
         _flashLoan(_receiver, _token, _amount, _data);
         return true;
     }

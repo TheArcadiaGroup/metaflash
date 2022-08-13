@@ -7,26 +7,27 @@ const pairsInfo =  JSON.parse(rawPairsInfo);
 const pairsInfoLength = Object.keys(pairsInfo).length;
 const ERC20_ABI = require('../contracts/providers/defiswap/abi/IERC20.json');
 const FACTORY_ABI = require('../contracts/providers/defiswap/abi/Factory.json');
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const ONE_ADDRESS = '0x1111111111111111111111111111111111111111'
 
 describe('defiswap', () => {
   let owner, user;
   let weth, wethAddress, totalFeeBasisPoint;
   let borrower;
-  let maxEthBal = BigNumber.from(0), totalEthBal = BigNumber.from(0);
 
   beforeEach(async () => {
     [owner, user] = await ethers.getSigners();
 
-    // await network.provider.request({
-    //   method: "hardhat_reset",
-    //   params: [
-    //     {
-    //       forking: {
-    //         jsonRpcUrl: "https://mainnet.infura.io/v3/51b37822bf064fdb8f0004abcabcfbba"
-    //       },
-    //     },
-    //   ],
-    // });
+    await network.provider.request({
+      method: "hardhat_reset",
+      params: [
+        {
+          forking: {
+            jsonRpcUrl: "https://mainnet.infura.io/v3/51b37822bf064fdb8f0004abcabcfbba"
+          },
+        },
+      ],
+    });
 
     wethHolderAddress = "0x06920C9fC643De77B99cB7670A944AD31eaAA260";
     wethAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
@@ -58,94 +59,140 @@ describe('defiswap', () => {
     }
 
     await lender.addPairs(tokens0, tokens1, pairs);
-    for (let i = 1; i <= pairsInfoLength; i++) {
-      if(wethAddress == pairsInfo[i].tokens0 || wethAddress == pairsInfo[i].tokens1){
-        let tempBal = await weth.balanceOf(pairsInfo[i].pairs)
-        if(tempBal.gt(BigNumber.from(1))) {
-          totalEthBal = totalEthBal.add(tempBal).sub(1);
-          if(maxEthBal.lt(tempBal.sub(1))){
-            maxEthBal = tempBal.sub(1);        
-          }
+    totalFeeBasisPoint = await factory.totalFeeBasisPoint()
+    await lender.setFlashLoaner(owner.address);
+  });
+
+  it("check operator", async function () {
+    expect(await lender.operator()).to.equal(owner.address);
+    await expect(lender.connect(user).setOperator(user.address)).to.revertedWith('CroDefiSwapFlashLender: Not operator');
+    await lender.setOperator(user.address);
+    expect(await lender.operator()).to.equal(user.address);
+  });
+
+  it("check flashloaner", async function () {
+    expect(await lender.flashloaner()).to.equal(owner.address);
+    await expect(lender.connect(user).setFlashLoaner(user.address)).to.revertedWith('CroDefiSwapFlashLender: Not operator');
+    await lender.setFlashLoaner(user.address);
+    expect(await lender.flashloaner()).to.equal(user.address);
+  });
+
+  it('getFlashLoanInfoListWithCheaperFeePriority', async function () {
+    await expect(lender.connect(user).getFlashLoanInfoListWithCheaperFeePriority(weth.address, 1)).to.revertedWith('CroDefiSwapFlashLender: Not flashloaner');
+
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(weth.address, 1);
+    console.log("maxloans.length", maxloans.length);
+    if (maxloans.length > 1) {
+      for (let i = 0; i < maxloans.length - 1; i++) {
+        expect(fees[i]).to.lte(fees[i + 1]);
+        if (fees[i] == fees[i + 1]) {
+          expect(maxloans[i]).to.gte(maxloans[i + 1]);
         }
       }
     }
-
-    totalFeeBasisPoint = await factory.totalFeeBasisPoint()
   });
 
-  it('flash supply', async function () {
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    console.log("maxEthBal", maxEthBal.toString());
-    expect(await lender.maxFlashLoan(wethAddress, maxEthBal)).to.equal(maxEthBal);
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
+  it("add/removePairs", async function () {
+    //add
+    await expect(lender.connect(user).addPairs([ONE_ADDRESS], [ONE_ADDRESS], [ONE_ADDRESS])).to.revertedWith('CroDefiSwapFlashLender: Not operator');
+    await expect(lender.addPairs([ONE_ADDRESS], [ONE_ADDRESS], [ONE_ADDRESS, ONE_ADDRESS])).to.revertedWith('CroDefiSwapFlashLender: mismatch length of token0, token1, pair');
+    await expect(lender.addPairs([ZERO_ADDRESS], [ONE_ADDRESS], [ONE_ADDRESS])).to.revertedWith('CroDefiSwapFlashLender: _tokens0 is address(0)');
+    await expect(lender.addPairs([ONE_ADDRESS], [ZERO_ADDRESS], [ONE_ADDRESS])).to.revertedWith('CroDefiSwapFlashLender: _tokens1 is address(0)');
+    await expect(lender.addPairs([ONE_ADDRESS], [ONE_ADDRESS], [ZERO_ADDRESS])).to.revertedWith('CroDefiSwapFlashLender: _pairs is address(0)');
 
-    expect(await lender.maxFlashLoan(wethAddress, maxEthBal.add(1))).to.equal(0);
+    beforeLength = await lender.getPairLength();
+    await lender.addPairs([ONE_ADDRESS], [ONE_ADDRESS], [ONE_ADDRESS]);
+    afterLength = await lender.getPairLength();
+    await expect(beforeLength.add(1)).eq(afterLength);
 
-    beforeETH2 = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH2", beforeETH2.toString());
-    expect(await lender.maxFlashLoanWithManyPairs_OR_ManyPools(wethAddress)).to.equal(totalEthBal);
-    afterETH2 = await ethers.provider.getBalance(user.address);
-    console.log("afterETH2", afterETH2.toString());
-    let feeETH2 = ethers.BigNumber.from(beforeETH2).sub(afterETH2);
-    console.log("feeETH2", feeETH2.toString());
+    beforeLength = await lender.getPairLength();
+    await lender.addPairs([ONE_ADDRESS], [ONE_ADDRESS], [ONE_ADDRESS]);
+    afterLength = await lender.getPairLength();
+    await expect(beforeLength).eq(afterLength);
+
+    //remove
+    await expect(lender.connect(user).removePairs([ONE_ADDRESS])).to.revertedWith('CroDefiSwapFlashLender: Not operator');
+
+    beforeLength = await lender.getPairLength();
+    await lender.removePairs([ONE_ADDRESS]);
+    afterLength = await lender.getPairLength();
+    await expect(beforeLength.sub(1)).eq(afterLength);
+
+    beforeLength = await lender.getPairLength();
+    await lender.removePairs([ONE_ADDRESS]);
+    afterLength = await lender.getPairLength();
+    await expect(beforeLength).eq(afterLength);
   });
 
   it('flash fee', async function () {
-    let maxEthFee = BigNumber.from(maxEthBal).mul(totalFeeBasisPoint).div(BigNumber.from(10000).sub(totalFeeBasisPoint)).add(1)
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    expect(await lender.flashFee(weth.address, maxEthBal)).to.equal(maxEthFee);
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
-
-    expect(await lender.flashFee(weth.address, maxEthBal.add(1))).to.equal(0);
-
-    let totalEthFee = BigNumber.from(totalEthBal).mul(totalFeeBasisPoint).div(BigNumber.from(10000).sub(totalFeeBasisPoint)).add(1)
-    beforeETH2 = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH2", beforeETH2.toString());
-    fee = await lender.flashFeeWithManyPairs_OR_ManyPools(weth.address, totalEthBal);
-    expect(fee).to.equal(totalEthFee);
-    afterETH2 = await ethers.provider.getBalance(user.address);
-    console.log("afterETH2", afterETH2.toString());
-    let feeETH2 = ethers.BigNumber.from(beforeETH2).sub(afterETH2);
-    console.log("feeETH2", feeETH2.toString());
+    await expect(lender.connect(user).flashFee(ZERO_ADDRESS, wethAddress, "1000")).to.revertedWith('CroDefiSwapFlashLender: Not flashloaner');
+    for (let i = 1; i <= pairsInfoLength; i++) {
+      if (wethAddress == pairsInfo[i].tokens0 || wethAddress == pairsInfo[i].tokens1) {
+        let tempBal = await weth.balanceOf(pairsInfo[i].pairs)
+        tempBal = tempBal.sub(1);
+        let tempFee = tempBal.mul(totalFeeBasisPoint).div(BigNumber.from(10000).sub(totalFeeBasisPoint)).add(1);
+        expect(await lender.flashFee(pairsInfo[i].pairs, weth.address, tempBal)).to.equal(tempFee);
+      }
+    }
   });
 
   it('flashLoan', async () => {
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    const maxloan = BigNumber.from(await lender.connect(wethuser).maxFlashLoan(weth.address, 1));
-    const fee = BigNumber.from(await lender.connect(wethuser).flashFee(weth.address, maxloan));
-    await weth.connect(wethuser).transfer(borrower.address, fee);
-    await borrower.connect(user).flashBorrow(lender.address, weth.address, maxloan);
-    const totalFlashBalance = await borrower.totalFlashBalance();
-    expect(totalFlashBalance).to.equal(maxloan.add(fee));
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
+    await expect(lender.connect(user).flashLoan(ZERO_ADDRESS, borrower.address, wethAddress, "1000", "0x00000000000000000000000000000000000000000000000000000000000000")).to.revertedWith('CroDefiSwapFlashLender: Not flashloaner');
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(weth.address, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i];
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], weth.address, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await weth.connect(wethuser).transfer(borrower.address, tempFee);
+      await borrower.connect(user).flashBorrow(pairs[i], lender.address, weth.address, tempBal, { gasLimit: 30000000 });
+      const flashSender = await borrower.flashSender();
+      expect(flashSender.toLowerCase()).to.equal(borrower.address.toLowerCase());
+      const flashToken = await borrower.flashToken();
+      expect(flashToken.toLowerCase()).to.equal(weth.address.toLowerCase());
+      const flashAmount = await borrower.flashAmount();
+      expect(flashAmount).to.equal(tempBal);
+      const flashFee = await borrower.flashFee();
+      expect(flashFee).to.equal(tempFee);
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
   });
 
-  it('flashLoanWithManyPairs_OR_ManyPools', async () => {
-    beforeETH = await ethers.provider.getBalance(user.address);
-    console.log("beforeETH", beforeETH.toString());
-    const maxloan = BigNumber.from(await lender.connect(wethuser).maxFlashLoanWithManyPairs_OR_ManyPools(weth.address, {gasLimit: 30000000}));
-    fee = await lender.connect(wethuser).flashFeeWithManyPairs_OR_ManyPools(weth.address, maxloan, {gasLimit: 30000000});
-    console.log("fee", fee.toString());
-    await weth.connect(wethuser).transfer(borrower.address, fee, {gasLimit: 30000000});
-    await borrower.connect(user).flashBorrowWithManyPairs_OR_ManyPools(lender.address, weth.address, maxloan, {gasLimit: 30000000});
-    const totalFlashBalance = await borrower.totalFlashBalance();
-    expect(totalFlashBalance).to.lte(maxloan.add(fee));
-    // expect(totalFlashBalance).to.gte(maxloan.add(fee).sub(pairCount));
-    afterETH = await ethers.provider.getBalance(user.address);
-    console.log("afterETH", afterETH.toString());
-    let feeETH = ethers.BigNumber.from(beforeETH).sub(afterETH);
-    console.log("feeETH", feeETH.toString());
+  it('invalid case - flashLoan', async () => {
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(weth.address, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i].add(1);
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], weth.address, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await weth.connect(wethuser).transfer(borrower.address, tempFee);
+      await expect(borrower.connect(user).flashBorrow(pairs[i], lender.address, weth.address, tempBal, { gasLimit: 30000000 })).to.revertedWith('CroDefiSwap: INSUFFICIENT_LIQUIDITY');
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
+  });
+
+  it('invalid case - flashLoan', async () => {
+    [pairs, maxloans, fees] = await lender.getFlashLoanInfoListWithCheaperFeePriority(weth.address, 1);
+    let count = 0;
+    for (let i = 0; i < maxloans.length; i++) {
+      tempBal = maxloans[i];
+      await lender.setFlashLoaner(owner.address);
+      tempFee = await lender.flashFee(pairs[i], weth.address, tempBal);
+      await lender.setFlashLoaner(borrower.address);
+      await weth.connect(wethuser).transfer(borrower.address, tempFee.sub(1));
+      await expect(borrower.connect(user).flashBorrow(pairs[i], lender.address, weth.address, tempBal, { gasLimit: 30000000 })).to.revertedWith('CroDefiSwapFlashLender: Transfer failed');
+      count++;
+      if (count == 2) {
+        break;
+      }
+    }
   });
 });
