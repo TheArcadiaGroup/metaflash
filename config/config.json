@@ -27,5 +27,36 @@
         "multiplier": {
             "LendingPool": "0xBEc588F8A4859065b45fcFcB1c8805F5584A2219"
         }
+    },
+    "1": {
+        "aavev2": {
+            "LendingPoolAddressProvider": "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5"
+        },
+        "dydx": {
+            "SoloMargin": "0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e"
+        },
+        "makerdao": {
+            "DssFlash": "0x1EB4CF3A948E7D72A198fe073cCb8C7a948cD853"
+        },
+        "defiswap": {
+            "Factory": "0x9deb29c9a4c7a88a3c0257393b7f3335338d9a9d"
+        },
+        "fortube_eth": {
+            "Bank": "0xde7b3b2fe0e7b4925107615a5b199a4eb40d9ca9",
+            "BankController": "0x936e6490ed786fd0e0f0c1b1e4e1540b9d41f9ef"
+        },
+        "euler": {
+            "Euler": "0x27182842E098f60e3D576794A5bFFb0777E025d3",
+            "FlashLoan": "0x07df2ad9878F8797B4055230bbAE5C808b8259b3"
+        }
+    },
+    "56": {
+        "fortube_bsc": {
+            "Bank": "0x0cea0832e9cdbb5d476040d58ea07ecfbebb7672",
+            "BankController": "0xc78248d676debb4597e88071d3d889eca70e5469"
+        },
+        "multiplier": {
+            "LendingPool": "0xBEc588F8A4859065b45fcFcB1c8805F5584A2219"
+        }
     }
 }

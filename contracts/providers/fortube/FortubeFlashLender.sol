@@ -51,10 +51,18 @@ contract FortubeFlashLender is IFortubeFlashLender, IFortubeFlashBorrower {
     }
 
     function setOperator(address _operator) external onlyOperator {
+        require(
+            _operator != address(0),
+            "FortubeFlashLender: _operator is address(0)"
+        );
         operator = _operator;
     }
 
     function setFlashLoaner(address _flashloaner) external onlyOperator {
+        require(
+            _flashloaner != address(0),
+            "FortubeFlashLender: _flashloaner is address(0)"
+        );
         flashloaner = _flashloaner;
     }
 

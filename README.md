@@ -1,5 +1,38 @@
 # metaflash
 
+## Deploy contracts
+
+1. Go to metaflash directory (the folowing commands will be executed in metaflash directory)
+2. Create environment file: .env 
+   
+   and input following contents into the .env file:
+   
+    PRIVATE_KEY=
+
+    INFURA_APIKEY= 
+
+    ETHERSCAN_APIKEY=
+
+3. Open command line, then install: "npm i"
+   
+4. Deploy FlashLenders, FlashBorrower contracts:
+   
+    ETH mainnet: 
+
+        FlashLenders:
+        npx hardhat deploy --tags flashlender_eth --network ethmainnet
+        
+        FlashBorrower:
+        npx hardhat deploy --tags flashborrower --network ethmainnet
+    
+    BSC mainnet:
+
+        FlashLenders:
+        npx hardhat deploy --tags flashlender_bsc --network bscmainnet
+
+        FlashBorrower:
+        npx hardhat deploy --tags flashborrower --network bscmainnet
+
 ## Execute flashloan
 
 Implement FlashBorrower.sol to execute flashloan

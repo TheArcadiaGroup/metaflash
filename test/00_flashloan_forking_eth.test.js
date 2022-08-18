@@ -18,7 +18,7 @@ describe('FlashLoan', () => {
   const ONE_ADDRESS = '0x1111111111111111111111111111111111111111'
 
   beforeEach(async () => {
-    [owner, user, feeTo] = await ethers.getSigners();
+    [owner, user] = await ethers.getSigners();
     pairPoolDAICount = BigNumber.from(0);
     pairPoolETHCount = BigNumber.from(0);
     await network.provider.request({
@@ -53,130 +53,286 @@ describe('FlashLoan', () => {
     })
     wethuser = await hre.ethers.provider.getSigner(wethHolderAddress)
 
+    // // aave2
+    // const AaveV2FlashLender = await ethers.getContractFactory('AaveV2FlashLender');
+    // const AaveV2FlashLenderInstance = await AaveV2FlashLender.deploy(config[chainId].aavev2.LendingPoolAddressProvider);
+    // let aavev2Lender = await AaveV2FlashLenderInstance.deployed();
+
+
+    // // dydx
+    // const DYDXFlashLender = await ethers.getContractFactory("DYDXFlashLender")
+    // const DYDXFlashLenderInstance = await DYDXFlashLender.deploy(config[chainId].dydx.SoloMargin);
+    // let dydxLender = await DYDXFlashLenderInstance.deployed();
+
+    // // uniswapv2
+    // const UniswapV2FlashLender = await ethers.getContractFactory("UniswapV2FlashLender")
+    // const UniswapV2FlashLenderInstance = await UniswapV2FlashLender.deploy();
+    // let uniswapv2Lender = await UniswapV2FlashLenderInstance.deployed();
+
+    // const rawPairsInfo_uniswapv2 = fs.readFileSync('./config/uniswapv2pair.json');
+    // const pairsInfo_uniswapv2 = JSON.parse(rawPairsInfo_uniswapv2);
+    // const pairsInfoLength_uniswapv2 = Object.keys(pairsInfo_uniswapv2).length;
+
+    // let tokens0_uniswapv2 = []
+    // let tokens1_uniswapv2 = []
+    // let pairs_uniswapv2 = []
+
+    // for (let i = 1; i <= pairsInfoLength_uniswapv2; i++) {
+    //   tokens0_uniswapv2.push(pairsInfo_uniswapv2[i].tokens0);
+    //   tokens1_uniswapv2.push(pairsInfo_uniswapv2[i].tokens1);
+    //   pairs_uniswapv2.push(pairsInfo_uniswapv2[i].pairs);
+    // }
+
+    // await uniswapv2Lender.addPairs(tokens0_uniswapv2, tokens1_uniswapv2, pairs_uniswapv2);
+
+    // // uniswapv3
+    // const UniswapV3FlashLender = await ethers.getContractFactory("UniswapV3FlashLender")
+    // const UniswapV3FlashLenderInstance = await UniswapV3FlashLender.deploy();
+    // let uniswapv3Lender = await UniswapV3FlashLenderInstance.deployed();
+
+    // const rawPairsInfo_uniswapv3 = fs.readFileSync('./config/uniswapv3pair.json');
+    // const pairsInfo_uniswapv3 = JSON.parse(rawPairsInfo_uniswapv3);
+    // const pairsInfoLength_uniswapv3 = Object.keys(pairsInfo_uniswapv3).length;
+
+    // let tokens0_uniswapv3 = []
+    // let tokens1_uniswapv3 = []
+    // let pairs_uniswapv3 = []
+
+    // for (let i = 1; i <= pairsInfoLength_uniswapv3; i++) {
+    //   tokens0_uniswapv3.push(pairsInfo_uniswapv3[i].tokens0);
+    //   tokens1_uniswapv3.push(pairsInfo_uniswapv3[i].tokens1);
+    //   pairs_uniswapv3.push(pairsInfo_uniswapv3[i].pairs);
+    // }
+
+    // await uniswapv3Lender.addPairs(tokens0_uniswapv3, tokens1_uniswapv3, pairs_uniswapv3)
+
+    // // makerdao
+    // const MakerDaoFlashLender = await ethers.getContractFactory("MakerDaoFlashLender")
+    // const MakerDaoFlashLenderInstance = await MakerDaoFlashLender.deploy(config[chainId].makerdao.DssFlash);
+    // let makerdaoLender = await MakerDaoFlashLenderInstance.deployed();
+
+    // // saddlefinance
+    // const SaddleFinanceFlashLender = await ethers.getContractFactory("SaddleFinanceFlashLender")
+    // const SaddleFinanceFlashLenderInstance = await SaddleFinanceFlashLender.deploy();
+    // let saddlefinanceLender = await SaddleFinanceFlashLenderInstance.deployed();
+
+    // const rawPoolsInfo_saddlefinance = fs.readFileSync('./config/saddlefinancepool.json');
+    // const poolsInfo_saddlefinance = JSON.parse(rawPoolsInfo_saddlefinance);
+    // const poolsInfoLength_saddlefinance = Object.keys(poolsInfo_saddlefinance).length;
+
+    // let pools_saddlefinance = []
+    // for (let i = 1; i <= poolsInfoLength_saddlefinance; i++) {
+    //   pools_saddlefinance.push(poolsInfo_saddlefinance[i].pools);
+    // }
+
+    // await saddlefinanceLender.addPools(pools_saddlefinance);
+
+    // // defiswap
+    // const CroDefiSwapFlashLender = await ethers.getContractFactory("CroDefiSwapFlashLender")
+    // const CroDefiSwapFlashLenderInstance = await CroDefiSwapFlashLender.deploy(config[chainId].defiswap.Factory);
+    // let defiswapLender = await CroDefiSwapFlashLenderInstance.deployed()
+
+    // const rawPairsInfo_defiswap = fs.readFileSync('./config/defiswappair.json');
+    // const pairsInfo_defiswap = JSON.parse(rawPairsInfo_defiswap);
+    // const pairsInfoLength_defiswap = Object.keys(pairsInfo_defiswap).length;
+
+    // let tokens0_defiswap = []
+    // let tokens1_defiswap = []
+    // let pairs_defiswap = []
+
+    // for (let i = 1; i <= pairsInfoLength_defiswap; i++) {
+    //   tokens0_defiswap.push(pairsInfo_defiswap[i].tokens0);
+    //   tokens1_defiswap.push(pairsInfo_defiswap[i].tokens1);
+    //   pairs_defiswap.push(pairsInfo_defiswap[i].pairs);
+    // }
+
+    // await defiswapLender.addPairs(tokens0_defiswap, tokens1_defiswap, pairs_defiswap);
+
+    // // fortube
+    // const FortubeFlashLender = await ethers.getContractFactory("FortubeFlashLender")
+    // const FortubeFlashLenderInstance = await FortubeFlashLender.deploy(config[chainId].fortube_eth.Bank, config[chainId].fortube_eth.BankController);
+    // let fortubeLender = await FortubeFlashLenderInstance.deployed();
+
+    // // euler
+    // const EulerFlashLender = await ethers.getContractFactory("EulerFlashLender")
+    // const EulerFlashLenderInstance = await EulerFlashLender.deploy(config[chainId].euler.FlashLoan);
+    // let eulerLender = await EulerFlashLenderInstance.deployed();
+
+    // // FlashLoan
+    // const FlashLender = await ethers.getContractFactory('FlashLender');
+    // flashlender = await FlashLender.deploy();
+
+    // await flashlender.addProviders([aavev2Lender.address, dydxLender.address, uniswapv2Lender.address, uniswapv3Lender.address, makerdaoLender.address, saddlefinanceLender.address, defiswapLender.address, fortubeLender.address, eulerLender.address]);
+
+    // // Borrower
+    // const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
+    // flashborrower = await FlashBorrower.deploy();
+
+    // await aavev2Lender.setFlashLoaner(flashlender.address);
+    // await dydxLender.setFlashLoaner(flashlender.address);
+    // await uniswapv2Lender.setFlashLoaner(flashlender.address);
+    // await uniswapv3Lender.setFlashLoaner(flashlender.address);
+    // await makerdaoLender.setFlashLoaner(flashlender.address);
+    // await saddlefinanceLender.setFlashLoaner(flashlender.address);
+    // await defiswapLender.setFlashLoaner(flashlender.address);
+    // await fortubeLender.setFlashLoaner(flashlender.address);
+    // await eulerLender.setFlashLoaner(flashlender.address);
+
+    let lender = []
     // aave2
-    const AaveV2FlashLender = await ethers.getContractFactory('AaveV2FlashLender');
-    const AaveV2FlashLenderInstance = await AaveV2FlashLender.deploy(config[chainId].aavev2.LendingPoolAddressProvider);
-    let aavev2Lender = await AaveV2FlashLenderInstance.deployed();
-
-
+    if (config[chainId].aavev2.LendingPoolAddressProvider === ZERO_ADDRESS) {
+      console.log('Error: LendingPoolAddressProvider = ', ZERO_ADDRESS)
+    } else {
+      const AaveV2FlashLender = await ethers.getContractFactory('AaveV2FlashLender');
+      const AaveV2FlashLenderInstance = await AaveV2FlashLender.deploy(config[chainId].aavev2.LendingPoolAddressProvider);
+      aavev2Lender = await AaveV2FlashLenderInstance.deployed();
+      lender.push(aavev2Lender);
+    }
+  
     // dydx
-    const DYDXFlashLender = await ethers.getContractFactory("DYDXFlashLender")
-    const DYDXFlashLenderInstance = await DYDXFlashLender.deploy(config[chainId].dydx.SoloMargin);
-    let dydxLender = await DYDXFlashLenderInstance.deployed();
-
+    if (config[chainId].dydx.SoloMargin === ZERO_ADDRESS) {
+      console.log('Error: SoloMargin = ', ZERO_ADDRESS)
+    } else {
+      const DYDXFlashLender = await ethers.getContractFactory("DYDXFlashLender")
+      const DYDXFlashLenderInstance = await DYDXFlashLender.deploy(config[chainId].dydx.SoloMargin);
+      dydxLender = await DYDXFlashLenderInstance.deployed();
+      lender.push(dydxLender);
+    }
+  
     // uniswapv2
     const UniswapV2FlashLender = await ethers.getContractFactory("UniswapV2FlashLender")
     const UniswapV2FlashLenderInstance = await UniswapV2FlashLender.deploy();
     let uniswapv2Lender = await UniswapV2FlashLenderInstance.deployed();
-
+  
     const rawPairsInfo_uniswapv2 = fs.readFileSync('./config/uniswapv2pair.json');
     const pairsInfo_uniswapv2 = JSON.parse(rawPairsInfo_uniswapv2);
     const pairsInfoLength_uniswapv2 = Object.keys(pairsInfo_uniswapv2).length;
-
+  
     let tokens0_uniswapv2 = []
     let tokens1_uniswapv2 = []
     let pairs_uniswapv2 = []
-
+  
     for (let i = 1; i <= pairsInfoLength_uniswapv2; i++) {
       tokens0_uniswapv2.push(pairsInfo_uniswapv2[i].tokens0);
       tokens1_uniswapv2.push(pairsInfo_uniswapv2[i].tokens1);
       pairs_uniswapv2.push(pairsInfo_uniswapv2[i].pairs);
     }
-
+  
     await uniswapv2Lender.addPairs(tokens0_uniswapv2, tokens1_uniswapv2, pairs_uniswapv2);
-
+    lender.push(uniswapv2Lender);
+  
     // uniswapv3
     const UniswapV3FlashLender = await ethers.getContractFactory("UniswapV3FlashLender")
     const UniswapV3FlashLenderInstance = await UniswapV3FlashLender.deploy();
     let uniswapv3Lender = await UniswapV3FlashLenderInstance.deployed();
-
+  
     const rawPairsInfo_uniswapv3 = fs.readFileSync('./config/uniswapv3pair.json');
     const pairsInfo_uniswapv3 = JSON.parse(rawPairsInfo_uniswapv3);
     const pairsInfoLength_uniswapv3 = Object.keys(pairsInfo_uniswapv3).length;
-
+  
     let tokens0_uniswapv3 = []
     let tokens1_uniswapv3 = []
     let pairs_uniswapv3 = []
-
+  
     for (let i = 1; i <= pairsInfoLength_uniswapv3; i++) {
       tokens0_uniswapv3.push(pairsInfo_uniswapv3[i].tokens0);
       tokens1_uniswapv3.push(pairsInfo_uniswapv3[i].tokens1);
       pairs_uniswapv3.push(pairsInfo_uniswapv3[i].pairs);
     }
-
+  
     await uniswapv3Lender.addPairs(tokens0_uniswapv3, tokens1_uniswapv3, pairs_uniswapv3)
-
+    lender.push(uniswapv3Lender);
+  
     // makerdao
-    const MakerDaoFlashLender = await ethers.getContractFactory("MakerDaoFlashLender")
-    const MakerDaoFlashLenderInstance = await MakerDaoFlashLender.deploy(config[chainId].makerdao.DssFlash);
-    let makerdaoLender = await MakerDaoFlashLenderInstance.deployed();
-
+    if (config[chainId].makerdao.DssFlash === ZERO_ADDRESS) {
+      console.log('Error: DssFlash = ', ZERO_ADDRESS)
+    } else {
+      const MakerDaoFlashLender = await ethers.getContractFactory("MakerDaoFlashLender")
+      const MakerDaoFlashLenderInstance = await MakerDaoFlashLender.deploy(config[chainId].makerdao.DssFlash);
+      makerdaoLender = await MakerDaoFlashLenderInstance.deployed();
+      lender.push(makerdaoLender);
+    }
+  
     // saddlefinance
     const SaddleFinanceFlashLender = await ethers.getContractFactory("SaddleFinanceFlashLender")
     const SaddleFinanceFlashLenderInstance = await SaddleFinanceFlashLender.deploy();
     let saddlefinanceLender = await SaddleFinanceFlashLenderInstance.deployed();
-
+  
     const rawPoolsInfo_saddlefinance = fs.readFileSync('./config/saddlefinancepool.json');
     const poolsInfo_saddlefinance = JSON.parse(rawPoolsInfo_saddlefinance);
     const poolsInfoLength_saddlefinance = Object.keys(poolsInfo_saddlefinance).length;
-
+  
     let pools_saddlefinance = []
     for (let i = 1; i <= poolsInfoLength_saddlefinance; i++) {
       pools_saddlefinance.push(poolsInfo_saddlefinance[i].pools);
     }
-
+  
     await saddlefinanceLender.addPools(pools_saddlefinance);
-
+    lender.push(saddlefinanceLender);
+  
     // defiswap
-    const CroDefiSwapFlashLender = await ethers.getContractFactory("CroDefiSwapFlashLender")
-    const CroDefiSwapFlashLenderInstance = await CroDefiSwapFlashLender.deploy(config[chainId].defiswap.Factory);
-    let defiswapLender = await CroDefiSwapFlashLenderInstance.deployed()
-
-    const rawPairsInfo_defiswap = fs.readFileSync('./config/defiswappair.json');
-    const pairsInfo_defiswap = JSON.parse(rawPairsInfo_defiswap);
-    const pairsInfoLength_defiswap = Object.keys(pairsInfo_defiswap).length;
-
-    let tokens0_defiswap = []
-    let tokens1_defiswap = []
-    let pairs_defiswap = []
-
-    for (let i = 1; i <= pairsInfoLength_defiswap; i++) {
-      tokens0_defiswap.push(pairsInfo_defiswap[i].tokens0);
-      tokens1_defiswap.push(pairsInfo_defiswap[i].tokens1);
-      pairs_defiswap.push(pairsInfo_defiswap[i].pairs);
+    if (config[chainId].defiswap.Factory === ZERO_ADDRESS) {
+      console.log('Error: Factory = ', ZERO_ADDRESS)
+    } else {
+      const CroDefiSwapFlashLender = await ethers.getContractFactory("CroDefiSwapFlashLender")
+      const CroDefiSwapFlashLenderInstance = await CroDefiSwapFlashLender.deploy(config[chainId].defiswap.Factory);
+      defiswapLender = await CroDefiSwapFlashLenderInstance.deployed()
+  
+      const rawPairsInfo_defiswap = fs.readFileSync('./config/defiswappair.json');
+      const pairsInfo_defiswap = JSON.parse(rawPairsInfo_defiswap);
+      const pairsInfoLength_defiswap = Object.keys(pairsInfo_defiswap).length;
+  
+      let tokens0_defiswap = []
+      let tokens1_defiswap = []
+      let pairs_defiswap = []
+  
+      for (let i = 1; i <= pairsInfoLength_defiswap; i++) {
+        tokens0_defiswap.push(pairsInfo_defiswap[i].tokens0);
+        tokens1_defiswap.push(pairsInfo_defiswap[i].tokens1);
+        pairs_defiswap.push(pairsInfo_defiswap[i].pairs);
+      }
+  
+      await defiswapLender.addPairs(tokens0_defiswap, tokens1_defiswap, pairs_defiswap);
+      lender.push(defiswapLender);
     }
-
-    await defiswapLender.addPairs(tokens0_defiswap, tokens1_defiswap, pairs_defiswap);
-
     // fortube
-    const FortubeFlashLender = await ethers.getContractFactory("FortubeFlashLender")
-    const FortubeFlashLenderInstance = await FortubeFlashLender.deploy(config[chainId].fortube_eth.Bank, config[chainId].fortube_eth.BankController);
-    let fortubeLender = await FortubeFlashLenderInstance.deployed();
-
+    if (config[chainId].fortube_eth.Bank === ZERO_ADDRESS || config[chainId].fortube_eth.BankController === ZERO_ADDRESS) {
+      console.log('Error: Bank or BankController = ', ZERO_ADDRESS)
+    } else {
+      const FortubeFlashLender = await ethers.getContractFactory("FortubeFlashLender")
+      const FortubeFlashLenderInstance = await FortubeFlashLender.deploy(config[chainId].fortube_eth.Bank, config[chainId].fortube_eth.BankController);
+      fortubeLender = await FortubeFlashLenderInstance.deployed();
+      lender.push(fortubeLender);
+    }
     // euler
-    const EulerFlashLender = await ethers.getContractFactory("EulerFlashLender")
-    const EulerFlashLenderInstance = await EulerFlashLender.deploy(config[chainId].euler.FlashLoan);
-    let eulerLender = await EulerFlashLenderInstance.deployed();
-
+    if (config[chainId].euler.FlashLoan === ZERO_ADDRESS) {
+      console.log('Error: FlashLoan = ', ZERO_ADDRESS)
+    } else {
+      const EulerFlashLender = await ethers.getContractFactory("EulerFlashLender")
+      const EulerFlashLenderInstance = await EulerFlashLender.deploy(config[chainId].euler.FlashLoan);
+      eulerLender = await EulerFlashLenderInstance.deployed();
+      lender.push(eulerLender);
+    }
     // FlashLoan
     const FlashLender = await ethers.getContractFactory('FlashLender');
-    flashlender = await FlashLender.deploy(feeTo.address);
-
-    await flashlender.addProviders([aavev2Lender.address, dydxLender.address, uniswapv2Lender.address, uniswapv3Lender.address, makerdaoLender.address, saddlefinanceLender.address, defiswapLender.address, fortubeLender.address, eulerLender.address]);
+    flashlender = await FlashLender.deploy();
+  
+    for(let i = 0; i < lender.length; i++) {
+      await lender[i].setFlashLoaner(flashlender.address);
+    }
+  
+    lendersAddress = []
+    for(let i = 0; i < lender.length; i++) {
+      lendersAddress.push(lender[i].address);
+    }
+    await flashlender.addProviders(lendersAddress);
 
     // Borrower
     const FlashBorrower = await ethers.getContractFactory('FlashBorrower');
     flashborrower = await FlashBorrower.deploy();
 
-    await aavev2Lender.setFlashLoaner(flashlender.address);
-    await dydxLender.setFlashLoaner(flashlender.address);
-    await uniswapv2Lender.setFlashLoaner(flashlender.address);
-    await uniswapv3Lender.setFlashLoaner(flashlender.address);
-    await makerdaoLender.setFlashLoaner(flashlender.address);
-    await saddlefinanceLender.setFlashLoaner(flashlender.address);
-    await defiswapLender.setFlashLoaner(flashlender.address);
-    await fortubeLender.setFlashLoaner(flashlender.address);
-    await eulerLender.setFlashLoaner(flashlender.address);
+    providerlength = await flashlender.getProviderLength();
+    console.log("providerlength", providerlength.toString());
   });
 
   it("check operator", async function () {
@@ -184,13 +340,6 @@ describe('FlashLoan', () => {
     await expect(flashlender.connect(user).setOperator(user.address)).to.revertedWith('FlashLender: Not operator');
     await flashlender.setOperator(user.address);
     expect(await flashlender.operator()).to.equal(user.address);
-  });
-
-  it("check feeTo", async function () {
-    expect(await flashlender.FEETO()).to.equal(feeTo.address);
-    await expect(flashlender.connect(user).setFeeTo(user.address)).to.revertedWith('FlashLender: Not operator');
-    await flashlender.setFeeTo(user.address);
-    expect(await flashlender.FEETO()).to.equal(user.address);
   });
 
   it("add/removeProviders", async function () {
@@ -259,6 +408,7 @@ describe('FlashLoan', () => {
     daimaxloancheapest = await flashlender.maxFlashLoanWithCheapestProvider(dai.address, max);
     console.log("daimaxloancheapest", daimaxloancheapest.toString());
     expect(max).to.equal(daimaxloancheapest);
+    
     let max2 = BigNumber.from(0);
     for (let i = 0; i < maxloans.length; i++) {
       if(max == maxloans[i]){
@@ -304,15 +454,12 @@ describe('FlashLoan', () => {
 
     const maxloanWithCheapestProvider = await flashlender.maxFlashLoanWithCheapestProvider(weth.address, 1, { gasLimit: 30000000 });
     const feeWithCheapestProvider = await flashlender.flashFeeWithCheapestProvider(weth.address, maxloanWithCheapestProvider, { gasLimit: 30000000 });
-    const balanceBeforeFeeToWithCheapestProvider = await weth.balanceOf(feeTo.address);
     await weth.connect(wethuser).transfer(flashborrower.address, feeWithCheapestProvider, { gasLimit: 30000000 });
     console.log("maxloanWithCheapestProvider", maxloanWithCheapestProvider.toString());
     console.log("feeWithCheapestProvider", feeWithCheapestProvider.toString());
     await flashborrower.connect(user).flashBorrowWithCheapestProvider(flashlender.address, weth.address, maxloanWithCheapestProvider, { gasLimit: 30000000 });
     const totalFlashBalanceWithCheapestProvider = await flashborrower.totalFlashBalance();
     expect(totalFlashBalanceWithCheapestProvider).to.equal(maxloanWithCheapestProvider.add(feeWithCheapestProvider));
-    const balanceAfterFeeToWithCheapestProvider = await weth.balanceOf(feeTo.address);
-    expect(balanceAfterFeeToWithCheapestProvider.sub(balanceBeforeFeeToWithCheapestProvider)).to.equal(maxloanWithCheapestProvider.mul(5).div(1000));
     
     afterETH = await ethers.provider.getBalance(user.address);
     console.log("afterETH", afterETH.toString());
@@ -346,7 +493,6 @@ describe('FlashLoan', () => {
 
     const maxloanWithManyProviders = await flashlender.maxFlashLoanWithManyProviders(dai.address, 1, { gasLimit: 30000000 });
     const feeWithManyProviders = await flashlender.flashFeeWithManyProviders(dai.address, maxloanWithManyProviders, 1, { gasLimit: 30000000 });
-    const balanceBeforeFeeToWithManyProviders = await dai.balanceOf(feeTo.address);
     console.log("maxloanWithManyProviders", maxloanWithManyProviders.toString());
     console.log("feeWithManyProviders", feeWithManyProviders.toString());
     console.log("maxloans.length", maxloans.length.toString());
@@ -357,9 +503,6 @@ describe('FlashLoan', () => {
     console.log("maxloanWithManyProviders.add(feeWithManyProviders)", maxloanWithManyProviders.add(feeWithManyProviders).toString());
     expect(totalFlashBalanceWithManyProviders).to.lte(maxloanWithManyProviders.add(feeWithManyProviders));
     expect(totalFlashBalanceWithManyProviders).to.gte(maxloanWithManyProviders.add(feeWithManyProviders).sub(maxloans.length).sub(maxloans.length));
-    const balanceAfterFeeToWithManyProviders = await dai.balanceOf(feeTo.address);
-    expect(balanceAfterFeeToWithManyProviders.sub(balanceBeforeFeeToWithManyProviders)).to.lte(maxloanWithManyProviders.mul(5).div(1000).add(maxloans.length));
-    expect(balanceAfterFeeToWithManyProviders.sub(balanceBeforeFeeToWithManyProviders)).to.gte(maxloanWithManyProviders.mul(5).div(1000).sub(maxloans.length));
 
     afterETH = await ethers.provider.getBalance(user.address);
     console.log("afterETH", afterETH.toString());

@@ -60,10 +60,18 @@ contract DYDXFlashLender is IDYDXFlashLender, IDYDXFlashBorrower, Ownable {
     }
 
     function setOperator(address _operator) external onlyOperator {
+        require(
+            _operator != address(0),
+            "DYDXFlashLender: _operator is address(0)"
+        );
         operator = _operator;
     }
 
     function setFlashLoaner(address _flashloaner) external onlyOperator {
+        require(
+            _flashloaner != address(0),
+            "DYDXFlashLender: _flashloaner is address(0)"
+        );
         flashloaner = _flashloaner;
     }
 

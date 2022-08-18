@@ -15,7 +15,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     address public operator;
-    address public FEETO;
 
     address[] public providers;
 
@@ -26,13 +25,8 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 fee;
     }
 
-    constructor(address _feeTo) public {
-        require(
-            address(_feeTo) != address(0),
-            "FlashLender: feeTo address is zero address!"
-        );
+    constructor() public {
         operator = msg.sender;
-        FEETO = _feeTo;
     }
 
     modifier onlyOperator() {
@@ -41,18 +35,18 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     }
 
     function setOperator(address _operator) public onlyOperator {
+        require(
+            _operator != address(0),
+            "FlashLender: _operator is address(0)"
+        );
         operator = _operator;
     }
 
-    function setFeeTo(address _feeTo) public onlyOperator {
-        require(
-            address(_feeTo) != address(0),
-            "FlashLender: feeTo address is zero address!"
-        );
-        FEETO = _feeTo;
-    }
-
-    function addProviders(address[] memory _providers) public onlyOperator returns (bool) {
+    function addProviders(address[] memory _providers)
+        public
+        onlyOperator
+        returns (bool)
+    {
         for (uint256 i = 0; i < _providers.length; i++) {
             require(
                 _providers[i] != address(0),
@@ -223,10 +217,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory feePer1e18s
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
 
-        for (uint256 i = 0; i < maxloans.length; i++) {
-            feePer1e18s[i] = feePer1e18s[i].add(_additionalFee(1e18));
-        }
-
         uint256[] memory feePerMaxLoans = new uint256[](maxloans.length);
         for (uint256 i = 0; i < maxloans.length; i++) {
             feePerMaxLoans[i] = _fee(
@@ -359,17 +349,12 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         address _token,
         uint256 _amount
     ) internal view returns (uint256) {
-        uint256 providerFee = IERC3156FlashLender(_provider).flashFee(
+        uint256 fee = IERC3156FlashLender(_provider).flashFee(
             _pool,
             _token,
             _amount
         );
-        uint256 additionalFee = _additionalFee(_amount);
-        return providerFee.add(additionalFee);
-    }
-
-    function _additionalFee(uint256 _amount) internal view returns (uint256) {
-        return _amount.mul(5).div(1000);
+        return fee;
     }
 
     function flashLoanWithCheapestProvider(
@@ -495,15 +480,12 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             "FlashLender: Transfer failed"
         );
 
-        uint256 additionalFee = _additionalFee(_amount);
-        uint256 totalFee = _fee.add(additionalFee);
-
         require(
-            receiver.onFlashLoan(origin, _token, _amount, totalFee, userData) ==
+            receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
                 CALLBACK_SUCCESS,
             "FlashLender: Callback failed"
         );
-        uint256 payment = _amount.add(totalFee);
+        uint256 payment = _amount.add(_fee);
 
         require(
             IERC20(_token).transferFrom(
@@ -513,8 +495,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             ),
             "FlashLender: Transfer failed"
         );
-
-        IERC20(_token).transfer(FEETO, additionalFee);
 
         IERC20(_token).approve(msg.sender, payment);
 

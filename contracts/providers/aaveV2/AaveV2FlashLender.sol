@@ -44,10 +44,18 @@ contract AaveV2FlashLender is IAaveV2FlashLender, IAaveV2FlashBorrower {
     }
 
     function setOperator(address _operator) external onlyOperator {
+        require(
+            _operator != address(0),
+            "AaveV2FlashLender: _operator is address(0)"
+        );
         operator = _operator;
     }
 
     function setFlashLoaner(address _flashloaner) external onlyOperator {
+        require(
+            _flashloaner != address(0),
+            "AaveV2FlashLender: _flashloaner is address(0)"
+        );
         flashloaner = _flashloaner;
     }
 

@@ -61,7 +61,7 @@ module.exports = {
       blockGasLimit: 12400000,
       accounts: [process.env.PRIVATE_KEY]
     },
-    bsc: {
+    bscmainnet: {
       url: `https://bsc-dataseed.binance.org/`,
       gasPrice: 6e9,
       blockGasLimit: 22400000,
@@ -73,7 +73,7 @@ module.exports = {
       blockGasLimit: 22400000,
       accounts: [process.env.PRIVATE_KEY]
     },
-    mainnet: {
+    ethmainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
       //gasPrice: 80e9,
      // blockGasLimit: 12487794,
