@@ -468,7 +468,7 @@ describe('FlashLoan', () => {
   });
 
     it('Invalid case - flashLoanWithCheapestProvider', async () => {
-    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(weth.address, 1, { gasLimit: 30000000 });
 
     let maxloan = BigNumber.from(0);
     for (let i = 0; i < feeMaxLoans.length; i++) {

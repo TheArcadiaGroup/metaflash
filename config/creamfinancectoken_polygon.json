@@ -1,0 +1,66 @@
+{
+    "1": {
+        "ctoken": "0x3fae5e5722c51cdb5b0afd8c7082e8a6af336ee8",
+        "underlying": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
+    },
+    "2": {
+        "ctoken": "0x73cf8c5d14aa0ebc89f18272a568319f5bab6cbd",
+        "underlying": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174"
+    },
+    "3": {
+        "ctoken": "0xf976c9bc0e16b250e0b1523cffaa9e4c07bc5c8a",
+        "underlying": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+    },
+    "4": {
+        "ctoken": "0x4eceddf62277ed78623f9a94995c680f8fd6c00e",
+        "underlying": "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"
+    },
+    "5": {
+        "ctoken": "0x7ef18d0a9c3fb1a716ff6c3ed0edf52a2427f716",
+        "underlying": "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619"
+    },
+    "6": {
+        "ctoken": "0x5dc3a30d8c5937f1529c3c93507c16d86a17072a",
+        "underlying": "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6"
+    },
+    "7": {
+        "ctoken": "0x20d5d319c2964ecb52e1b006a4c059b7f6d6ad0a",
+        "underlying": "0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39"
+    },
+    "8": {
+        "ctoken": "0x468a7bf78f11da82c90b17a93adb7b14999af5ab",
+        "underlying": "0x0b3f868e0be5597d5db7feb59e1cadbb0fdda50a"
+    },
+    "9": {
+        "ctoken": "0xe82225ba6bed28406912522f01c7102dd9f07e78",
+        "underlying": "0x172370d5cd63279efa6d502dab29171933a610af"
+    },
+    "10": {
+        "ctoken": "0x2ee80614ccbc5e28654324a66a396458fa5cd7cc",
+        "underlying": "0x831753dd7087cac61ab5644b308642cc1c33dc13"
+    },
+    "11": {
+        "ctoken": "0x4486835e0c567a320c0636d8f6e6e6679a46a271",
+        "underlying": "0xd6df932a45c0f255f85145f286ea0b292b21c90b"
+    },
+    "12": {
+        "ctoken": "0xfbbfa5fd64246046e683c423aa2ab0470fbd328d",
+        "underlying": "0x85955046df4668e1dd369d2de9f3aeb98dd2a369"
+    },
+    "13": {
+        "ctoken": "0x9b21eb2e30d8320c3c1b8d8465284d78e58cb971",
+        "underlying": "0x3e121107f6f22da4911079845a470757af4e1a1b"
+    },
+    "14": {
+        "ctoken": "0xd4409b8d17d5d49a7ed9ae734b0e8edba29b9ffa",
+        "underlying": "0x50b728d8d964fd00c2d0aad81718b71311fef68a"
+    },
+    "15": {
+        "ctoken": "0x7ea7174dd0cb4ab84f42177f01e9a8a79475d381",
+        "underlying": "0xb33eaad8d922b1083446dc23f610c2567fb5180f"
+    },
+    "16": {
+        "ctoken": "0x98182bf525a4252c436ac349a4b79c7e6cd0eb7a",
+        "underlying": "0x4eac4c4e9050464067d673102f8e24b2fcceb350"
+    }
+}

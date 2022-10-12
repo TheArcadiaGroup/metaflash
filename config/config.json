@@ -3,6 +3,12 @@
         "aavev2": {
             "LendingPoolAddressProvider": "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5"
         },
+        "aavev2_polygon": {
+            "LendingPoolAddressProvider": "0xd05e3e715d945b59290df0ae8ef85c1bdb684744"
+        },
+        "aavev3_polygon": {
+            "LendingPoolAddressProvider": "0xa97684ead0e402dc232d5a977953df7ecbab3cdb"
+        },
         "dydx": {
             "SoloMargin": "0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e"
         },
@@ -57,6 +63,14 @@
         },
         "multiplier": {
             "LendingPool": "0xBEc588F8A4859065b45fcFcB1c8805F5584A2219"
+        }
+    },
+    "137": {
+        "aavev2_polygon": {
+            "LendingPoolAddressProvider": "0xd05e3E715d945B59290df0ae8eF85c1BdB684744"
+        },
+        "aavev3_polygon": {
+            "LendingPoolAddressProvider": "0xa97684ead0e402dc232d5a977953df7ecbab3cdb"
         }
     }
 }

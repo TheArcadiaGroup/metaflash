@@ -55,8 +55,12 @@ module.exports = {
     localhost: {
       timeout: 3000000
     },
-    kovan: {
-      url: `https://kovan.infura.io/v3/${process.env.INFURA_APIKEY}`,
+    ethmainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_APIKEY}`,
       gasPrice: 10e9,
       blockGasLimit: 12400000,
       accounts: [process.env.PRIVATE_KEY]
@@ -73,12 +77,18 @@ module.exports = {
       blockGasLimit: 22400000,
       accounts: [process.env.PRIVATE_KEY]
     },
-    ethmainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
-      //gasPrice: 80e9,
-     // blockGasLimit: 12487794,
+    polygon: {
+      url: `https://polygon-rpc.com/`,
+      gasPrice: 20e9,
+      blockGasLimit: 22400000,
       accounts: [process.env.PRIVATE_KEY]
-    }
+    },
+    mumbaitestnet: {
+      url: `https://rpc-mumbai.maticvigil.com/`,
+      gasPrice: 20e9,
+      blockGasLimit: 22400000,
+      accounts: [process.env.PRIVATE_KEY]
+    },
   },
 
   solidity: {

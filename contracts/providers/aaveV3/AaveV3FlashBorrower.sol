@@ -31,7 +31,7 @@ contract AaveV3FlashBorrower is IERC3156FlashBorrower {
     ) external override returns (bytes32) {
         require(
             sender == address(this),
-            "AaveV3FlashBorrower: External loan initiator"
+            "AaveV3FlashBorrower: sender must be this contract"
         );
         Action action = abi.decode(data, (Action));
         flashSender = sender;
@@ -48,6 +48,7 @@ contract AaveV3FlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
+        address pair,
         IAaveV3FlashLender lender,
         address token,
         uint256 amount
@@ -56,26 +57,10 @@ contract AaveV3FlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFee(token, amount);
+        uint256 _fee = lender.flashFee(pair, token, amount);
         uint256 _repayment = amount + _fee;
         IERC20(token).approve(address(lender), _allowance + _repayment);
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoan(this, token, amount, data);
-    }
-
-    function flashBorrowWithManyPairs_OR_ManyPools(
-        IAaveV3FlashLender lender,
-        address token,
-        uint256 amount
-    ) public {
-        uint256 _allowance = IERC20(token).allowance(
-            address(this),
-            address(lender)
-        );
-        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
-        uint256 _repayment = amount + _fee;
-        IERC20(token).approve(address(lender), _allowance + _repayment);
-        bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoanWithManyPairs_OR_ManyPools(this, token, amount, data);
+        lender.flashLoan(pair, this, token, amount, data);
     }
 }

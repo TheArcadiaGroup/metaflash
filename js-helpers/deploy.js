@@ -21,19 +21,13 @@ const log = (...args) => {
 
 const chainIdByName = (chainName) => {
   switch (_.toLower(chainName)) {
-    case 'mainnet': return 1;
-    case 'ropsten': return 3;
-    case 'rinkeby': return 4;
-    case 'kovan': return 42;
+    case 'ethmainnet': return 1;
+    case 'goerli': return 5;
     case 'hardhat': return 31337;
-    case 'coverage': return 31337;
-    case 'bsc': return 56;
+    case 'bscmainnet': return 56;
     case 'bsctestnet': return 97;
-    case 'moonbeamtestnet': return 1287;
-    case 'fantomtestnet': return 4002;
+    case 'polygon': return 137;
     case 'mumbaitestnet': return 80001;
-    case 'fujitestnet': return 43113;
-    case 'tomotestnet': return 89;
     case 'localhost': return 1337;
     default: return 1337;
   }
@@ -47,19 +41,14 @@ function sleepFor(ms) {
 
 const chainNameById = (chainId) => {
   switch (parseInt(chainId, 10)) {
-    case 1: return 'Mainnet';
-    case 3: return 'Ropsten';
-    case 4: return 'Rinkeby';
-    case 42: return 'Kovan';
+    case 1: return 'ETH';
+    case 5: return 'Goerli';;
     case 1337: return 'localhost';
     case 31337: return 'Hardhat';
     case 56: return 'BSC';
     case 97: return 'BSCTestnet';
-    case 1287: return 'MoonBeamTestnet';
-    case 4002: return 'FantomTestnet';
+    case 137: return 'Polygon';
     case 80001: return 'MumbaiTestnet';
-    case 43113: return 'FujiTestnet';
-    case 89: return 'TomoTestnet';
     default: return 'Unknown';
   }
 };
