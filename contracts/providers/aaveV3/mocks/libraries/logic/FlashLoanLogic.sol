@@ -3,7 +3,7 @@ pragma solidity 0.8.10;
 
 import {GPv2SafeERC20} from '../../dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {SafeCast} from '../../dependencies/openzeppelin/contracts/SafeCast.sol';
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {IAToken} from '../../interfaces/IAToken.sol';
 import {IFlashLoanReceiver} from '../../interfaces/IFlashLoanReceiver.sol';
 import {IFlashLoanSimpleReceiver} from '../../interfaces/IFlashLoanSimpleReceiver.sol';
@@ -26,7 +26,7 @@ import {ReserveLogic} from './ReserveLogic.sol';
 library FlashLoanLogic {
   using ReserveLogic for DataTypes.ReserveCache;
   using ReserveLogic for DataTypes.ReserveData;
-  using GPv2SafeERC20 for IERC20;
+  using GPv2SafeERC20 for IERC20Mock;
   using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
   using WadRayMath for uint256;
   using PercentageMath for uint256;
@@ -233,7 +233,7 @@ library FlashLoanLogic {
     reserve.updateState(reserveCache);
     // console.log("IERC20(reserveCache.aTokenAddress).totalSupply() %s", IERC20(reserveCache.aTokenAddress).totalSupply());
     reserveCache.nextLiquidityIndex = reserve.cumulateToLiquidityIndex(
-      IERC20(reserveCache.aTokenAddress).totalSupply(),
+      IERC20Mock(reserveCache.aTokenAddress).totalSupply(),
       premiumToLP
     );
 
@@ -243,7 +243,7 @@ library FlashLoanLogic {
 
     reserve.updateInterestRates(reserveCache, params.asset, amountPlusPremium, 0);
 
-    IERC20(params.asset).safeTransferFrom(
+    IERC20Mock(params.asset).safeTransferFrom(
       params.receiverAddress,
       reserveCache.aTokenAddress,
       amountPlusPremium

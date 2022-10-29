@@ -3,7 +3,7 @@
 
 pragma solidity >=0.6.12;
 
-import {IERC20} from "./interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/IPancakePair.sol";

@@ -1,9 +1,9 @@
 pragma solidity =0.5.16;
 
-import '../interfaces/IERC20.sol';
+import '../interfaces/IERC20CF.sol';
 import '../libraries/SafeMath.sol';
 
-contract CreamFinanceERC20 is IERC20 {
+contract CreamFinanceERC20 is IERC20CF {
     using SafeMath for uint;
 
     string public name;

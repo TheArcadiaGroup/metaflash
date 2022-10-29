@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from '../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {VersionedInitializable} from '../libraries/aave-upgradeability/VersionedInitializable.sol';
 import {MathUtils} from '../libraries/math/MathUtils.sol';
 import {WadRayMath} from '../libraries/math/WadRayMath.sol';
@@ -98,7 +98,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
     return _userState[user].additionalData;
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function balanceOf(address account) public view virtual override returns (uint256) {
     uint256 accountBalance = super.balanceOf(account);
     uint256 stableRate = _userState[account].additionalData;
@@ -311,7 +311,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
     return (_calcTotalSupply(avgRate), avgRate);
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function totalSupply() public view virtual override returns (uint256) {
     return _calcTotalSupply(_avgStableRate);
   }

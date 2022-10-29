@@ -5,7 +5,7 @@ const fs = require('fs')
 const rawPairsInfo = fs.readFileSync('./config/pancakeswappair.json');
 const pairsInfo =  JSON.parse(rawPairsInfo);
 const pairsInfoLength = Object.keys(pairsInfo).length;
-const ERC20_ABI = require('../contracts/providers/uniswapV2/abi/IERC20.json');
+const ERC20_ABI = require('../abi/IERC20.json');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const ONE_ADDRESS = '0x1111111111111111111111111111111111111111'
 

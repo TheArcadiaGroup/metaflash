@@ -1,0 +1,127 @@
+{
+    "1": {
+        "basetoken": "0xe0cca86b254005889ac3a81e737f56a14f4a38f5",
+        "quotetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pool": "0x811a11913b1d83b6b15febb7b1822627788c0739"
+    },
+    "2": {
+        "basetoken": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "quotetoken": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pool": "0x3058ef90929cb8180174d74c507176cca6835d73"
+    },
+    "3": {
+        "basetoken": "0xca37530e7c5968627be470081d1c993eb1deaf90",
+        "quotetoken": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pool": "0x138c825d993d5ffb7f028408e870ebf50a019543"
+    },
+    "4": {
+        "basetoken": "0xca37530e7c5968627be470081d1c993eb1deaf90",
+        "quotetoken": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pool": "0xaa89cab926dcd65b3779aa98d9342fd9a21e5d1c"
+    },
+    "5": {
+        "basetoken": "0x03e173ad8d1581a4802d3b532ace27a62c5b81dc",
+        "quotetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pool": "0x031816fd297228e4fd537c1789d51509247d0b43"
+    },
+    "6": {
+        "basetoken": "0x11c49e5ca7222f89909a6ec42d81eb6b2af5ff40",
+        "quotetoken": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pool": "0x9fbe3138cc9cd57feef4edb1ef265bb32616a634"
+    },
+    "7": {
+        "basetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "quotetoken": "0x85f17cf997934a597031b2e18a9ab6ebd4b9f6a4",
+        "pool": "0x85F17Cf997934a597031b2E18a9aB6ebD4B9f6a4"
+    },
+    "8": {
+        "basetoken": "0xd502f487e1841fdc805130e13eae80c61186bc98",
+        "quotetoken": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pool": "0x22591994bc89174a5bdcec57c82c881b65f9b121"
+    },
+    "9": {
+        "basetoken": "0x4bdcb66b968060d9390c1d12bd29734496205581",
+        "quotetoken": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pool": "0x5209f194522331bcc3b47971bf83ea9a1ceee6c2"
+    },
+    "10": {
+        "basetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "quotetoken": "0x55296f69f40ea6d20e478533c15a6b08b654e758",
+        "pool": "0xcc53b8834d44aa69b1baa2002f5b33270fe55ea2"
+    },
+    "11": {
+        "basetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "quotetoken": "0x850aab69f0e0171a9a49db8be3e71351c8247df4",
+        "pool": "0x39eb9c3ca4ea5c9c54797cb1796e8dd4df3d9d7e"
+    },
+    "12": {
+        "basetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "quotetoken": "0xf411903cbc70a74d22900a5de66a2dda66507255",
+        "pool": "0x46cf01f14ff6f8c7ef4d6a6b139b1c3d45af9289"
+    },
+    "13": {
+        "basetoken": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "quotetoken": "0xe83ce6bfb580583bd6a62b4be7b34fc25f02910d",
+        "pool": "0xc6f949a368ee764ca8738065c823675417d0de09"
+    },
+    "14": {
+        "basetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "quotetoken": "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+        "pool": "0x4cf7fa72ffba0588e34883ce0797cec3890ecec4"
+    },
+    "15": {
+        "basetoken": "0x7025bab2ec90410de37f488d1298204cd4d6b29d",
+        "quotetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pool": "0xd3797cd03e511acd2df66704f431b242f3c14505"
+    },
+    "16": {
+        "basetoken": "0x01e0e2e61f554ecaaec0cc933e739ad90f24a86d",
+        "quotetoken": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        "pool": "0x93718cd1ac01b50b89fde284d3f43ab8a1131099"
+    },
+    "17": {
+        "basetoken": "0x01e0e2e61f554ecaaec0cc933e739ad90f24a86d",
+        "quotetoken": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        "pool": "0x28d6dcd39b9434f031a71d147af8352cf0b73ff1"
+    },
+    "18": {
+        "basetoken": "0xbf4a2ddaa16148a9d0fa2093ffac450adb7cd4aa",
+        "quotetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pool": "0x744cb4b15d11e90edcac9373ed338cbfae413df2"
+    },
+    "19": {
+        "basetoken": "0xac9bb427953ac7fddc562adca86cf42d988047fd",
+        "quotetoken": "0xbf4a2ddaa16148a9d0fa2093ffac450adb7cd4aa",
+        "pool": "0xa38d926aa79df77363952188e3dddd9764b129e6"
+    },
+    "20": {
+        "basetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "quotetoken": "0x4fadc7a98f2dc96510e42dd1a74141eeae0c1543",
+        "pool": "0x6fd7c843cd747d7d29923d68473957921f60cd4c"
+    },
+    "21": {
+        "basetoken": "0x01e0e2e61f554ecaaec0cc933e739ad90f24a86d",
+        "quotetoken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "pool": "0xd0afa05aa90c6944ad25c85256b2ee2bbdee33f7"
+    },
+    "22": {
+        "basetoken": "0x94a7f270cd12545a277e656266aef5e27df3eb28",
+        "quotetoken": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pool": "0xfdb3c472f9b87eef283420882f635471a80e5a75"
+    },
+    "23": {
+        "basetoken": "0x59e9261255644c411afdd00bd89162d09d862e38",
+        "quotetoken": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pool": "0xcc5cffeb08e0fad4b55b1256c12c419cfd3ebcc8"
+    },
+    "24": {
+        "basetoken": "0xca0e7269600d353f70b14ad118a49575455c0f2f",
+        "quotetoken": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "pool": "0x8763c6b3c3d51bd210765a2ab6f8ae68594ec042"
+    },
+    "25": {
+        "basetoken": "0x8807e69dc04155af64172cd6f0b4738f8068d0d4",
+        "quotetoken": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "pool": "0x2e16a8cf3d0884fc701b1dc0ff9466769dfe4f29"
+    }
+}

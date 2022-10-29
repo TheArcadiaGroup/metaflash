@@ -3,7 +3,7 @@
 
 pragma solidity ^0.5.16;
 
-import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC20CF} from "./interfaces/IERC20CF.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import "./interfaces/ICreamFinanceFlashLender.sol";
 import "./interfaces/ICToken.sol";
@@ -212,7 +212,7 @@ contract CreamFinanceFlashLender is
 
         // Transfer to `receiver`
         require(
-            IERC20(_token).transfer(address(receiver), _amount),
+            IERC20CF(_token).transfer(address(receiver), _amount),
             "CreamFinanceFlashLender: Transfer failed"
         );
         require(
@@ -221,13 +221,13 @@ contract CreamFinanceFlashLender is
             "CreamFinanceFlashLender: Callback failed"
         );
 
-        IERC20(_token).transferFrom(
+        IERC20CF(_token).transferFrom(
             address(receiver),
             address(this),
             _amount.add(_fee)
         );
 
-        IERC20(_token).approve(msg.sender, _amount.add(_fee));
+        IERC20CF(_token).approve(msg.sender, _amount.add(_fee));
 
         return CALLBACK_SUCCESS;
     }

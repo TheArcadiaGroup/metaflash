@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
-const ERC20_ABI = require('../contracts/providers/dydx/abi/IERC20.json');
+const ERC20_ABI = require('../abi/IERC20.json');
 // const SoloMargin_ABI = require('../contracts/providers/dydx/abi/SoloMargin.json');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 

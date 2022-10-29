@@ -7,7 +7,7 @@ describe('Euler', () => {
   let user, lender, borrower, wethuser;
   let weth, wethAddress;
   const bal = BigNumber.from(100000);
-  const ERC20_ABI = require('../contracts/providers/euler/abi/IERC20.json');
+  const ERC20_ABI = require('../abi/IERC20.json');
 
   beforeEach(async () => {
     [owner, user] = await ethers.getSigners();

@@ -2,9 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "./libraries/SafeMath.sol";
-import "./interfaces/IERC20.sol";
+import "./interfaces/IERC20_.sol";
 import "./interfaces/IFlashLender.sol";
-import "hardhat/console.sol";
 
 contract FlashBorrower is IERC3156FlashBorrower {
     using SafeMath for uint256;
@@ -42,7 +41,7 @@ contract FlashBorrower is IERC3156FlashBorrower {
         flashAmount = _amount;
         flashFee = _fee;
         if (action == Action.NORMAL) {
-            flashBalance = IERC20(_token).balanceOf(address(this));
+            flashBalance = IERC20_(_token).balanceOf(address(this));
             totalFlashBalance = totalFlashBalance.add(_amount).add(_fee);
         }
         return CALLBACK_SUCCESS;
@@ -53,13 +52,13 @@ contract FlashBorrower is IERC3156FlashBorrower {
         address _token,
         uint256 _amount
     ) public {
-        uint256 allowance = IERC20(_token).allowance(
+        uint256 allowance = IERC20_(_token).allowance(
             address(this),
             address(_lender)
         );
         uint256 _fee = _lender.flashFeeWithCheapestProvider(_token, _amount);
         uint256 repayment = _amount.add(_fee);
-        IERC20(_token).approve(address(_lender), allowance.add(repayment));
+        IERC20_(_token).approve(address(_lender), allowance.add(repayment));
         bytes memory data = abi.encode(Action.NORMAL);
         _lender.flashLoanWithCheapestProvider(this, _token, _amount, data);
     }
@@ -70,7 +69,7 @@ contract FlashBorrower is IERC3156FlashBorrower {
         uint256 _amount,
         uint256 _minAmount
     ) public {
-        uint256 allowance = IERC20(_token).allowance(
+        uint256 allowance = IERC20_(_token).allowance(
             address(this),
             address(_lender)
         );
@@ -80,7 +79,7 @@ contract FlashBorrower is IERC3156FlashBorrower {
             _minAmount
         );
         uint256 repayment = _amount.add(fee);
-        IERC20(_token).approve(address(_lender), allowance.add(repayment));
+        IERC20_(_token).approve(address(_lender), allowance.add(repayment));
         bytes memory data = abi.encode(Action.NORMAL);
         _lender.flashLoanWithManyProviders(
             this,

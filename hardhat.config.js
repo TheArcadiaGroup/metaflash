@@ -45,12 +45,12 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
-      //   forking: {
-      //     url: `https://bsc-dataseed4.binance.org`,
-      //     // url: `https://mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
-      //     timeout: 3000000
-      //   },
-      // allowUnlimitedContractSize: true
+        // forking: {
+        //   url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
+        //   enabled: true,
+        //   ignoreUnknownTxType: true,
+        // },
+      allowUnlimitedContractSize: true
     },
     localhost: {
       timeout: 3000000
@@ -85,6 +85,14 @@ module.exports = {
     },
     mumbaitestnet: {
       url: `https://rpc-mumbai.maticvigil.com/`,
+      gasPrice: 20e9,
+      blockGasLimit: 22400000,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    arbitrum: {
+      url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_APIKEY}`,
+      enabled: true,
+      ignoreUnknownTxType: true,
       gasPrice: 20e9,
       blockGasLimit: 22400000,
       accounts: [process.env.PRIVATE_KEY]
@@ -197,6 +205,8 @@ module.exports = {
     runOnCompile: true,
     clear: true,
     flat: true,
+    only: ['FlashLender', 'IERC20', 'FlashBorrower'],
+    except: ['IERC3156FlashBorrower']
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_APIKEY

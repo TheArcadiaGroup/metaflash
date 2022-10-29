@@ -193,9 +193,9 @@ contract Exec is BaseLogic {
         require(pTokenAddr != address(0), "e/exec/ptoken-not-found");
 
         {
-            uint origBalance = IERC20(underlying).balanceOf(pTokenAddr);
+            uint origBalance = IERC20EulerMock(underlying).balanceOf(pTokenAddr);
             Utils.safeTransferFrom(underlying, msgSender, pTokenAddr, amount);
-            uint newBalance = IERC20(underlying).balanceOf(pTokenAddr);
+            uint newBalance = IERC20EulerMock(underlying).balanceOf(pTokenAddr);
             require(newBalance == origBalance + amount, "e/exec/ptoken-transfer-mismatch");
         }
 

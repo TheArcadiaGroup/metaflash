@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {GPv2SafeERC20} from '../../dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {SafeCast} from '../../dependencies/openzeppelin/contracts/SafeCast.sol';
 import {IAToken} from '../../interfaces/IAToken.sol';
@@ -22,7 +22,7 @@ library BridgeLogic {
   using WadRayMath for uint256;
   using PercentageMath for uint256;
   using SafeCast for uint256;
-  using GPv2SafeERC20 for IERC20;
+  using GPv2SafeERC20 for IERC20Mock;
 
   // See `IPool` for descriptions
   event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
@@ -126,7 +126,7 @@ library BridgeLogic {
     uint256 added = backingAmount + fee;
 
     reserveCache.nextLiquidityIndex = reserve.cumulateToLiquidityIndex(
-      IERC20(reserveCache.aTokenAddress).totalSupply(),
+      IERC20Mock(reserveCache.aTokenAddress).totalSupply(),
       feeToLP
     );
 
@@ -135,7 +135,7 @@ library BridgeLogic {
     reserve.unbacked -= backingAmount.toUint128();
     reserve.updateInterestRates(reserveCache, asset, added, 0);
 
-    IERC20(asset).safeTransferFrom(msg.sender, reserveCache.aTokenAddress, added);
+    IERC20Mock(asset).safeTransferFrom(msg.sender, reserveCache.aTokenAddress, added);
 
     emit BackUnbacked(asset, msg.sender, backingAmount, fee);
   }

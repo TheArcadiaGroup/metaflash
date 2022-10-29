@@ -2,11 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "./libraries/SafeMath.sol";
-import "./interfaces/IERC20.sol";
-import "./interfaces/IERC3156FlashBorrower.sol";
-import "./interfaces/IERC3156FlashLender.sol";
+import "./interfaces/IERC20_.sol";
+import "./interfaces/IProviderLender.sol";
 import "./interfaces/IFlashLender.sol";
-import "hardhat/console.sol";
 
 contract FlashLender is IFlashLender, IERC3156FlashBorrower {
     using SafeMath for uint256;
@@ -25,7 +23,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 fee;
     }
 
-    constructor() public {
+    constructor() {
         operator = msg.sender;
     }
 
@@ -104,7 +102,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
                 address[] memory pools,
                 uint256[] memory maxloans,
                 uint256[] memory fees
-            ) = IERC3156FlashLender(providers[i])
+            ) = IProviderLender(providers[i])
                     .getFlashLoanInfoListWithCheaperFeePriority(
                         _token,
                         _amount
@@ -113,7 +111,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
                 providerCount = providerCount.add(maxloans.length);
             }
         }
-
         require(providerCount > 0, "FlashLender: Found no provider");
         ProviderInfo[] memory providerInfos = new ProviderInfo[](providerCount);
 
@@ -124,7 +121,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
                 address[] memory pools,
                 uint256[] memory maxloans,
                 uint256[] memory fees
-            ) = IERC3156FlashLender(providers[i])
+            ) = IProviderLender(providers[i])
                     .getFlashLoanInfoListWithCheaperFeePriority(
                         _token,
                         _amount
@@ -258,7 +255,6 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             uint256[] memory maxloans,
             uint256[] memory fees
         ) = _getFlashLoanInfoListWithCheaperFeePriority(_token, _minAmount);
-
         for (uint256 i = 0; i < maxloans.length; i++) {
             maxloan = maxloan.add(maxloans[i]);
         }
@@ -349,7 +345,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         address _token,
         uint256 _amount
     ) internal view returns (uint256) {
-        uint256 fee = IERC3156FlashLender(_provider).flashFee(
+        uint256 fee = IProviderLender(_provider).flashFee(
             _pool,
             _token,
             _amount
@@ -442,7 +438,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         address pool
     ) internal {
         bytes memory data = abi.encode(provider, msg.sender, _receiver, _data);
-        IERC3156FlashLender(provider).flashLoan(
+        IProviderLender(provider).flashLoan(
             pool,
             this,
             _token,
@@ -476,7 +472,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         );
 
         require(
-            IERC20(_token).transfer(address(receiver), _amount),
+            IERC20_(_token).transfer(address(receiver), _amount),
             "FlashLender: Transfer failed"
         );
 
@@ -488,7 +484,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
         uint256 payment = _amount.add(_fee);
 
         require(
-            IERC20(_token).transferFrom(
+            IERC20_(_token).transferFrom(
                 address(receiver),
                 address(this),
                 payment
@@ -496,7 +492,7 @@ contract FlashLender is IFlashLender, IERC3156FlashBorrower {
             "FlashLender: Transfer failed"
         );
 
-        IERC20(_token).approve(msg.sender, payment);
+        IERC20_(_token).approve(msg.sender, payment);
 
         return CALLBACK_SUCCESS;
     }

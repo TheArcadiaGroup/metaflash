@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
-const ERC20_ABI = require('../contracts/providers/makerdao/abi/IERC20.json');
+const ERC20_ABI = require('../abi/IERC20.json');
 const DSSFlash_ABI = require('../contracts/providers/makerdao/abi/DSSFlash.json');
 
 describe('makerdao', () => {

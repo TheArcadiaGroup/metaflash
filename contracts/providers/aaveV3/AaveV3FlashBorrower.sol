@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.10;
 
-import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC20_} from "../../interfaces/IERC20_.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/IAaveV3FlashLender.sol";
 
@@ -39,7 +39,7 @@ contract AaveV3FlashBorrower is IERC3156FlashBorrower {
         flashAmount = amount;
         flashFee = fee;
         if (action == Action.NORMAL) {
-            flashBalance = IERC20(token).balanceOf(address(this));
+            flashBalance = IERC20_(token).balanceOf(address(this));
             totalFlashBalance = totalFlashBalance + amount + fee;
         } else if (action == Action.REENTER) {
             // do nothing
@@ -53,13 +53,13 @@ contract AaveV3FlashBorrower is IERC3156FlashBorrower {
         address token,
         uint256 amount
     ) public {
-        uint256 _allowance = IERC20(token).allowance(
+        uint256 _allowance = IERC20_(token).allowance(
             address(this),
             address(lender)
         );
         uint256 _fee = lender.flashFee(pair, token, amount);
         uint256 _repayment = amount + _fee;
-        IERC20(token).approve(address(lender), _allowance + _repayment);
+        IERC20_(token).approve(address(lender), _allowance + _repayment);
         bytes memory data = abi.encode(Action.NORMAL);
         lender.flashLoan(pair, this, token, amount, data);
     }

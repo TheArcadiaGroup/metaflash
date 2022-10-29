@@ -3,7 +3,7 @@
 pragma solidity 0.8.10;
 pragma experimental ABIEncoderV2;
 
-import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC20_} from "../../interfaces/IERC20_.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import {Ownable} from "./libraries/Ownable.sol";
 import "./interfaces/IAaveV3FlashBorrower.sol";
@@ -83,7 +83,7 @@ contract AaveV3FlashLender is
 
         DataTypes.ReserveData memory reserveData = pool
             .getReserveData(_token);
-        uint256 maxloan = IERC20(_token).balanceOf(reserveData.aTokenAddress);
+        uint256 maxloan = IERC20_(_token).balanceOf(reserveData.aTokenAddress);
 
         if (reserveData.aTokenAddress != address(0) && maxloan >= _amount) {
             pools[0] = address(0);
@@ -165,19 +165,19 @@ contract AaveV3FlashLender is
             bytes memory userData
         ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
 
-        IERC20(_token).transfer(origin, _amount);
+        IERC20_(_token).transfer(origin, _amount);
         require(
             receiver.onFlashLoan(origin, _token, _amount, _premium, userData) ==
                 CALLBACK_SUCCESS,
             "AaveV3FlashLender: Callback failed"
         );
-        IERC20(_token).transferFrom(
+        IERC20_(_token).transferFrom(
             origin,
             address(this),
             _amount.add(_premium)
         );
 
-        IERC20(_token).approve(address(pool), _amount.add(_premium));
+        IERC20_(_token).approve(address(pool), _amount.add(_premium));
 
         return true;
     }

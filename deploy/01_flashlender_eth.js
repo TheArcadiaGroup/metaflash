@@ -17,6 +17,7 @@ module.exports = async (hre) => {
   const network = await hre.network;
   const signers = await ethers.getSigners()
   const chainId = chainIdByName(network.name);
+  console.log("chainId",chainId);
 
   log('Contract Deployment');
   log('Network name:', chainNameById(chainId));
@@ -26,7 +27,7 @@ module.exports = async (hre) => {
   log('Deploying...');
 
   let lender = []
-  
+
   // aave2
   if (config[chainId].aavev2.LendingPoolAddressProvider === ZERO_ADDRESS) {
     console.log('Error: LendingPoolAddressProvider = ', ZERO_ADDRESS)
@@ -170,16 +171,40 @@ module.exports = async (hre) => {
     lender.push(eulerLender);
     console.log('Deployed EulerFlashLender to: ', eulerLender.address);
   }
+
+  // dodo
+  const DODOFlashLender = await ethers.getContractFactory("DODOFlashLender")
+  const DODOFlashLenderInstance = await DODOFlashLender.deploy();
+  let dodoLender = await DODOFlashLenderInstance.deployed();
+
+  const rawPairsInfo_dodo = fs.readFileSync('./config/dodopool_ethereum.json');
+  const pairsInfo_dodo = JSON.parse(rawPairsInfo_dodo);
+  const pairsInfoLength_dodo = Object.keys(pairsInfo_dodo).length;
+
+  let basetoken_dodo = []
+  let quotetoken_dodo = []
+  let pool_dodo = []
+
+  for (let i = 1; i <= pairsInfoLength_dodo; i++) {
+    basetoken_dodo.push(pairsInfo_dodo[i].basetoken);
+    quotetoken_dodo.push(pairsInfo_dodo[i].quotetoken);
+    pool_dodo.push(pairsInfo_dodo[i].pool);
+  }
+
+  await dodoLender.addPools(basetoken_dodo, quotetoken_dodo, pool_dodo)
+  lender.push(dodoLender);
+  console.log('Deployed DODOFlashLender to: ', dodoLender.address);
+
   // FlashLoan
   const FlashLender = await ethers.getContractFactory('FlashLender');
   flashlender = await FlashLender.deploy();
 
-  for(let i = 0; i < lender.length; i++) {
+  for (let i = 0; i < lender.length; i++) {
     await lender[i].setFlashLoaner(flashlender.address);
   }
 
   lendersAddress = []
-  for(let i = 0; i < lender.length; i++) {
+  for (let i = 0; i < lender.length; i++) {
     lendersAddress.push(lender[i].address);
   }
   await flashlender.addProviders(lendersAddress);

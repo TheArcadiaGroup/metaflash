@@ -16,8 +16,9 @@
 
 pragma solidity >=0.6.12;
 
-import "./IERC3156FlashLender.sol";
-import "./IERC3156FlashBorrower.sol";
+import "./IERC3156MakerDaoFlashLender.sol";
+// import "./IERC3156FlashBorrower.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./IVatDaiFlashLender.sol";
 
 interface DaiLike {
@@ -42,7 +43,7 @@ interface VatLike {
     function suck(address, address, uint256) external;
 }
 
-contract DssFlash is IERC3156FlashLender, IVatDaiFlashLender {
+contract DssFlash is IERC3156MakerDaoFlashLender, IVatDaiFlashLender {
 
     // --- Auth ---
     function rely(address usr) external auth { wards[usr] = 1; emit Rely(usr); }

@@ -8,7 +8,7 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {IERC20} from "../interfaces/IERC20.sol";
+import {IERC20DODO} from "../interfaces/IERC20DODO.sol";
 import {SafeMath} from "../libraries/SafeMath.sol";
 import {DecimalMath} from "./DecimalMath.sol";
 import {SafeERC20} from "./SafeERC20.sol";
@@ -16,7 +16,7 @@ import {DVMStorage} from "./DVMStorage.sol";
 
 contract DVMVault is DVMStorage {
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20DODO;
 
     // ============ Events ============
 

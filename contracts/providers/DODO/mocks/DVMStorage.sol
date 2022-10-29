@@ -13,7 +13,7 @@ import {SafeMath} from "../libraries/SafeMath.sol";
 import {DODOMath} from "./DODOMath.sol";
 import {DecimalMath} from "./DecimalMath.sol";
 import {IFeeRateModel} from "./FeeRateModel.sol";
-import {IERC20} from "../interfaces/IERC20.sol";
+import {IERC20DODO} from "../interfaces/IERC20DODO.sol";
 import {PMMPricing} from "./PMMPricing.sol";
 
 contract DVMStorage is ReentrancyGuard {
@@ -27,8 +27,8 @@ contract DVMStorage is ReentrancyGuard {
 
     address public _MAINTAINER_;
 
-    IERC20 public _BASE_TOKEN_;
-    IERC20 public _QUOTE_TOKEN_;
+    IERC20DODO public _BASE_TOKEN_;
+    IERC20DODO public _QUOTE_TOKEN_;
 
     uint112 public _BASE_RESERVE_;
     uint112 public _QUOTE_RESERVE_;

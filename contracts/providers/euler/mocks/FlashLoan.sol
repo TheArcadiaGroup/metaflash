@@ -7,7 +7,7 @@ import "./DToken.sol";
 import "./Interfaces.sol";
 import "./Utils.sol";
 
-contract FlashLoan is IERC3156FlashLender, IDeferredLiquidityCheck {
+contract FlashLoan is IERC3156EulerFlashLender, IDeferredLiquidityCheck {
     bytes32 public constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
     
     address immutable eulerAddress;
@@ -25,7 +25,7 @@ contract FlashLoan is IERC3156FlashLender, IDeferredLiquidityCheck {
     function maxFlashLoan(address token) override external view returns (uint) {
         address eTokenAddress = markets.underlyingToEToken(token);
 
-        return eTokenAddress == address(0) ? 0 : IERC20(token).balanceOf(eulerAddress);
+        return eTokenAddress == address(0) ? 0 : IERC20EulerMock(token).balanceOf(eulerAddress);
     }
 
     function flashFee(address token, uint) override external view returns (uint) {
@@ -70,11 +70,11 @@ contract FlashLoan is IERC3156FlashLender, IDeferredLiquidityCheck {
         );
 
         Utils.safeTransferFrom(token, address(receiver), address(this), amount);
-        require(IERC20(token).balanceOf(address(this)) >= amount, 'e/flash-loan/pull-amount');
+        require(IERC20EulerMock(token).balanceOf(address(this)) >= amount, 'e/flash-loan/pull-amount');
 
-        uint allowance = IERC20(token).allowance(address(this), eulerAddress);
+        uint allowance = IERC20EulerMock(token).allowance(address(this), eulerAddress);
         if(allowance < amount) {
-            (bool success,) = token.call(abi.encodeWithSelector(IERC20(token).approve.selector, eulerAddress, type(uint).max));
+            (bool success,) = token.call(abi.encodeWithSelector(IERC20EulerMock(token).approve.selector, eulerAddress, type(uint).max));
             require(success, "e/flash-loan/approve");
         }
 

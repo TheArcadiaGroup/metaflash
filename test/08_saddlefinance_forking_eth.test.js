@@ -5,7 +5,7 @@ const fs = require('fs')
 const rawPoolsInfo = fs.readFileSync('./config/saddlefinancepool.json');
 const poolsInfo = JSON.parse(rawPoolsInfo);
 const poolsInfoLength = Object.keys(poolsInfo).length;
-const ERC20_ABI = require('../contracts/providers/saddlefinance/abi/IERC20.json');
+const ERC20_ABI = require('../abi/IERC20.json');
 const POOL_ABI = require('../contracts/providers/saddlefinance/abi/Pool.json');
 
 describe('SaddleFinance', () => {

@@ -47,6 +47,7 @@ contract DODOFlashBorrower is IERC3156FlashBorrower {
     }
 
     function flashBorrow(
+        address pair,
         IDODOFlashLender lender,
         address token,
         uint256 amount
@@ -55,26 +56,12 @@ contract DODOFlashBorrower is IERC3156FlashBorrower {
             address(this),
             address(lender)
         );
-        uint256 _fee = lender.flashFee(token, amount);
+        uint256 _fee = lender.flashFee(pair, token, amount);
         uint256 _repayment = amount + _fee;
         IERC20(token).approve(address(lender), _allowance + _repayment);
         bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoan(this, token, amount, data);
+        lender.flashLoan(pair, this, token, amount, data);
     }
 
-    function flashBorrowWithManyPairs_OR_ManyPools(
-        IDODOFlashLender lender,
-        address token,
-        uint256 amount
-    ) public {
-        uint256 _allowance = IERC20(token).allowance(
-            address(this),
-            address(lender)
-        );
-        uint256 _fee = lender.flashFeeWithManyPairs_OR_ManyPools(token, amount);
-        uint256 _repayment = amount + _fee + 1;
-        IERC20(token).approve(address(lender), _allowance + _repayment);
-        bytes memory data = abi.encode(Action.NORMAL);
-        lender.flashLoanWithManyPairs_OR_ManyPools(this, token, amount, data);
-    }
+
 }

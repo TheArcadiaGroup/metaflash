@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity 0.8.10;
 
-import {IERC20} from '../../openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../openzeppelin/contracts/IERC20Mock.sol';
 
 /// @title Gnosis Protocol v2 Safe ERC20 Transfer Library
 /// @author Gnosis Developers
@@ -10,7 +10,7 @@ library GPv2SafeERC20 {
   /// @dev Wrapper around a call to the ERC20 function `transfer` that reverts
   /// also when the token returns `false`.
   function safeTransfer(
-    IERC20 token,
+    IERC20Mock token,
     address to,
     uint256 value
   ) internal {
@@ -35,7 +35,7 @@ library GPv2SafeERC20 {
   /// @dev Wrapper around a call to the ERC20 function `transferFrom` that
   /// reverts also when the token returns `false`.
   function safeTransferFrom(
-    IERC20 token,
+    IERC20Mock token,
     address from,
     address to,
     uint256 value
@@ -62,7 +62,7 @@ library GPv2SafeERC20 {
   /// @dev Verifies that the last return was a successful `transfer*` call.
   /// This is done by checking that the return data is either empty, or
   /// is a valid ABI encoded boolean.
-  function getLastTransferResult(IERC20 token) private view returns (bool success) {
+  function getLastTransferResult(IERC20Mock token) private view returns (bool success) {
     // NOTE: Inspecting previous return data requires assembly. Note that
     // we write the return data to memory 0 in the case where the return
     // data size is 32, this is OK since the first 64 bytes of memory are

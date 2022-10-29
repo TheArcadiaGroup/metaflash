@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {DataTypes} from '../types/DataTypes.sol';
 
 /**
@@ -22,8 +22,8 @@ library Helpers {
     returns (uint256, uint256)
   {
     return (
-      IERC20(reserveCache.stableDebtTokenAddress).balanceOf(user),
-      IERC20(reserveCache.variableDebtTokenAddress).balanceOf(user)
+      IERC20Mock(reserveCache.stableDebtTokenAddress).balanceOf(user),
+      IERC20Mock(reserveCache.variableDebtTokenAddress).balanceOf(user)
     );
   }
 }

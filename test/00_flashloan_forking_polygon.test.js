@@ -32,7 +32,7 @@ describe('FlashLoan', () => {
     });
 
     // token 
-    const ERC20_ABI = require('../../metaflash2/contracts/providers/aaveV2/abi/IERC20.json');
+    const ERC20_ABI = require('../abi/IERC20.json');
 
     daiAddress = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063";
     daiHolderAddress = "0x06959153b974d0d5fdfd87d561db6d8d4fa0bb0b";
@@ -86,6 +86,27 @@ describe('FlashLoan', () => {
     await uniswapv3Lender.addPairs(tokens0_uniswapv3, tokens1_uniswapv3, pairs_uniswapv3)
     lender.push(uniswapv3Lender);
 
+    // dodo
+    const DODOFlashLender = await ethers.getContractFactory("DODOFlashLender")
+    const DODOFlashLenderInstance = await DODOFlashLender.deploy();
+    let dodoLender = await DODOFlashLenderInstance.deployed();
+
+    const rawPairsInfo_dodo = fs.readFileSync('./config/dodopool_polygon.json');
+    const pairsInfo_dodo = JSON.parse(rawPairsInfo_dodo);
+    const pairsInfoLength_dodo = Object.keys(pairsInfo_dodo).length;
+
+    let basetoken_dodo = []
+    let quotetoken_dodo = []
+    let pool_dodo = []
+
+    for (let i = 1; i <= pairsInfoLength_dodo; i++) {
+      basetoken_dodo.push(pairsInfo_dodo[i].basetoken);
+      quotetoken_dodo.push(pairsInfo_dodo[i].quotetoken);
+      pool_dodo.push(pairsInfo_dodo[i].pool);
+    }
+
+    await dodoLender.addPools(basetoken_dodo, quotetoken_dodo, pool_dodo)
+    lender.push(dodoLender);
 
     // FlashLoan
     const FlashLender = await ethers.getContractFactory('FlashLender');
@@ -159,7 +180,7 @@ describe('FlashLoan', () => {
   });
 
   it('maxFlashLoan', async function () {
-    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, "1000000000000000000000", { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
 
     let maxloan = BigNumber.from(0);
     let max = BigNumber.from(0);
@@ -196,7 +217,7 @@ describe('FlashLoan', () => {
   });
 
   it('flashFee', async function () {
-    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, "1000000000000000000000", { gasLimit: 30000000 });
+    [maxloans, fee1e18s, feeMaxLoans] = await flashlender.getFlashLoanInfoListWithCheaperFeePriority(dai.address, 1, { gasLimit: 30000000 });
 
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);

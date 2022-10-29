@@ -3,7 +3,8 @@
 pragma solidity 0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IERC20.sol";
+// import "./interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./libraries/SafeMath.sol";
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/IFortubeFlashLender.sol";

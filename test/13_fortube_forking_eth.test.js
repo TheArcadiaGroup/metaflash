@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
-const ERC20_ABI = require('../contracts/providers/fortube/abi/IERC20.json');
+const ERC20_ABI = require('../abi/IERC20.json');
 const BankController_ABI = require('../contracts/providers/fortube/abi/BankController.json');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 

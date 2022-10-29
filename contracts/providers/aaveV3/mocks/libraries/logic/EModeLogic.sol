@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import {GPv2SafeERC20} from '../../dependencies/gnosis/contracts/GPv2SafeERC20.sol';
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {IPriceOracleGetter} from '../../interfaces/IPriceOracleGetter.sol';
 import {UserConfiguration} from '../configuration/UserConfiguration.sol';
 import {Errors} from '../helpers/Errors.sol';
@@ -20,7 +20,7 @@ import {ReserveLogic} from './ReserveLogic.sol';
 library EModeLogic {
   using ReserveLogic for DataTypes.ReserveCache;
   using ReserveLogic for DataTypes.ReserveData;
-  using GPv2SafeERC20 for IERC20;
+  using GPv2SafeERC20 for IERC20Mock;
   using UserConfiguration for DataTypes.UserConfigurationMap;
   using WadRayMath for uint256;
   using PercentageMath for uint256;

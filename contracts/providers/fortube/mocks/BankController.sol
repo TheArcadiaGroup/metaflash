@@ -7,7 +7,7 @@ import "./Address.sol";
 import "./Exponential.sol";
 import "./IFToken.sol";
 import "./IOracle.sol";
-import "../interfaces/IERC20.sol";
+import "../interfaces/IERC20Fortube.sol";
 import "./SafeERC20.sol";
 import "./RewardType.sol";
 import "../libraries/SafeMath.sol";
@@ -16,7 +16,7 @@ import "./IRewardPool.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
 contract BankController is Exponential, Initializable {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Fortube;
     using SafeMath for uint256;
     using Address for address;
 
@@ -293,9 +293,9 @@ contract BankController is Exponential, Initializable {
 	require(msg.sender == bankEntryAddress || msg.sender == account, "auth failed");
         if (underlying != EthAddressLib.ethAddress()) {
             require(msg.value == 0, "ERC20 do not accecpt ETH.");
-            uint256 balanceBefore = IERC20(underlying).balanceOf(address(this));
-            IERC20(underlying).safeTransferFrom(account, address(this), amount);
-            uint256 balanceAfter = IERC20(underlying).balanceOf(address(this));
+            uint256 balanceBefore = IERC20Fortube(underlying).balanceOf(address(this));
+            IERC20Fortube(underlying).safeTransferFrom(account, address(this), amount);
+            uint256 balanceAfter = IERC20Fortube(underlying).balanceOf(address(this));
             require(
                 balanceAfter - balanceBefore == amount,
                 "TransferIn amount not valid"
@@ -351,7 +351,7 @@ contract BankController is Exponential, Initializable {
         if (underlying != EthAddressLib.ethAddress()) {
             // erc 20
             // ERC20(token).safeTransfer(user, _amount);
-            IERC20(underlying).safeTransfer(account, amount);
+            IERC20Fortube(underlying).safeTransfer(account, amount);
         } else {
             (bool result, ) = account.call{
                 value: amount,
@@ -718,7 +718,7 @@ contract BankController is Exponential, Initializable {
         return
             token == EthAddressLib.ethAddress()
                 ? 18
-                : uint256(IERC20(token).decimals());
+                : uint256(IERC20Fortube(token).decimals());
     }
 
     function isFTokenValid(address fToken) external view returns (bool) {
@@ -884,7 +884,7 @@ contract BankController is Exponential, Initializable {
         if (token == EthAddressLib.ethAddress()) {
             return address(this).balance;
         }
-        return IERC20(token).balanceOf(address(this));
+        return IERC20Fortube(token).balanceOf(address(this));
     }
 
     /**

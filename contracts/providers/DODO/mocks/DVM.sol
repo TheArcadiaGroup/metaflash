@@ -9,7 +9,7 @@ pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
 import {IFeeRateModel} from "./FeeRateModel.sol";
-import {IERC20} from "../interfaces/IERC20.sol";
+import {IERC20DODO} from "../interfaces/IERC20DODO.sol";
 import {DVMTrader} from "./DVMTrader.sol";
 import {DVMFunding} from "./DVMFunding.sol";
 import {DVMVault} from "./DVMVault.sol";
@@ -36,8 +36,8 @@ contract DVM is DVMTrader, DVMFunding {
         _DVM_INITIALIZED_ = true;
         
         require(baseTokenAddress != quoteTokenAddress, "BASE_QUOTE_CAN_NOT_BE_SAME");
-        _BASE_TOKEN_ = IERC20(baseTokenAddress);
-        _QUOTE_TOKEN_ = IERC20(quoteTokenAddress);
+        _BASE_TOKEN_ = IERC20DODO(baseTokenAddress);
+        _QUOTE_TOKEN_ = IERC20DODO(quoteTokenAddress);
 
         require(i > 0 && i <= 10**36);
         _I_ = i;

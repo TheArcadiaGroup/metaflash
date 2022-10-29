@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from '../../dependencies/openzeppelin/contracts//IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts//IERC20Mock.sol';
 import {GPv2SafeERC20} from '../../dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {PercentageMath} from '../math/PercentageMath.sol';
 import {WadRayMath} from '..//math/WadRayMath.sol';
@@ -31,7 +31,7 @@ library LiquidationLogic {
   using ReserveLogic for DataTypes.ReserveData;
   using UserConfiguration for DataTypes.UserConfigurationMap;
   using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
-  using GPv2SafeERC20 for IERC20;
+  using GPv2SafeERC20 for IERC20Mock;
 
   // See `IPool` for descriptions
   event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
@@ -206,7 +206,7 @@ library LiquidationLogic {
     }
 
     // Transfers the debt asset being repaid to the aToken, where the liquidity is kept
-    IERC20(params.debtAsset).safeTransferFrom(
+    IERC20Mock(params.debtAsset).safeTransferFrom(
       msg.sender,
       vars.debtReserveCache.aTokenAddress,
       vars.actualDebtToLiquidate
@@ -277,7 +277,7 @@ library LiquidationLogic {
     DataTypes.ExecuteLiquidationCallParams memory params,
     LiquidationCallLocalVars memory vars
   ) internal {
-    uint256 liquidatorPreviousATokenBalance = IERC20(vars.collateralAToken).balanceOf(msg.sender);
+    uint256 liquidatorPreviousATokenBalance = IERC20Mock(vars.collateralAToken).balanceOf(msg.sender);
     vars.collateralAToken.transferOnLiquidation(
       params.user,
       msg.sender,

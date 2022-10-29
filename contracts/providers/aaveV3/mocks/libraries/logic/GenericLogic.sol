@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {IScaledBalanceToken} from '../../interfaces/IScaledBalanceToken.sol';
 import {IPriceOracleGetter} from '../../interfaces/IPriceOracleGetter.sol';
 import {ReserveConfiguration} from '../configuration/ReserveConfiguration.sol';
@@ -243,7 +243,7 @@ library GenericLogic {
       userTotalDebt = userTotalDebt.rayMul(reserve.getNormalizedDebt());
     }
 
-    userTotalDebt = userTotalDebt + IERC20(reserve.stableDebtTokenAddress).balanceOf(user);
+    userTotalDebt = userTotalDebt + IERC20Mock(reserve.stableDebtTokenAddress).balanceOf(user);
 
     userTotalDebt = assetPrice * userTotalDebt;
 

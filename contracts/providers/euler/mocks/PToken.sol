@@ -27,17 +27,17 @@ contract PToken {
 
     /// @notice PToken name, ie "Euler Protected DAI"
     function name() external view returns (string memory) {
-        return string(abi.encodePacked("Euler Protected ", IERC20(underlyingToken).name()));
+        return string(abi.encodePacked("Euler Protected ", IERC20EulerMock(underlyingToken).name()));
     }
 
     /// @notice PToken symbol, ie "pDAI"
     function symbol() external view returns (string memory) {
-        return string(abi.encodePacked("p", IERC20(underlyingToken).symbol()));
+        return string(abi.encodePacked("p", IERC20EulerMock(underlyingToken).symbol()));
     }
 
     /// @notice Number of decimals, which is same as the underlying's
     function decimals() external view returns (uint8) {
-        return IERC20(underlyingToken).decimals();
+        return IERC20EulerMock(underlyingToken).decimals();
     }
 
     /// @notice Address of the underlying asset
@@ -121,7 +121,7 @@ contract PToken {
     /// @notice Claim any surplus tokens held by the PToken contract. This should only be used by contracts.
     /// @param who Beneficiary to be credited for the surplus token amount
     function claimSurplus(address who) public {
-        uint currBalance = IERC20(underlyingToken).balanceOf(address(this));
+        uint currBalance = IERC20EulerMock(underlyingToken).balanceOf(address(this));
         require(currBalance > totalBalances, "no surplus balance to claim");
 
         uint amount = currBalance - totalBalances;

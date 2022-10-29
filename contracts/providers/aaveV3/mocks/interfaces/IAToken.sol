@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.10;
 
-import {IERC20} from '../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {IScaledBalanceToken} from './IScaledBalanceToken.sol';
 import {IInitializableAToken} from './IInitializableAToken.sol';
 
@@ -10,7 +10,7 @@ import {IInitializableAToken} from './IInitializableAToken.sol';
  * @author Aave
  * @notice Defines the basic interface for an AToken.
  **/
-interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
+interface IAToken is IERC20Mock, IScaledBalanceToken, IInitializableAToken {
   /**
    * @dev Emitted during the transfer action
    * @param from The user whose tokens are being transferred

@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.4;
 
-import "../interfaces/IERC20.sol";
+import "../interfaces/IERC20Fortube.sol";
 import "../libraries/SafeMath.sol";
 import "./Address.sol";
 
@@ -20,7 +20,7 @@ library SafeERC20 {
     using Address for address;
 
     function safeTransfer(
-        IERC20 token,
+        IERC20Fortube token,
         address to,
         uint256 value
     ) internal {
@@ -31,7 +31,7 @@ library SafeERC20 {
     }
 
     function safeTransferFrom(
-        IERC20 token,
+        IERC20Fortube token,
         address from,
         address to,
         uint256 value
@@ -50,7 +50,7 @@ library SafeERC20 {
      * {safeDecreaseAllowance} instead.
      */
     function safeApprove(
-        IERC20 token,
+        IERC20Fortube token,
         address spender,
         uint256 value
     ) internal {
@@ -69,7 +69,7 @@ library SafeERC20 {
     }
 
     function safeIncreaseAllowance(
-        IERC20 token,
+        IERC20Fortube token,
         address spender,
         uint256 value
     ) internal {
@@ -87,7 +87,7 @@ library SafeERC20 {
     }
 
     function safeDecreaseAllowance(
-        IERC20 token,
+        IERC20Fortube token,
         address spender,
         uint256 value
     ) internal {
@@ -111,7 +111,7 @@ library SafeERC20 {
      * @param token The token targeted by the call.
      * @param data The call data (encoded using abi.encode or one of its variants).
      */
-    function _callOptionalReturn(IERC20 token, bytes memory data) private {
+    function _callOptionalReturn(IERC20Fortube token, bytes memory data) private {
         // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
         // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
         // the target address contains contract code and also asserts for success in the low-level call.

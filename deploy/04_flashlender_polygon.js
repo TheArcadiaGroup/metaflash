@@ -72,6 +72,29 @@ module.exports = async (hre) => {
   lender.push(uniswapv3Lender);
   console.log('Deployed UniswapV3FlashLender to: ', uniswapv3Lender.address);
 
+  // dodo
+  const DODOFlashLender = await ethers.getContractFactory("DODOFlashLender")
+  const DODOFlashLenderInstance = await DODOFlashLender.deploy();
+  let dodoLender = await DODOFlashLenderInstance.deployed();
+
+  const rawPairsInfo_dodo = fs.readFileSync('./config/dodopool_polygon.json');
+  const pairsInfo_dodo = JSON.parse(rawPairsInfo_dodo);
+  const pairsInfoLength_dodo = Object.keys(pairsInfo_dodo).length;
+
+  let basetoken_dodo = []
+  let quotetoken_dodo = []
+  let pool_dodo = []
+
+  for (let i = 1; i <= pairsInfoLength_dodo; i++) {
+    basetoken_dodo.push(pairsInfo_dodo[i].basetoken);
+    quotetoken_dodo.push(pairsInfo_dodo[i].quotetoken);
+    pool_dodo.push(pairsInfo_dodo[i].pool);
+  }
+
+  await dodoLender.addPools(basetoken_dodo, quotetoken_dodo, pool_dodo)
+  lender.push(dodoLender);
+  console.log('Deployed DODOFlashLender to: ', dodoLender.address);
+
   // FlashLoan
   const FlashLender = await ethers.getContractFactory('FlashLender');
   flashlender = await FlashLender.deploy();

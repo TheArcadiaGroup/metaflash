@@ -32,7 +32,7 @@ describe('FlashLoan', () => {
     });
 
     // token 
-    const ERC20_ABI = require('../contracts/providers/aaveV2/abi/IERC20.json');
+    const ERC20_ABI = require('../abi/IERC20.json');
 
     busdAddress = "0xe9e7cea3dedca5984780bafc599bd69add087d56";
     busdHolderAddress = "0x8894e0a0c962cb723c1976a4421c95949be2d4e3";
@@ -45,72 +45,94 @@ describe('FlashLoan', () => {
 
     let lender = []
 
-    // multiplier
-    if (config[chainId].multiplier.LendingPool === ZERO_ADDRESS) {
-      console.log('Error: LendingPool = ', ZERO_ADDRESS)
-    } else {
-      const MultiplierFlashLender = await ethers.getContractFactory("MultiplierFlashLender")
-      const MultiplierFlashLenderInstance = await MultiplierFlashLender.deploy(config[chainId].multiplier.LendingPool, { gasLimit: 30000000 });
-      multiplierLender = await MultiplierFlashLenderInstance.deployed();
+    // // multiplier
+    // if (config[chainId].multiplier.LendingPool === ZERO_ADDRESS) {
+    //   console.log('Error: LendingPool = ', ZERO_ADDRESS)
+    // } else {
+    //   const MultiplierFlashLender = await ethers.getContractFactory("MultiplierFlashLender")
+    //   const MultiplierFlashLenderInstance = await MultiplierFlashLender.deploy(config[chainId].multiplier.LendingPool, { gasLimit: 30000000 });
+    //   multiplierLender = await MultiplierFlashLenderInstance.deployed();
 
-      lender.push(multiplierLender);
-      console.log('Deployed MultiplierFlashLender to: ', multiplierLender.address)
+    //   lender.push(multiplierLender);
+    //   console.log('Deployed MultiplierFlashLender to: ', multiplierLender.address)
+    // }
+
+    // // fortube
+    // if (config[chainId].fortube_bsc.Bank === ZERO_ADDRESS || config[chainId].fortube_bsc.BankController === ZERO_ADDRESS) {
+    //   console.log('Error: Bank or BankController = ', ZERO_ADDRESS)
+    // } else {
+    //   const FortubeFlashLender = await ethers.getContractFactory("FortubeFlashLender")
+    //   const FortubeFlashLenderInstance = await FortubeFlashLender.deploy(config[chainId].fortube_bsc.Bank, config[chainId].fortube_bsc.BankController, { gasLimit: 30000000 });
+    //   fortubeLender = await FortubeFlashLenderInstance.deployed();
+    //   lender.push(fortubeLender);
+    //   console.log('Deployed FortubeFlashLender to: ', fortubeLender.address)
+    // }
+
+    // // pancakeswap
+    // const PancakeswapFlashLender = await ethers.getContractFactory("PancakeswapFlashLender")
+    // const PancakeswapFlashLenderInstance = await PancakeswapFlashLender.deploy({ gasLimit: 30000000 });
+    // let pancakeswapLender = await PancakeswapFlashLenderInstance.deployed();
+
+    // const rawPairsInfo_pancakeswap = fs.readFileSync('./config/pancakeswappair.json');
+    // const pairsInfo_pancakeswap = JSON.parse(rawPairsInfo_pancakeswap);
+    // const pairsInfoLength_pancakeswap = Object.keys(pairsInfo_pancakeswap).length;
+
+    // let tokens0_pancakeswap = []
+    // let tokens1_pancakeswap = []
+    // let pairs_pancakeswap = []
+
+    // for (let i = 1; i <= pairsInfoLength_pancakeswap; i++) {
+    //   tokens0_pancakeswap.push(pairsInfo_pancakeswap[i].tokens0);
+    //   tokens1_pancakeswap.push(pairsInfo_pancakeswap[i].tokens1);
+    //   pairs_pancakeswap.push(pairsInfo_pancakeswap[i].pairs);
+    // }
+
+    // await pancakeswapLender.addPairs(tokens0_pancakeswap, tokens1_pancakeswap, pairs_pancakeswap);
+    // lender.push(pancakeswapLender);
+    // console.log('Deployed PancakeswapFlashLender to: ', pancakeswapLender.address)
+
+    // //creamfinance
+    // const CreamFinanceFlashLender = await ethers.getContractFactory("CreamFinanceFlashLender")
+    // const CreamFinanceFlashLenderInstance = await CreamFinanceFlashLender.deploy({ gasLimit: 30000000 });
+    // let creamfinanceLender = await CreamFinanceFlashLenderInstance.deployed();
+
+    // const rawCtoken_creamfinance = fs.readFileSync('./config/creamfinancectoken.json');
+    // const ctokenInfo_creamfinance = JSON.parse(rawCtoken_creamfinance);
+    // const ctokenInfoLength_creamfinance = Object.keys(ctokenInfo_creamfinance).length;
+
+    // let ctoken_creamfinance = []
+    // let underlying_creamfinance = []
+
+    // for (let i = 1; i <= ctokenInfoLength_creamfinance; i++) {
+    //   ctoken_creamfinance.push(ctokenInfo_creamfinance[i].ctoken);
+    //   underlying_creamfinance.push(ctokenInfo_creamfinance[i].underlying);
+    // }
+
+    // await creamfinanceLender.addCTokens(ctoken_creamfinance, underlying_creamfinance);
+    // lender.push(creamfinanceLender);
+    // console.log('Deployed CreamFinanceFlashLender to: ', creamfinanceLender.address)
+
+    // dodo
+    const DODOFlashLender = await ethers.getContractFactory("DODOFlashLender")
+    const DODOFlashLenderInstance = await DODOFlashLender.deploy();
+    let dodoLender = await DODOFlashLenderInstance.deployed();
+
+    const rawPairsInfo_dodo = fs.readFileSync('./config/dodopool_bsc.json');
+    const pairsInfo_dodo = JSON.parse(rawPairsInfo_dodo);
+    const pairsInfoLength_dodo = Object.keys(pairsInfo_dodo).length;
+
+    let basetoken_dodo = []
+    let quotetoken_dodo = []
+    let pool_dodo = []
+
+    for (let i = 1; i <= pairsInfoLength_dodo; i++) {
+      basetoken_dodo.push(pairsInfo_dodo[i].basetoken);
+      quotetoken_dodo.push(pairsInfo_dodo[i].quotetoken);
+      pool_dodo.push(pairsInfo_dodo[i].pool);
     }
 
-    // fortube
-    if (config[chainId].fortube_bsc.Bank === ZERO_ADDRESS || config[chainId].fortube_bsc.BankController === ZERO_ADDRESS) {
-      console.log('Error: Bank or BankController = ', ZERO_ADDRESS)
-    } else {
-      const FortubeFlashLender = await ethers.getContractFactory("FortubeFlashLender")
-      const FortubeFlashLenderInstance = await FortubeFlashLender.deploy(config[chainId].fortube_bsc.Bank, config[chainId].fortube_bsc.BankController, { gasLimit: 30000000 });
-      fortubeLender = await FortubeFlashLenderInstance.deployed();
-      lender.push(fortubeLender);
-      console.log('Deployed FortubeFlashLender to: ', fortubeLender.address)
-    }
-
-    // pancakeswap
-    const PancakeswapFlashLender = await ethers.getContractFactory("PancakeswapFlashLender")
-    const PancakeswapFlashLenderInstance = await PancakeswapFlashLender.deploy({ gasLimit: 30000000 });
-    let pancakeswapLender = await PancakeswapFlashLenderInstance.deployed();
-
-    const rawPairsInfo_pancakeswap = fs.readFileSync('./config/pancakeswappair.json');
-    const pairsInfo_pancakeswap = JSON.parse(rawPairsInfo_pancakeswap);
-    const pairsInfoLength_pancakeswap = Object.keys(pairsInfo_pancakeswap).length;
-
-    let tokens0_pancakeswap = []
-    let tokens1_pancakeswap = []
-    let pairs_pancakeswap = []
-
-    for (let i = 1; i <= pairsInfoLength_pancakeswap; i++) {
-      tokens0_pancakeswap.push(pairsInfo_pancakeswap[i].tokens0);
-      tokens1_pancakeswap.push(pairsInfo_pancakeswap[i].tokens1);
-      pairs_pancakeswap.push(pairsInfo_pancakeswap[i].pairs);
-    }
-
-    await pancakeswapLender.addPairs(tokens0_pancakeswap, tokens1_pancakeswap, pairs_pancakeswap);
-    lender.push(pancakeswapLender);
-    console.log('Deployed PancakeswapFlashLender to: ', pancakeswapLender.address)
-
-    //creamfinance
-    const CreamFinanceFlashLender = await ethers.getContractFactory("CreamFinanceFlashLender")
-    const CreamFinanceFlashLenderInstance = await CreamFinanceFlashLender.deploy({ gasLimit: 30000000 });
-    let creamfinanceLender = await CreamFinanceFlashLenderInstance.deployed();
-
-    const rawCtoken_creamfinance = fs.readFileSync('./config/creamfinancectoken.json');
-    const ctokenInfo_creamfinance = JSON.parse(rawCtoken_creamfinance);
-    const ctokenInfoLength_creamfinance = Object.keys(ctokenInfo_creamfinance).length;
-
-    let ctoken_creamfinance = []
-    let underlying_creamfinance = []
-
-    for (let i = 1; i <= ctokenInfoLength_creamfinance; i++) {
-      ctoken_creamfinance.push(ctokenInfo_creamfinance[i].ctoken);
-      underlying_creamfinance.push(ctokenInfo_creamfinance[i].underlying);
-    }
-
-    await creamfinanceLender.addCTokens(ctoken_creamfinance, underlying_creamfinance);
-    lender.push(creamfinanceLender);
-    console.log('Deployed CreamFinanceFlashLender to: ', creamfinanceLender.address)
+    await dodoLender.addPools(basetoken_dodo, quotetoken_dodo, pool_dodo)
+    lender.push(dodoLender);
 
     // FlashLoan
     const FlashLender = await ethers.getContractFactory('FlashLender');
@@ -143,9 +165,6 @@ describe('FlashLoan', () => {
 
     let maxloan = BigNumber.from(0);
     for (let i = 0; i < maxloans.length; i++) {
-      console.log("maxloans", maxloans[i].toString());
-      console.log("fee1e18s", fee1e18s[i].toString());
-      console.log("feeMaxLoans", feeMaxLoans[i].toString());
       maxloan = maxloan.add(maxloans[i]);
     }
 
@@ -163,9 +182,6 @@ describe('FlashLoan', () => {
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
     for (let i = 0; i < feeMaxLoans.length; i++) {
-      console.log("maxloans", maxloans[i].toString());
-      console.log("fee1e18s", fee1e18s[i].toString());
-      console.log("feeMaxLoans", feeMaxLoans[i].toString());
       fee = fee.add(feeMaxLoans[i]);
       maxloan = maxloan.add(maxloans[i]);
     }
@@ -195,9 +211,6 @@ describe('FlashLoan', () => {
     let fee = BigNumber.from(0);
     let maxloan = BigNumber.from(0);
     for (let i = 0; i < feeMaxLoans.length; i++) {
-      console.log("maxloans", maxloans[i].toString());
-      console.log("fee1e18s", fee1e18s[i].toString());
-      console.log("feeMaxLoans", feeMaxLoans[i].toString());
       fee = fee.add(feeMaxLoans[i]);
       maxloan = maxloan.add(maxloans[i]);
     }

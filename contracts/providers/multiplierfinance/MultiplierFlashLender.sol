@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IMultiplierFlashLender.sol";
 import "./interfaces/IMultiplierFlashBorrower.sol";
 import "./interfaces/ILendingPool.sol";
-import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC20MF} from "./interfaces/IERC20MF.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import {WadRayMath} from "./libraries/WadRayMath.sol";
 import {Ownable} from "./libraries/Ownable.sol";
@@ -86,7 +86,7 @@ contract MultiplierFlashLender is
         uint256[] memory maxloans = new uint256[](1);
         uint256[] memory fees = new uint256[](1);
 
-        uint256 maxloan = IERC20(_token).balanceOf(core);
+        uint256 maxloan = IERC20MF(_token).balanceOf(core);
 
         if (maxloan >= _amount) {
             pools[0] = address(0);
@@ -166,7 +166,7 @@ contract MultiplierFlashLender is
             "MultiplierFlashLender: _sender must be this contract"
         );
 
-        IERC20(_token).transfer(origin, _amount);
+        IERC20MF(_token).transfer(origin, _amount);
 
         require(
             receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
@@ -174,8 +174,8 @@ contract MultiplierFlashLender is
             "MultiplierFlashLender: Callback failed"
         );
 
-        IERC20(_token).transferFrom(origin, address(this), _amount.add(_fee));
+        IERC20MF(_token).transferFrom(origin, address(this), _amount.add(_fee));
 
-        IERC20(_token).transfer(core, _amount.add(_fee));
+        IERC20MF(_token).transfer(core, _amount.add(_fee));
     }
 }

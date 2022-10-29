@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from './dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from './dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {WadRayMath} from './libraries/math/WadRayMath.sol';
 import {PercentageMath} from './libraries/math/PercentageMath.sol';
 import {DataTypes} from './libraries/types/DataTypes.sol';
@@ -212,7 +212,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
     if (vars.totalDebt != 0) {
       vars.stableToTotalDebtRatio = params.totalStableDebt.rayDiv(vars.totalDebt);
       vars.availableLiquidity =
-        IERC20(params.reserve).balanceOf(params.aToken) +
+        IERC20Mock(params.reserve).balanceOf(params.aToken) +
         params.liquidityAdded -
         params.liquidityTaken;
 

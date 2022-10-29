@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import {IERC20} from '../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {GPv2SafeERC20} from '../dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {SafeCast} from '../dependencies/openzeppelin/contracts/SafeCast.sol';
 import {VersionedInitializable} from '../libraries/aave-upgradeability/VersionedInitializable.sol';
@@ -23,7 +23,7 @@ import {EIP712Base} from './base/EIP712Base.sol';
 contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, IAToken {
   using WadRayMath for uint256;
   using SafeCast for uint256;
-  using GPv2SafeERC20 for IERC20;
+  using GPv2SafeERC20 for IERC20Mock;
 
   bytes32 public constant PERMIT_TYPEHASH =
     keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
@@ -102,7 +102,7 @@ contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, I
   ) external virtual override onlyPool {
     _burnScaled(from, receiverOfUnderlying, amount, index);
     if (receiverOfUnderlying != address(this)) {
-      IERC20(_underlyingAsset).safeTransfer(receiverOfUnderlying, amount);
+      IERC20Mock(_underlyingAsset).safeTransfer(receiverOfUnderlying, amount);
     }
   }
 
@@ -127,19 +127,19 @@ contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, I
     emit Transfer(from, to, value);
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function balanceOf(address user)
     public
     view
     virtual
-    override(IncentivizedERC20, IERC20)
+    override(IncentivizedERC20, IERC20Mock)
     returns (uint256)
   {
     return super.balanceOf(user).rayMul(POOL.getReserveNormalizedIncome(_underlyingAsset));
   }
 
-  /// @inheritdoc IERC20
-  function totalSupply() public view virtual override(IncentivizedERC20, IERC20) returns (uint256) {
+  /// @inheritdoc IERC20Mock
+  function totalSupply() public view virtual override(IncentivizedERC20, IERC20Mock) returns (uint256) {
     uint256 currentSupplyScaled = super.totalSupply();
     if (currentSupplyScaled == 0) {
       return 0;
@@ -160,7 +160,7 @@ contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, I
 
   /// @inheritdoc IAToken
   function transferUnderlyingTo(address target, uint256 amount) external virtual override onlyPool {
-    IERC20(_underlyingAsset).safeTransfer(target, amount);
+    IERC20Mock(_underlyingAsset).safeTransfer(target, amount);
   }
 
   /// @inheritdoc IAToken
@@ -266,6 +266,6 @@ contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, I
     uint256 amount
   ) external override onlyPoolAdmin {
     require(token != _underlyingAsset, Errors.UNDERLYING_CANNOT_BE_RESCUED);
-    IERC20(token).safeTransfer(to, amount);
+    IERC20Mock(token).safeTransfer(to, amount);
   }
 }

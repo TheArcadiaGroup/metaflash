@@ -5,7 +5,7 @@ const fs = require('fs')
 const rawPairsInfo = fs.readFileSync('./config/uniswapv2pair.json');
 const pairsInfo = JSON.parse(rawPairsInfo);
 const pairsInfoLength = Object.keys(pairsInfo).length;
-const ERC20_ABI = require('../contracts/providers/uniswapV2/abi/IERC20.json');
+const ERC20_ABI = require('../abi/IERC20.json');
 
 describe('UniswapV2', () => {
   let owner, user;

@@ -5,7 +5,7 @@ const fs = require('fs')
 const rawCtoken= fs.readFileSync('./config/creamfinancectoken.json');
 const ctokenInfo = JSON.parse(rawCtoken);
 const ctokenInfoLength = Object.keys(ctokenInfo).length;
-const ERC20_ABI = require('../contracts/providers/creamfinance/abi/IERC20.json');
+const ERC20_ABI = require('../abi/IERC20.json');
 
 describe('CreamFinance', () => {
   let user, lender, borrower, wethuser;

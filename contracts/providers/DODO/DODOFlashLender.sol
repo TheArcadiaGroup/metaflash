@@ -3,7 +3,8 @@
 pragma solidity ^0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {IERC20} from "./interfaces/IERC20.sol";
+// import {IERC20} from "./interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 import {Ownable} from "./libraries/Ownable.sol";
 import "./interfaces/IDODOFlashLender.sol";
@@ -16,34 +17,67 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
     bytes32 public constant CALLBACK_SUCCESS =
         keccak256("ERC3156FlashBorrower.onFlashLoan");
 
-    struct DVMPool {
+    struct Pool {
         address basetoken;
         address quotetoken;
-        address dvmpool;
+        address pool;
     }
 
-    struct DVMPoolInfo {
-        address dvmpool;
+    struct FlashLoanInfo {
+        address pool;
         uint256 maxloan;
         uint256 fee;
     }
 
-    DVMPool[] public dvmpools;
+    Pool[] public pools;
+    address public operator;
+    address public flashloaner;
 
     // --- Init ---
-    constructor() public {}
+    constructor() public {
+        operator = msg.sender;
+    }
 
-    function addDVMPools(
+    modifier onlyOperator() {
+        require(msg.sender == operator, "UniswapV2FlashLender: Not operator");
+        _;
+    }
+
+    modifier onlyFlashLoaner() {
+        require(
+            msg.sender == flashloaner,
+            "UniswapV2FlashLender: Not flashloaner"
+        );
+        _;
+    }
+
+    function setOperator(address _operator) external onlyOperator {
+        require(
+            _operator != address(0),
+            "UniswapV2FlashLender: _operator is address(0)"
+        );
+        operator = _operator;
+    }
+
+    function setFlashLoaner(address _flashloaner) external onlyOperator {
+        require(
+            _flashloaner != address(0),
+            "UniswapV2FlashLender: _flashloaner is address(0)"
+        );
+        flashloaner = _flashloaner;
+    }
+
+    function addPools(
         address[] memory _basetokens,
         address[] memory _quotetokens,
-        address[] memory _dvmpools
+        address[] memory _pools
     ) public onlyOwner returns (bool) {
         require(
             (_basetokens.length == _quotetokens.length) &&
-                (_quotetokens.length == _dvmpools.length),
-            "DODOFlashLender: mismatch length of basetoken, quotetoken, dvmpool"
+                (_quotetokens.length == _pools.length),
+            "DODOFlashLender: mismatch length of basetoken, quotetoken, pool"
         );
-        for (uint256 i = 0; i < _dvmpools.length; i++) {
+        for (uint256 i = 0; i < _pools.length; i++) {
             require(
                 _basetokens[i] != address(0),
                 "DODOFlashLender: _basetokens is address(0)"
@@ -53,83 +87,80 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
                 "DODOFlashLender: _quotetokens is address(0)"
             );
             require(
-                _dvmpools[i] != address(0),
-                "DODOFlashLender: _dvmpools is address(0)"
+                _pools[i] != address(0),
+                "DODOFlashLender: _pools is address(0)"
             );
-            dvmpools.push(
-                DVMPool({
+            pools.push(
+                Pool({
                     basetoken: _basetokens[i],
                     quotetoken: _quotetokens[i],
-                    dvmpool: _dvmpools[i]
+                    pool: _pools[i]
                 })
             );
         }
         return true;
     }
 
-    function removeDVMPools(address[] memory _dvmpools)
+    function removePools(address[] memory _pools)
         public
         onlyOwner
         returns (bool)
     {
-        for (uint256 i = 0; i < _dvmpools.length; i++) {
-            for (uint256 j = 0; j < dvmpools.length; j++) {
-                if (dvmpools[j].dvmpool == _dvmpools[i]) {
-                    dvmpools[j].basetoken = dvmpools[dvmpools.length - 1]
-                        .basetoken;
-                    dvmpools[j].quotetoken = dvmpools[dvmpools.length - 1]
-                        .quotetoken;
-                    dvmpools[j].dvmpool = dvmpools[dvmpools.length - 1].dvmpool;
-                    dvmpools.pop();
+        for (uint256 i = 0; i < _pools.length; i++) {
+            for (uint256 j = 0; j < pools.length; j++) {
+                if (pools[j].pool == _pools[i]) {
+                    pools[j].basetoken = pools[pools.length - 1].basetoken;
+                    pools[j].quotetoken = pools[pools.length - 1].quotetoken;
+                    pools[j].pool = pools[pools.length - 1].pool;
+                    pools.pop();
                 }
             }
         }
         return true;
     }
 
-    function _getValidDVMPools(address _token, uint256 _amount)
+    function _getValidPools(address _token, uint256 _amount)
         internal
         view
-        returns (DVMPoolInfo[] memory)
+        returns (FlashLoanInfo[] memory)
     {
         uint256 amount = 1e18;
         uint256 count = 0;
-        for (uint256 i = 0; i < dvmpools.length; i++) {
-            if (
-                dvmpools[i].basetoken == _token ||
-                dvmpools[i].quotetoken == _token
-            ) {
-                uint256 balance = IERC20(_token).balanceOf(dvmpools[i].dvmpool);
-                if (balance >= _amount.add(1)) {
+
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i].basetoken == _token || pools[i].quotetoken == _token) {
+                uint256 balance = IERC20(_token).balanceOf(
+                    pools[i].pool
+                );
+                if (balance >= _amount) {
                     count++;
                 }
             }
         }
         if (count == 0) {
-            DVMPoolInfo[] memory validDVMPoolInfos = new DVMPoolInfo[](1);
-            validDVMPoolInfos[0].dvmpool = address(0);
-            validDVMPoolInfos[0].maxloan = uint256(0);
-            validDVMPoolInfos[0].fee = uint256(0);
+            FlashLoanInfo[] memory validPoolInfos = new FlashLoanInfo[](1);
+            validPoolInfos[0].pool = address(0);
+            validPoolInfos[0].maxloan = uint256(0);
+            validPoolInfos[0].fee = uint256(0);
 
-            return validDVMPoolInfos;
+            return validPoolInfos;
         } else {
-            DVMPoolInfo[] memory validDVMPoolInfos = new DVMPoolInfo[](count);
+            FlashLoanInfo[] memory validPoolInfos = new FlashLoanInfo[](count);
             uint256 validCount = 0;
 
-            for (uint256 i = 0; i < dvmpools.length; i++) {
+            for (uint256 i = 0; i < pools.length; i++) {
                 if (
-                    dvmpools[i].basetoken == _token ||
-                    dvmpools[i].quotetoken == _token
+                    pools[i].basetoken == _token ||
+                    pools[i].quotetoken == _token
                 ) {
                     uint256 balance = IERC20(_token).balanceOf(
-                        dvmpools[i].dvmpool
+                        pools[i].pool
                     );
-                    if (balance >= _amount.add(1)) {
+                    if (balance >= _amount) {
                         uint256 fee = 0;
-                        validDVMPoolInfos[validCount].dvmpool = dvmpools[i]
-                            .dvmpool;
-                        validDVMPoolInfos[validCount].maxloan = balance.sub(1);
-                        validDVMPoolInfos[validCount].fee = fee;
+                        validPoolInfos[validCount].pool = pools[i].pool;
+                        validPoolInfos[validCount].maxloan = balance;
+                        validPoolInfos[validCount].fee = fee;
                         validCount = validCount.add(1);
                         if (validCount == count) {
                             break;
@@ -138,88 +169,68 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
                 }
             }
 
-            if (validDVMPoolInfos.length == 1) {
-                return validDVMPoolInfos;
+            if (validPoolInfos.length == 1) {
+                return validPoolInfos;
             } else {
                 // sort by fee
-                for (uint256 i = 1; i < validDVMPoolInfos.length; i++) {
+                for (uint256 i = 1; i < validPoolInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (
-                            validDVMPoolInfos[i].fee < validDVMPoolInfos[j].fee
-                        ) {
-                            DVMPoolInfo memory x = validDVMPoolInfos[i];
-                            validDVMPoolInfos[i] = validDVMPoolInfos[j];
-                            validDVMPoolInfos[j] = x;
+                        if (validPoolInfos[i].fee < validPoolInfos[j].fee) {
+                            FlashLoanInfo memory x = validPoolInfos[i];
+                            validPoolInfos[i] = validPoolInfos[j];
+                            validPoolInfos[j] = x;
                         }
                     }
                 }
                 // sort by maxloan
-                for (uint256 i = 1; i < validDVMPoolInfos.length; i++) {
+                for (uint256 i = 1; i < validPoolInfos.length; i++) {
                     for (uint256 j = 0; j < i; j++) {
-                        if (
-                            validDVMPoolInfos[i].fee == validDVMPoolInfos[j].fee
-                        ) {
+                        if (validPoolInfos[i].fee == validPoolInfos[j].fee) {
                             if (
-                                validDVMPoolInfos[i].maxloan >
-                                validDVMPoolInfos[j].maxloan
+                                validPoolInfos[i].maxloan >
+                                validPoolInfos[j].maxloan
                             ) {
-                                DVMPoolInfo memory x = validDVMPoolInfos[i];
-                                validDVMPoolInfos[i] = validDVMPoolInfos[j];
-                                validDVMPoolInfos[j] = x;
+                                FlashLoanInfo memory x = validPoolInfos[i];
+                                validPoolInfos[i] = validPoolInfos[j];
+                                validPoolInfos[j] = x;
                             }
                         }
                     }
                 }
             }
 
-            return validDVMPoolInfos;
+            return validPoolInfos;
         }
     }
 
-    function maxFlashLoan(address _token, uint256 _amount)
+    function getFlashLoanInfoListWithCheaperFeePriority(
+        address _token,
+        uint256 _amount
+    )
         external
         view
         override
-        returns (uint256)
+        onlyFlashLoaner
+        returns (
+            address[] memory pools,
+            uint256[] memory maxloans,
+            uint256[] memory fees
+        )
     {
-        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(
-            _token,
-            _amount
-        );
-
-        return validDVMPoolInfos[0].maxloan;
-    }
-
-    function maxFlashLoanWithManyPairs_OR_ManyPools(address _token)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        uint256 totalMaxLoan;
-
-        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(_token, 1);
-
-        if (validDVMPoolInfos[0].maxloan > 0) {
-            for (uint256 i = 0; i < validDVMPoolInfos.length; i++) {
-                totalMaxLoan = totalMaxLoan.add(validDVMPoolInfos[i].maxloan);
-            }
-            return totalMaxLoan;
-        } else {
-            return 0;
+        FlashLoanInfo[] memory flashLoanInfos = _getValidPools(_token, _amount);
+        address[] memory pools = new address[](flashLoanInfos.length);
+        uint256[] memory maxloans = new uint256[](flashLoanInfos.length);
+        uint256[] memory fees = new uint256[](flashLoanInfos.length);
+        for (uint256 i = 0; i < flashLoanInfos.length; i++) {
+            pools[i] = flashLoanInfos[i].pool;
+            maxloans[i] = flashLoanInfos[i].maxloan;
+            fees[i] = flashLoanInfos[i].fee;
         }
+
+        return (pools, maxloans, fees);
     }
 
-    function flashFee(address token, uint256 amount)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return 0;
-    }
-
-    function flashFeeWithManyPairs_OR_ManyPools(address _token, uint256 _amount)
+    function flashFee(address _pool, address _token, uint256 _amount)
         public
         view
         override
@@ -229,107 +240,44 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
     }
 
     function flashLoan(
+        address _pool,
         IERC3156FlashBorrower _receiver,
         address _token,
         uint256 _amount,
-        bytes memory _userData
+        bytes memory _data
     ) external override returns (bool) {
-        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(
-            _token,
-            _amount
-        );
-
-        require(
-            validDVMPoolInfos[0].dvmpool != address(0),
-            "DODOFlashLender: Unsupported token"
-        );
-
         _flashloan(
+            _pool,
             _receiver,
-            validDVMPoolInfos[0].dvmpool,
             _token,
             _amount,
-            _userData
+            _data
         );
 
-        return true;
-    }
-
-    function flashLoanWithManyPairs_OR_ManyPools(
-        IERC3156FlashBorrower _receiver,
-        address _token,
-        uint256 _amount,
-        bytes memory _userData
-    ) external override returns (bool) {
-        uint256 totalMaxLoan;
-        uint256 totalAmount = _amount;
-
-        DVMPoolInfo[] memory validDVMPoolInfos = _getValidDVMPools(_token, 1);
-
-        require(
-            validDVMPoolInfos[0].dvmpool != address(0),
-            "DODOFlashLender: Unsupported token"
-        );
-
-        for (uint256 i = 0; i < validDVMPoolInfos.length; i++) {
-            totalMaxLoan = totalMaxLoan.add(validDVMPoolInfos[i].maxloan);
-        }
-
-        require(
-            totalMaxLoan >= totalAmount,
-            "DODOFlashLender: Amount is more than maxFlashLoan"
-        );
-
-        uint256 amount = 0;
-        for (uint256 i = 0; i < validDVMPoolInfos.length; i++) {
-            if (amount.add(validDVMPoolInfos[i].maxloan) <= totalAmount) {
-                _flashloan(
-                    _receiver,
-                    validDVMPoolInfos[i].dvmpool,
-                    _token,
-                    validDVMPoolInfos[i].maxloan,
-                    _userData
-                );
-                amount = amount.add(validDVMPoolInfos[i].maxloan);
-                if (amount == totalAmount) {
-                    break;
-                }
-            } else {
-                _flashloan(
-                    _receiver,
-                    validDVMPoolInfos[i].dvmpool,
-                    _token,
-                    totalAmount.sub(amount),
-                    _userData
-                );
-                amount = totalAmount;
-                break;
-            }
-        }
         return true;
     }
 
     function _flashloan(
+        address _pool,
         IERC3156FlashBorrower _receiver,
-        address _dvmpool,
         address _token,
         uint256 _amount,
-        bytes memory _userData
+        bytes memory _data
     ) internal {
-        IDVM dvmpool = IDVM(_dvmpool);
+        IDVM pool = IDVM(_pool);
 
-        address basetoken = address(dvmpool._BASE_TOKEN_());
-        address quotetoken = address(dvmpool._QUOTE_TOKEN_());
+        address basetoken = address(pool._BASE_TOKEN_());
+        address quotetoken = address(pool._QUOTE_TOKEN_());
         uint256 amountbaseOut = _token == basetoken ? _amount : 0;
         uint256 amountquoteOut = _token == quotetoken ? _amount : 0;
         bytes memory data = abi.encode(
-            dvmpool,
+            pool,
             msg.sender,
             _receiver,
             _token,
-            _userData
+            _data
         );
-        dvmpool.flashLoan(amountbaseOut, amountquoteOut, address(this), data);
+        pool.flashLoan(amountbaseOut, amountquoteOut, address(this), data);
     }
 
     function DVMFlashLoanCall(
@@ -338,13 +286,40 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
         uint256 _quoteAmount,
         bytes calldata _data
     ) external override {
+        _flashLoanCall(_sender, _baseAmount, _quoteAmount, _data);
+    }
+
+    function DPPFlashLoanCall(
+        address _sender,
+        uint256 _baseAmount,
+        uint256 _quoteAmount,
+        bytes calldata _data
+    ) external override {
+        _flashLoanCall(_sender, _baseAmount, _quoteAmount, _data);
+    }
+
+    function DSPFlashLoanCall(
+        address _sender,
+        uint256 _baseAmount,
+        uint256 _quoteAmount,
+        bytes calldata _data
+    ) external override {
+        _flashLoanCall(_sender, _baseAmount, _quoteAmount, _data);
+    }
+
+    function _flashLoanCall(
+        address _sender,
+        uint256 _baseAmount,
+        uint256 _quoteAmount,
+        bytes calldata _data
+    ) internal {
         require(
             _sender == address(this),
             "DODOFlashLender: _sender must be this contract"
         );
 
         (
-            address dvmpool,
+            address pool,
             address origin,
             IERC3156FlashBorrower receiver,
             address token,
@@ -355,12 +330,12 @@ contract DODOFlashLender is IDODOFlashLender, IDODOFlashBorrower, Ownable {
             );
 
         require(
-            msg.sender == dvmpool,
+            msg.sender == pool,
             "DODOFlashLender: msg.sender must be the permissioned pool"
         );
 
         uint256 amount = _baseAmount > 0 ? _baseAmount : _quoteAmount;
-        uint256 fee = flashFee(token, amount);
+        uint256 fee = flashFee(pool, token, amount);
 
         IERC20(token).transfer(address(receiver), amount);
 

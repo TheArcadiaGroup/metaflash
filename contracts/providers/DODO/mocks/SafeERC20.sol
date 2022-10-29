@@ -9,7 +9,7 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {IERC20} from "../interfaces/IERC20.sol";
+import {IERC20DODO} from "../interfaces/IERC20DODO.sol";
 import {SafeMath} from "../libraries/SafeMath.sol";
 
 
@@ -26,7 +26,7 @@ library SafeERC20 {
     using SafeMath for uint256;
 
     function safeTransfer(
-        IERC20 token,
+        IERC20DODO token,
         address to,
         uint256 value
     ) internal {
@@ -34,7 +34,7 @@ library SafeERC20 {
     }
 
     function safeTransferFrom(
-        IERC20 token,
+        IERC20DODO token,
         address from,
         address to,
         uint256 value
@@ -46,7 +46,7 @@ library SafeERC20 {
     }
 
     function safeApprove(
-        IERC20 token,
+        IERC20DODO token,
         address spender,
         uint256 value
     ) internal {
@@ -67,7 +67,7 @@ library SafeERC20 {
      * @param token The token targeted by the call.
      * @param data The call data (encoded using abi.encode or one of its variants).
      */
-    function _callOptionalReturn(IERC20 token, bytes memory data) private {
+    function _callOptionalReturn(IERC20DODO token, bytes memory data) private {
         // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
         // we're implementing it ourselves.
 

@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import {Context} from '../../dependencies/openzeppelin/contracts/Context.sol';
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {IERC20Detailed} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
 import {SafeCast} from '../../dependencies/openzeppelin/contracts/SafeCast.sol';
 import {WadRayMath} from '../../libraries/math/WadRayMath.sol';
@@ -97,12 +97,12 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
     return _decimals;
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function totalSupply() public view virtual override returns (uint256) {
     return _totalSupply;
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function balanceOf(address account) public view virtual override returns (uint256) {
     return _userState[account].balance;
   }
@@ -123,14 +123,14 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
     _incentivesController = controller;
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function transfer(address recipient, uint256 amount) external virtual override returns (bool) {
     uint128 castAmount = amount.toUint128();
     _transfer(_msgSender(), recipient, castAmount);
     return true;
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function allowance(address owner, address spender)
     external
     view
@@ -141,13 +141,13 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
     return _allowances[owner][spender];
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function approve(address spender, uint256 amount) external virtual override returns (bool) {
     _approve(_msgSender(), spender, amount);
     return true;
   }
 
-  /// @inheritdoc IERC20
+  /// @inheritdoc IERC20Mock
   function transferFrom(
     address sender,
     address recipient,

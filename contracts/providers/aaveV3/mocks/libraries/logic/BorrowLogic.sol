@@ -3,7 +3,7 @@ pragma solidity 0.8.10;
 
 import {GPv2SafeERC20} from '../../dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {SafeCast} from '../../dependencies/openzeppelin/contracts/SafeCast.sol';
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Mock} from '../../dependencies/openzeppelin/contracts/IERC20Mock.sol';
 import {IStableDebtToken} from '../../interfaces/IStableDebtToken.sol';
 import {IVariableDebtToken} from '../../interfaces/IVariableDebtToken.sol';
 import {IAToken} from '../../interfaces/IAToken.sol';
@@ -23,7 +23,7 @@ import {IsolationModeLogic} from './IsolationModeLogic.sol';
 library BorrowLogic {
   using ReserveLogic for DataTypes.ReserveCache;
   using ReserveLogic for DataTypes.ReserveData;
-  using GPv2SafeERC20 for IERC20;
+  using GPv2SafeERC20 for IERC20Mock;
   using UserConfiguration for DataTypes.UserConfigurationMap;
   using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
   using SafeCast for uint256;
@@ -251,7 +251,7 @@ library BorrowLogic {
         reserveCache.nextLiquidityIndex
       );
     } else {
-      IERC20(params.asset).safeTransferFrom(msg.sender, reserveCache.aTokenAddress, paybackAmount);
+      IERC20Mock(params.asset).safeTransferFrom(msg.sender, reserveCache.aTokenAddress, paybackAmount);
       IAToken(reserveCache.aTokenAddress).handleRepayment(msg.sender, paybackAmount);
     }
 
@@ -280,7 +280,7 @@ library BorrowLogic {
     ValidationLogic.validateRebalanceStableBorrowRate(reserve, reserveCache, asset);
 
     IStableDebtToken stableDebtToken = IStableDebtToken(reserveCache.stableDebtTokenAddress);
-    uint256 stableDebt = IERC20(address(stableDebtToken)).balanceOf(user);
+    uint256 stableDebt = IERC20Mock(address(stableDebtToken)).balanceOf(user);
 
     stableDebtToken.burn(user, stableDebt);
 

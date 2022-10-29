@@ -18,7 +18,8 @@ pragma solidity >=0.6.12;
 
 import "./DssFlash.sol";
 import "./IVatDaiFlashBorrower.sol";
-import "./IERC3156FlashBorrower.sol";
+// import "./IERC3156FlashBorrower.sol";
+import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 
 abstract contract FlashLoanReceiverBase is IVatDaiFlashBorrower, IERC3156FlashBorrower {
 

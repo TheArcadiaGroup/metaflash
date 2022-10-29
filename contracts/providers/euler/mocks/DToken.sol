@@ -30,13 +30,13 @@ contract DToken is BaseLogic {
     /// @notice Debt token name, ie "Euler Debt: DAI"
     function name() external view returns (string memory) {
         (address underlying,,,) = CALLER();
-        return string(abi.encodePacked("Euler Debt: ", IERC20(underlying).name()));
+        return string(abi.encodePacked("Euler Debt: ", IERC20EulerMock(underlying).name()));
     }
 
     /// @notice Debt token symbol, ie "dDAI"
     function symbol() external view returns (string memory) {
         (address underlying,,,) = CALLER();
-        return string(abi.encodePacked("d", IERC20(underlying).symbol()));
+        return string(abi.encodePacked("d", IERC20EulerMock(underlying).symbol()));
     }
 
     /// @notice Decimals of underlying

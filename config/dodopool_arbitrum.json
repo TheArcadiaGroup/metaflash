@@ -1,0 +1,52 @@
+{
+    "1": {
+        "basetoken": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+        "quotetoken": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        "pool": "0x7b07164ecfaf0f0d85dfc062bc205a4674c75aa0"
+    },
+    "2": {
+        "basetoken": "0xae6aab43c4f3e0cea4ab83752c278f8debaba689",
+        "quotetoken": "0x641441c631e2f909700d2f41fd87f0aa6a6b4edb",
+        "pool": "0x19e5910f61882ff6605b576922507f1e1a0302fe"
+    },
+    "3": {
+        "basetoken": "0x641441c631e2f909700d2f41fd87f0aa6a6b4edb",
+        "quotetoken": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        "pool": "0x9340e3296121507318874ce9c04afb4492af0284"
+    },
+    "4": {
+        "basetoken": "0x69eb4fa4a2fbd498c257c57ea8b7655a2559a581",
+        "quotetoken": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        "pool": "0x6a58c68ff5c4e4d90eb6561449cc74a64f818da5"
+    },
+    "5": {
+        "basetoken": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+        "quotetoken": "0x10010078a54396f62c96df8532dc2b4847d47ed3",
+        "pool": "0x65e17c52128396443d4a9a61eacf0970f05f8a20"
+    },
+    "6": {
+        "basetoken": "0x4e352cf164e64adcbad318c3a1e222e9eba4ce42",
+        "quotetoken": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        "pool": "0x34851ea13bde818b1efe26d31377906b47c9bbe2"
+    },
+    "7": {
+        "basetoken": "0xc2125882318d04d266720b598d620f28222f3abd",
+        "quotetoken": "0x641441c631e2f909700d2f41fd87f0aa6a6b4edb",
+        "pool": "0xd7efe569bc7081a3bee3b27232eea7545e36a16e"
+    },
+    "8": {
+        "basetoken": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        "quotetoken": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+        "pool": "0x11d741e4d3b36d37ea448a554caf93108b0c159e"
+    },
+    "9": {
+        "basetoken": "0x8fbd420956fdd301f4493500fd0bcaaa80f2389c",
+        "quotetoken": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+        "pool": "0x5418827176e36c1e3e14e2008bdaae146cfdb683"
+    },
+    "10": {
+        "basetoken": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+        "quotetoken": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+        "pool": "0x40612df27e16f1ff160b4827847de30b02a89007"
+    }
+}

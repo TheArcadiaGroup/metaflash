@@ -28,6 +28,7 @@ const chainIdByName = (chainName) => {
     case 'bsctestnet': return 97;
     case 'polygon': return 137;
     case 'mumbaitestnet': return 80001;
+    case 'arbitrum': return 42161;
     case 'localhost': return 1337;
     default: return 1337;
   }
@@ -49,6 +50,7 @@ const chainNameById = (chainId) => {
     case 97: return 'BSCTestnet';
     case 137: return 'Polygon';
     case 80001: return 'MumbaiTestnet';
+    case 42161: return 'Arbitrum';
     default: return 'Unknown';
   }
 };

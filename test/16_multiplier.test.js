@@ -5,7 +5,7 @@ const { BigNumber } = require('ethers');
 describe('Multiplier', () => {
   let user, lender, borrower, usdc;
   const bal = BigNumber.from(100000);
-  const ERC20_ABI = require('../contracts/providers/euler/abi/IERC20.json');
+  const ERC20_ABI = require('../abi/IERC20.json');
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
   beforeEach(async () => {

@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import "erc3156/contracts/interfaces/IERC3156FlashBorrower.sol";
 import "./interfaces/IEulerFlashLender.sol";
 import "./interfaces/IFLoan.sol";
-import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC20Euler} from "./interfaces/IERC20Euler.sol";
 import {SafeMath} from "./libraries/SafeMath.sol";
 
 contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower {
@@ -137,7 +137,7 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower {
             bytes memory userData
         ) = abi.decode(_data, (address, IERC3156FlashBorrower, bytes));
 
-        IERC20(_token).transfer(origin, _amount);
+        IERC20Euler(_token).transfer(origin, _amount);
 
         require(
             receiver.onFlashLoan(origin, _token, _amount, _fee, userData) ==
@@ -145,9 +145,9 @@ contract EulerFlashLender is IEulerFlashLender, IERC3156FlashBorrower {
             "EulerFlashLender: Callback failed"
         );
 
-        IERC20(_token).transferFrom(origin, address(this), _amount.add(_fee));
+        IERC20Euler(_token).transferFrom(origin, address(this), _amount.add(_fee));
 
-        IERC20(_token).approve(address(flashloan), _amount.add(_fee));
+        IERC20Euler(_token).approve(address(flashloan), _amount.add(_fee));
 
         return CALLBACK_SUCCESS;
     }
